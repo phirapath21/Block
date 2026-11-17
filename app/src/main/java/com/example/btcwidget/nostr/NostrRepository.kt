@@ -322,6 +322,8 @@ class NostrRepository private constructor(private val context: Context) {
 
     /** Forgets everything loaded for the active account (not what's stored for it). */
     private fun resetSession() {
+        // Decrypted copies of the last account's message files go with it.
+        DmMediaCache.clear(context)
         (signer as? BunkerSigner)?.close()
         dms.reset()
         spaces.reset()
