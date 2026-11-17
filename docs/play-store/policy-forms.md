@@ -16,7 +16,8 @@ With Nostr, the app sends what the user posts to Nostr relays (third parties the
   - **Photos and videos › Videos:** videos the user attaches to a post, uploaded as-is to a Blossom media server. App functionality. Optional. Metadata in the file is not removed (the app warns the user).
   - **App activity › Other actions** is not needed beyond the above.
   - **App activity › In-app search history:** search words are sent to NIP-50 search relays when the user searches. App functionality. Optional. Not stored by the developer.
-  - **App info and performance › Diagnostics:** Google's code scanner (ML Kit in Play services, used only when the user scans a QR code) may send Google API usage and performance information, not what was scanned. Declare per Google's current ML Kit data disclosure (developers.google.com/ml-kit, "Data disclosure"); it is collected by the SDK, not the developer.
+  - **Files and docs › Files and docs:** files (videos, audio files, documents) the user sends in a private message, encrypted on the device before upload to their media server. App functionality. Optional. The server only gets ciphertext.
+  - **App info and performance › Diagnostics:** Google's ML Kit translation (used only when the user translates a note; runs on the device) may send Google API usage and performance information, never the text. Declare per Google's current ML Kit data disclosure (developers.google.com/ml-kit, "Data disclosure"); it is collected by the SDK, not the developer. QR scanning uses the app's own CameraX + ZXing scanner and sends nothing.
 - **Is data processed ephemerally?** No (relays store public notes).
 - **Is all of the user data collected by your app encrypted in transit?** Yes: relays use wss:// (TLS), APIs use HTTPS. (Users can add a plain ws:// relay themselves; mention this if the form asks.)
 - **Can users request deletion?** The app sends NIP-09 deletion requests for the user's own notes, and logging out deletes the key from the phone. Relays are third parties; the developer can't delete data from them. Answer per the form's options and point to the privacy policy.
@@ -50,6 +51,7 @@ Apps where users post content must, in the app: let users **report** objectionab
 ## Financial features declaration
 
 - Block shows market data and lets users "zap" (tip) via their own external Lightning wallet: it fetches an invoice and opens the wallet app. It does not hold funds, trade, lend, transfer money itself or act as a wallet or exchange.
+- The Store shows Nostr classified listings posted by users. Paying a seller works like a zap (a Lightning invoice paid by the user's own wallet, or their connected NWC wallet); Block takes no part in the sale, holds nothing and charges nothing. Re-check whether the current form treats peer-to-peer listings as a marketplace feature before answering.
 - Choose the option for apps that provide **no financial features** / information only. If the form requires a cryptocurrency choice, pick the one for **price information or market data only**, not wallets or exchanges.
 
 ## Government apps, news apps, health apps
@@ -59,4 +61,6 @@ Apps where users post content must, in the app: let users **report** objectionab
 ## Permissions declarations
 
 - `POST_NOTIFICATIONS`: price, fee and network-event alerts the user switches on.
+- `CAMERA`: only for the in-app QR scanner, asked the first time the user opens it. Frames are decoded on the device and never stored or sent.
+- `USE_BIOMETRIC` (from AndroidX Biometric): optional fingerprint or face unlock for the app lock.
 - No sensitive permissions (location, SMS, call log, files, accessibility, exact alarms) are used, so no extra declarations are needed.

@@ -996,74 +996,9 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
     var selectedMessageId by remember { mutableStateOf<String?>(null) }
     var showAttachSheet by remember { mutableStateOf(false) }
     var mediaSending by remember { mutableStateOf(false) }
-    var isRecordingVoice by remember { mutableStateOf(false) }
-    var pendingVoiceUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    var pendingVoiceFile by remember { mutableStateOf<java.io.File?>(null) }
-    var voiceRecorder by remember { mutableStateOf<android.media.MediaRecorder?>(null) }
-    var voiceSeconds by remember { mutableStateOf(0) }
-    var voiceLevels by remember { mutableStateOf(List(42) { 0.16f }) }
-    var voicePlayer by remember { mutableStateOf<android.media.MediaPlayer?>(null) }
-    var voicePlaying by remember { mutableStateOf(false) }
-    var voiceUploading by remember { mutableStateOf(false) }
     var pendingSaveBytes by remember { mutableStateOf<ByteArray?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val voicePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            runCatching {
-                val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
-                val file = java.io.File(dir, "voice-${System.currentTimeMillis()}.m4a")
-                val recorder = android.media.MediaRecorder(context).apply {
-                    setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
-                    setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4)
-                    setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC)
-                    setAudioEncodingBitRate(64_000)
-                    setAudioSamplingRate(22_050)
-                    setMaxDuration(120_000)
-                    setOutputFile(file.absolutePath)
-                    prepare()
-                    start()
-                }
-                voiceRecorder = recorder
-                pendingVoiceFile = file
-                pendingVoiceUri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.share", file)
-                isRecordingVoice = true
-            }.onFailure { vm.say(tr("Couldn't start recording")) }
-        } else vm.say(tr("Microphone permission is needed to record voice messages"))
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { runCatching { voiceRecorder?.stop() }; runCatching { voiceRecorder?.release() }; voiceRecorder = null }
-    }
-    LaunchedEffect(isRecordingVoice) {
-        if (isRecordingVoice) {
-            voiceSeconds = 0
-            voiceLevels = emptyList()
-            while (isRecordingVoice && voiceSeconds < 120) {
-                kotlinx.coroutines.delay(100)
-                val amplitude = runCatching { voiceRecorder?.maxAmplitude ?: 0 }.getOrDefault(0)
-                voiceLevels = (voiceLevels + (0.12f + (kotlin.math.ln(1f + amplitude) / 10f).coerceIn(0f, 0.82f))).takeLast(42)
-                if (voiceLevels.size % 10 == 0) voiceSeconds = voiceLevels.size / 10
-            }
-            if (isRecordingVoice) {
-                runCatching { voiceRecorder?.stop() }
-                runCatching { voiceRecorder?.release() }
-                voiceRecorder = null
-                isRecordingVoice = false
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { runCatching { voicePlayer?.release() }; voicePlayer = null }
-    }
-
-    fun discardVoiceDraft() {
-        runCatching { voicePlayer?.stop() }; runCatching { voicePlayer?.release() }
-        voicePlayer = null; voicePlaying = false
-        pendingVoiceFile?.delete(); pendingVoiceFile = null; pendingVoiceUri = null
-        voiceLevels = List(42) { 0.16f }; voiceSeconds = 0
-    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -1530,45 +1465,6 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     }
                 }
 
-                if (isRecordingVoice || pendingVoiceUri != null || voiceUploading) {
-                    VoiceDraftCard(
-                        recording = isRecordingVoice,
-                        playing = voicePlaying,
-                        uploading = voiceUploading,
-                        seconds = voiceSeconds,
-                        levels = voiceLevels.ifEmpty { List(42) { 0.16f } },
-                        onPlay = {
-                            val file = pendingVoiceFile
-                            if (file != null && file.exists()) {
-                                if (voicePlaying) {
-                                    runCatching { voicePlayer?.pause() }; voicePlaying = false
-                                } else if (voicePlayer != null) {
-                                    runCatching { voicePlayer?.start() }; voicePlaying = true
-                                } else runCatching {
-                                    voicePlayer = android.media.MediaPlayer().apply {
-                                        setDataSource(file.absolutePath)
-                                        setOnCompletionListener { voicePlaying = false; runCatching { it.seekTo(0) } }
-                                        setOnPreparedListener { it.start(); voicePlaying = true }
-                                        prepareAsync()
-                                    }
-                                }.onFailure { vm.say(tr("Couldn't play this recording")) }
-                            }
-                        },
-                        onDiscard = {
-                            if (!voiceUploading) {
-                                if (isRecordingVoice) {
-                                    runCatching { voiceRecorder?.stop() }; runCatching { voiceRecorder?.release() }
-                                    voiceRecorder = null; isRecordingVoice = false
-                                }
-                                discardVoiceDraft()
-                            }
-                        },
-                        onRecordAgain = {
-                            if (!voiceUploading) { discardVoiceDraft(); voicePermission.launch(android.Manifest.permission.RECORD_AUDIO) }
-                        }
-                    )
-                    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-                }
 
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 
@@ -1620,30 +1516,6 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Box(
-                        Modifier.size(42.dp).clip(CircleShape).background(if (isRecordingVoice) EInk.Accent else EInk.Body)
-                            .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                            .clickable(enabled = !mediaSending, onClickLabel = tr(if (isRecordingVoice) "Stop recording" else "Record voice message")) {
-                                if (isRecordingVoice) {
-                                    runCatching { voiceRecorder?.stop() }.onFailure {
-                                        pendingVoiceFile?.delete()
-                                        pendingVoiceFile = null
-                                        pendingVoiceUri = null
-                                        vm.say(tr("Recording was too short"))
-                                    }
-                                    runCatching { voiceRecorder?.release() }
-                                    voiceRecorder = null
-                                    isRecordingVoice = false
-                                } else if (pendingVoiceUri != null) {
-                                    pendingVoiceFile?.delete()
-                                    pendingVoiceFile = null
-                                    pendingVoiceUri = null
-                                } else voicePermission.launch(android.Manifest.permission.RECORD_AUDIO)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(if (isRecordingVoice) Glyphs.Pause else Glyphs.SoundOn, contentDescription = null, tint = if (isRecordingVoice) Color.Black else EInk.Accent, modifier = Modifier.size(19.dp))
-                    }
                     // Attachment picker button (Photo, Video, Audio, or Document)
                     Box(
                         Modifier
@@ -1684,7 +1556,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     ) {
                         BasicTextField(
                             value = text,
-                            onValueChange = { if (!isRecordingVoice && pendingVoiceUri == null) text = it },
+                            onValueChange = { text = it },
                             maxLines = 5,
                             textStyle = TextStyle(color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp),
                             cursorBrush = SolidColor(EInk.Accent),
@@ -1692,11 +1564,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             decorationBox = { field ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (text.isEmpty()) {
-                                        when {
-                                            isRecordingVoice -> Text("●  %02d:%02d  %s".format(voiceSeconds / 60, voiceSeconds % 60, tr("Recording")), color = EInk.Alert, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                            pendingVoiceUri != null -> Text(tr("Voice ready · tap sound button to discard"), color = EInk.Accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            else -> Text(tr("Message…"), color = EInk.Caption, fontSize = 15.sp)
-                                        }
+                                        Text(tr("Message…"), color = EInk.Caption, fontSize = 15.sp)
                                     }
                                     field()
                                 }
@@ -1705,7 +1573,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     }
 
                     // Paper-plane Send button
-                    val ready = (text.isNotBlank() || pendingVoiceUri != null) && !sending && !isRecordingVoice && me != null
+                    val ready = text.isNotBlank() && !sending && me != null
                     Box(
                         Modifier
                             .size(42.dp)
@@ -1714,24 +1582,6 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             .clickable(enabled = ready, onClickLabel = tr("Send")) {
                                 sending = true
                                 sendHaptics.confirm()
-                                val voice = pendingVoiceUri
-                                if (voice != null) {
-                                    mediaSending = true
-                                    val voiceFile = pendingVoiceFile
-                                    pendingVoiceFile = null
-                                    pendingVoiceUri = null
-                                    val parentId = replyTo?.id
-                                    replyTo = null
-                                    vm.sendDmFile(peers, voice, parentId) { ok ->
-                                        mediaSending = false
-                                        sending = false
-                                        voiceUploading = false
-                                        if (ok) discardVoiceDraft()
-                                        else { pendingVoiceUri = voice; pendingVoiceFile = voiceFile; vm.say(tr("Upload failed · your recording is still here")) }
-                                    }
-                                    voiceUploading = true
-                                    return@clickable
-                                }
                                 val outgoing = text.trim()
                                 text = ""
                                 val parent = replyTo
@@ -1800,58 +1650,6 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(bottom = 4.dp))
             }
         )
-    }
-}
-
-@Composable
-private fun VoiceDraftCard(
-    recording: Boolean,
-    playing: Boolean,
-    uploading: Boolean,
-    seconds: Int,
-    levels: List<Float>,
-    onPlay: () -> Unit,
-    onDiscard: () -> Unit,
-    onRecordAgain: () -> Unit
-) {
-    Column(
-        Modifier.fillMaxWidth().background(EInk.Body, RoundedCornerShape(20.dp))
-            .border(0.7.dp, EInk.BodyStroke, RoundedCornerShape(20.dp)).padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(if (recording) EInk.Alert.copy(alpha = .16f) else EInk.Accent.copy(alpha = .14f))
-                .clickable(enabled = !recording && !uploading, onClickLabel = tr(if (playing) "Pause preview" else "Play preview"), onClick = onPlay), contentAlignment = Alignment.Center) {
-                Icon(if (recording) Glyphs.SoundOn else if (playing) Glyphs.Pause else Glyphs.Play, contentDescription = null,
-                    tint = if (recording) EInk.Alert else EInk.Accent, modifier = Modifier.size(18.dp))
-            }
-            Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
-                Text(when { uploading -> tr("Sending voice message"); recording -> tr("Recording voice message"); else -> tr("Voice message preview") },
-                    color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(if (uploading) tr("Encrypting and uploading…") else "%02d:%02d".format(seconds / 60, seconds % 60),
-                    color = if (recording) EInk.Alert else EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
-            }
-            if (recording) CircularProgressIndicator(color = EInk.Alert, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-            else if (uploading) CircularProgressIndicator(color = EInk.Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-        }
-        VoiceWaveform(levels, Modifier.fillMaxWidth().padding(top = 12.dp).height(34.dp), EInk.Accent)
-        if (recording || (!recording && !uploading)) {
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (!recording) Text(tr("Record again"), color = EInk.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onRecordAgain).padding(horizontal = 10.dp, vertical = 7.dp))
-                Text(tr("Discard"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onDiscard).padding(horizontal = 10.dp, vertical = 7.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun VoiceWaveform(levels: List<Float>, modifier: Modifier = Modifier, color: Color) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-        levels.forEachIndexed { index, level ->
-            Box(Modifier.weight(1f).height((6 + level.coerceIn(.08f, 1f) * 27).dp)
-                .clip(RoundedCornerShape(3.dp)).background(color.copy(alpha = if (index < levels.size * .72f) .9f else .38f)))
-        }
     }
 }
 

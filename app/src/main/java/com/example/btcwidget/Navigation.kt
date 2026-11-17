@@ -1,5 +1,6 @@
 package com.example.btcwidget
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -40,6 +41,12 @@ fun MainNavigation() {
     com.example.btcwidget.ui.social.LocalSidePanel provides { com.example.btcwidget.ui.social.SidePanel(social, navigate) }
   ) {
   androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
+  // While the lock screen is up, screen readers can't reach the app under it.
+  androidx.compose.foundation.layout.Box(
+    androidx.compose.ui.Modifier.fillMaxSize().then(
+      if (com.example.btcwidget.ui.social.AppLockState.locked) androidx.compose.ui.Modifier.clearAndSetSemantics {} else androidx.compose.ui.Modifier
+    )
+  ) {
   NavDisplay(
     backStack = backStack,
     // System back on the main screen leaves the app instead.
@@ -128,6 +135,7 @@ fun MainNavigation() {
   reopened.value?.let { v -> com.example.btcwidget.ui.social.ReopenedVideo(social, v, navigate, onDismiss = { reopened.value = null }) }
   // While a repost, reply or post is being sent: what it's waiting for, over every screen.
   com.example.btcwidget.ui.social.PublishStatusBar(social, androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopCenter))
+  }
   com.example.btcwidget.ui.social.AppLockGate(activity as? androidx.fragment.app.FragmentActivity)
   }
   }

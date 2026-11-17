@@ -1008,7 +1008,6 @@ fun ListingDetailScreen(
                             location = listing.location,
                             categories = listing.categories,
                             sold = !listing.sold,
-                            btcAddress = listing.btcAddress,
                             shipping = listing.shipping,
                             publishedAt = listing.publishedAt
                         )
@@ -1022,7 +1021,7 @@ fun ListingDetailScreen(
                     onAskSeller = {
                         if (account == null) navigate(LoginKey) else navigate(ChatKey(listing.pubkey))
                     },
-                    onPayWithBlockWallet = { checkoutOpen = true }
+                    onBuy = { checkoutOpen = true }
                 )
             }
         }
@@ -1169,7 +1168,7 @@ private fun SellerTrustCard(
 private fun BuyerBottomBar(
     sold: Boolean,
     onAskSeller: () -> Unit,
-    onPayWithBlockWallet: () -> Unit
+    onBuy: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1197,7 +1196,7 @@ private fun BuyerBottomBar(
             }
         }
 
-        // Primary: Pay with Block Wallet
+        // Primary: Buy (opens the checkout)
         Box(
             Modifier
                 .weight(1f)
@@ -1205,12 +1204,12 @@ private fun BuyerBottomBar(
                 .alpha(if (sold) 0.45f else 1f)
                 .clip(RoundedCornerShape(50))
                 .background(if (sold) EInk.Track else StoreOrange)
-                .clickable(enabled = !sold, onClick = onPayWithBlockWallet)
+                .clickable(enabled = !sold, onClick = onBuy)
                 .padding(horizontal = 18.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (sold) tr("Sold out") else "₿ " + tr("Pay with Block Wallet"),
+                text = if (sold) tr("Sold out") else tr("Checkout"),
                 color = if (sold) EInk.Caption else Color.Black,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
@@ -1266,8 +1265,8 @@ private fun SellerBottomBar(
  * Checkout Bottom Sheet:
  * - Item summary + live price in Sats/BTC (฿/$)
  * - Optional shipping address / note for the seller (sent over encrypted NIP-17 DM)
- * - Primary CTA: "₿ Pay with Block Wallet" (opens Block Wallet directly, never BlueWallet)
- * - Secondary CTA: "⚡ Pay via Lightning" when the seller has a Lightning address
+ * - "⚡ Pay via Lightning" when the seller has a Lightning address
+ * - "Message seller" to send the order note first
  */
 @Composable
 private fun CheckoutSheet(
@@ -1420,49 +1419,16 @@ private fun CheckoutSheet(
 
             Spacer(Modifier.height(10.dp))
 
-            // Primary CTA: Pay with Block Wallet
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(StoreOrange)
-                    .clickable {
-                        if (loggedIn && (sendDmWithOrder || deliveryNote.isNotBlank())) {
-                            vm.sendOrder(listing.pubkey, buildOrderMessage("Block Wallet"))
-                        }
-                        onDismiss()
-                        openBlockWalletPay(
-                            context = context,
-                            pubkey = listing.pubkey,
-                            profile = seller,
-                            amountSats = formattedPrice.sats,
-                            memo = listing.title,
-                            reference = listing.naddr(),
-                            address = listing.btcAddress
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "₿ " + tr("Pay with Block Wallet"),
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Secondary CTA: Pay via Lightning / NWC if seller has lud16 and we have sats amount
+            // Pay via Lightning / NWC when the seller has a Lightning address and the price is known
             val lud16 = seller?.lud16?.trim().orEmpty()
             val sats = formattedPrice.sats
             if (lud16.isNotEmpty() && sats != null && sats > 0) {
-                Spacer(Modifier.height(10.dp))
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(46.dp)
+                        .height(48.dp)
                         .clip(RoundedCornerShape(50))
-                        .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .background(StoreOrange)
                         .clickable {
                             if (loggedIn && (sendDmWithOrder || deliveryNote.isNotBlank())) {
                                 vm.sendOrder(listing.pubkey, buildOrderMessage("Lightning ($lud16)"))
@@ -1479,11 +1445,16 @@ private fun CheckoutSheet(
                 ) {
                     Text(
                         text = if (hasNwc) "⚡ " + tr("Pay via Lightning (NWC)") else "⚡ " + tr("Pay via Lightning"),
-                        color = EInk.Value,
-                        fontSize = 15.sp,
+                        color = Color.Black,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
+            } else {
+                Text(
+                    tr("This seller hasn't set up a Lightning address. Message them to arrange payment."),
+                    color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp
+                )
             }
 
             // Tertiary: Message seller first
@@ -1664,7 +1635,6 @@ fun EditListingScreen(
     var priceCurrency by rememberSaveable { mutableStateOf("SATS") }
     var location by rememberSaveable { mutableStateOf("") }
     var shipping by rememberSaveable { mutableStateOf("") }
-    var btcAddress by rememberSaveable { mutableStateOf("") }
     var selectedCategories by rememberSaveable { mutableStateOf(listOf<String>()) }
     var customTags by rememberSaveable { mutableStateOf("") }
     var sold by rememberSaveable { mutableStateOf(false) }
@@ -1685,7 +1655,6 @@ fun EditListingScreen(
             priceCurrency = l.price?.currency ?: "SATS"
             location = l.location.orEmpty()
             shipping = l.shipping.orEmpty()
-            btcAddress = l.btcAddress.orEmpty()
             val presetIds = STORE_CATEGORIES.drop(2).map { it.id }.toSet()
             selectedCategories = l.categories.filter { it in presetIds }
             customTags = l.categories.filter { it !in presetIds }.joinToString(", ")
@@ -1912,17 +1881,6 @@ fun EditListingScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = btcAddress,
-                onValueChange = { btcAddress = it.trim(); error = null },
-                label = { Text(tr("Bitcoin address for Block Wallet (optional, bc1…)")) },
-                placeholder = { Text("bc1q…", color = EInk.Caption) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = fieldColors,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             if (existing != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1977,10 +1935,6 @@ fun EditListingScreen(
                             error = tr("Please enter a title and valid price.")
                             return@clickable
                         }
-                        if (btcAddress.isNotBlank() && !Marketplace.isBtcAddress(btcAddress)) {
-                            error = tr("That doesn't look like a valid Bitcoin address (bc1… / 1… / 3…).")
-                            return@clickable
-                        }
                         val tags = (selectedCategories + customTags.split(',', ' ').map { it.trim().removePrefix("#").lowercase() })
                             .filter { it.isNotEmpty() }
                             .distinct()
@@ -1996,7 +1950,6 @@ fun EditListingScreen(
                             location = location.ifBlank { null },
                             categories = tags,
                             sold = sold,
-                            btcAddress = btcAddress.ifBlank { null },
                             shipping = shipping.ifBlank { null },
                             publishedAt = existing?.publishedAt ?: (System.currentTimeMillis() / 1000)
                         )

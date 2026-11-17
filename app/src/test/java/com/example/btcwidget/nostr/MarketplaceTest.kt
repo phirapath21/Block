@@ -29,7 +29,6 @@ class MarketplaceTest {
             location = "Bangkok, TH",
             categories = listOf("Hardware", "#Bitcoin"),
             sold = false,
-            btcAddress = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
             shipping = "Free in Thailand",
             publishedAt = 1_700_000_000L,
             now = 1_700_000_100L
@@ -55,7 +54,6 @@ class MarketplaceTest {
         assertEquals("Bangkok, TH", parsed.location)
         assertEquals(listOf("hardware", "bitcoin"), parsed.categories)
         assertFalse(parsed.sold)
-        assertEquals("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", parsed.btcAddress)
         assertEquals("Free in Thailand", parsed.shipping)
         assertEquals(1_700_000_000L, parsed.publishedAt)
         assertTrue(parsed.editable)
@@ -132,7 +130,6 @@ class MarketplaceTest {
             location = null,
             categories = emptyList(),
             sold = false,
-            btcAddress = null,
             shipping = null,
             publishedAt = 100L,
             now = 100L
@@ -149,7 +146,6 @@ class MarketplaceTest {
             location = null,
             categories = emptyList(),
             sold = true,
-            btcAddress = null,
             shipping = null,
             publishedAt = 100L,
             now = 200L

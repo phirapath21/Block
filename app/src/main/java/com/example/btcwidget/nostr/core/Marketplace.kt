@@ -22,7 +22,6 @@ data class Listing(
     val location: String?,
     val categories: List<String>,
     val sold: Boolean,
-    val btcAddress: String?,
     val shipping: String?,
     val publishedAt: Long
 ) {
@@ -45,9 +44,7 @@ object Marketplace {
     val KINDS = listOf(CLASSIFIED, NIP15_PRODUCT)
     const val SATS_PER_BTC = 100_000_000L
 
-    private val BTC_ADDRESS = Regex("""^(bc1[ac-hj-np-z02-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$""")
 
-    fun isBtcAddress(s: String) = BTC_ADDRESS.matches(s.trim())
 
     /** The listing [e] describes, or null when it isn't one (or carries nothing to show). */
     fun parse(e: Event): Listing? = when (e.kind) {
@@ -78,7 +75,6 @@ object Marketplace {
             location = tag("location"),
             categories = e.tagValues("t").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct(),
             sold = status == "sold",
-            btcAddress = tag("btc_address")?.takeIf { isBtcAddress(it) },
             shipping = shipping,
             publishedAt = tag("published_at")?.toLongOrNull() ?: e.createdAt
         )
@@ -102,7 +98,6 @@ object Marketplace {
             location = null,
             categories = e.tagValues("t").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct(),
             sold = quantity == 0,
-            btcAddress = null,
             shipping = null,
             publishedAt = e.createdAt
         )
@@ -183,7 +178,6 @@ object Marketplace {
         location: String?,
         categories: List<String>,
         sold: Boolean,
-        btcAddress: String?,
         shipping: String?,
         publishedAt: Long,
         now: Long = System.currentTimeMillis() / 1000
@@ -199,7 +193,6 @@ object Marketplace {
         images.forEach { tags += listOf("image", it) }
         categories.map { it.trim().lowercase().removePrefix("#") }.filter { it.isNotEmpty() }.distinct().forEach { tags += listOf("t", it) }
         tags += listOf("status", if (sold) "sold" else "active")
-        btcAddress?.trim()?.takeIf { isBtcAddress(it) }?.let { tags += listOf("btc_address", it) }
         shipping?.trim()?.takeIf { it.isNotEmpty() }?.let { tags += listOf("shipping", it) }
         return UnsignedEvent(pubkey, now, CLASSIFIED, tags, description.trim())
     }
