@@ -188,8 +188,9 @@ class MainScreenTest {
     fun widgets_tabCountsMetricsOnTheWidget() {
         setContent()
         openFromSideBar("Widgets")
-        // STACK needs holdings, so 13 of the 14 modes are available.
-        composeTestRule.onNodeWithText("13 of 13", substring = true).assertExists()
+        // STACK needs holdings, so 16 of the 17 modes are available.
+        val available = BlockclockMetrics.MODE_COUNT - 1
+        composeTestRule.onNodeWithText("$available of $available", substring = true).assertExists()
     }
 
     @Test

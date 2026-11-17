@@ -1,5 +1,6 @@
 package com.example.btcwidget
 
+import kotlin.math.roundToLong
 import java.util.Locale
 
 /**
@@ -49,7 +50,7 @@ object BlockclockMetrics {
         "Lightning Network Capacity",
         "Your Stack Value",
         "ASST BTC Holdings",
-        "ASST Share-to-BTC Ratio",
+        "ASST Share Price in Sats",
         "ASST Share Price"
     )
 
@@ -226,7 +227,8 @@ object BlockclockMetrics {
             12 -> BlockclockDisplay("LN", "CAP", "%.0f".f(data.lightningCapacity), "BTC", caption = "Lightning capacity")
             MODE_STACK -> stackDisplay(stackSats, data, currency)
             14 -> BlockclockDisplay("ASST", "BTC", "%.0f".f(data.asstBtcHeld), caption = "Strive BTC holdings")
-            15 -> BlockclockDisplay("ASST", "BTC", "%.6f".f(data.asstBtc), caption = "Strive BTC per share")
+            // A Strive share is worth a tiny slice of a bitcoin: shown in sats, which also fits the panel.
+            15 -> BlockclockDisplay("ASST", "SATS", "%d".f((data.asstBtc * 100_000_000).roundToLong()), caption = "Strive sats per share")
             16 -> BlockclockDisplay("ASST", "USD", "$%.2f".f(data.asstUsd), caption = "Strive share price")
             else -> if (isThb) {
                 BlockclockDisplay(

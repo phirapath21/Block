@@ -47,7 +47,7 @@ Four resizable home-screen widgets (2×1 by default):
 |---|---|---|---|---|---|
 | BTC price (USD or THB) | Block height | Circulating supply | MSTR share price | ASST share price | Your stack's value |
 | Sats per dollar / baht | Mempool fees (fast / mid / low) | Lightning capacity | MSTR BTC holdings | ASST BTC holdings | |
-| Moscow time (clean) | Hashrate (3-day) | | MSTR / BTC ratio | ASST / BTC ratio | |
+| Moscow time (clean) | Hashrate (3-day) | | MSTR / BTC ratio | ASST price in sats | |
 | | Difficulty adjustment | | | | |
 | | Halving countdown | | | | |
 
