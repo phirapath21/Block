@@ -11,6 +11,8 @@ pluginManagement {
                 includeGroupByRegex("com\\.google\\.play.*")
                 includeGroupByRegex("com\\.google\\.ai.*")
                 includeGroupByRegex("com\\.google\\.ar.*")
+                // The emulator test runner (UTP) pulls its device provider from here.
+                includeGroupByRegex("com\\.google\\.testing\\.platform.*")
             }
         }
         mavenCentral()
