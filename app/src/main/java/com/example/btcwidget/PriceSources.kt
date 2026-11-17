@@ -37,6 +37,25 @@ data class PricePoint(val time: Long, val price: Double, val resolutionSeconds: 
 /** Response parsers for the price APIs. Pure functions, unit tested with sample JSON. */
 object ApiParsers {
 
+    /**
+     * CoinGecko `/companies/public_treasury/bitcoin`: Strategy's and Strive's holdings.
+     * Strategy is matched by its MSTR symbol, Strive by its ASST symbol or its name; a
+     * company missing from the list (or with no holdings) comes back null.
+     */
+    fun treasury(json: String): PriceRepository.Treasury {
+        val companies = JSONObject(json).getJSONArray("companies")
+        var mstr: Double? = null
+        var asst: Double? = null
+        for (i in 0 until companies.length()) {
+            val c = companies.getJSONObject(i)
+            val symbol = c.optString("symbol").uppercase()
+            val held = c.optDouble("total_holdings", 0.0).takeIf { it > 0 } ?: continue
+            if (mstr == null && symbol.startsWith("MSTR")) mstr = held
+            if (asst == null && (symbol.startsWith("ASST") || c.optString("name").startsWith("Strive", ignoreCase = true))) asst = held
+        }
+        return PriceRepository.Treasury(mstr, asst)
+    }
+
     /** Coinbase `/v2/exchange-rates?currency=BTC`: BTC priced in USD and THB. */
     fun coinbaseRates(json: String): PriceRepository.Rates {
         val rates = JSONObject(json).getJSONObject("data").getJSONObject("rates")

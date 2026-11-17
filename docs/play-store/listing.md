@@ -20,7 +20,7 @@ Bitcoin price, sats, fees and block height as clean home-screen widgets.
 Block puts Bitcoin on your home screen. Clean, readable widgets in a minimal blockclock style show the numbers you check every day — at a glance, without opening an app.
 
 WIDGETS
-• Bitcoin metrics — price, sats per dollar, block height, fees, hash rate, difficulty, halving countdown, Lightning capacity, Strategy (MSTR) holdings and more. Tap to cycle; choose which metrics and their order.
+• Bitcoin metrics — price, sats per dollar, block height, fees, hash rate, difficulty, halving countdown, Lightning capacity, Strategy (MSTR) and Strive (ASST) holdings and more. Tap to cycle; choose which metrics and their order.
 • Price chart — BTC price with a 24-hour or 7-day sparkline. Tap to switch.
 • Halving countdown — progress, days or blocks to the next halving.
 • Bitcoin quotes — words from Satoshi Nakamoto, Hal Finney and the cypherpunks.

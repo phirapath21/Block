@@ -226,7 +226,7 @@ fun SocialScaffold(
                 stats = stats[note.id]
             )
         }
-        NostrShareStudioSheet(
+        NoteShareSheet(
             data = studioData,
             onDismiss = { shareStudioTarget = null }
         )
