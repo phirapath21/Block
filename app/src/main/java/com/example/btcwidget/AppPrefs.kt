@@ -34,6 +34,9 @@ object AppPrefs {
     private const val EVENT_RETENTION_DAYS = "event_retention_days"
     private const val APP_PIN_SALT = "app_pin_salt"
     private const val APP_PIN_HASH = "app_pin_hash"
+    private const val APP_PIN_LENGTH = "app_pin_length"
+    private const val APP_PIN_FAILURES = "app_pin_failures"
+    private const val APP_PIN_LOCKED_UNTIL = "app_pin_locked_until"
     private const val APP_BIOMETRIC_LOCK = "app_biometric_lock"
     private const val APP_LOCK_PREFERENCE = "app_lock_preference"
     private const val VIDEO_AUTOPLAY = "video_autoplay"
@@ -187,12 +190,23 @@ object AppPrefs {
     fun appPinSalt(context: Context): String? = prefs(context).getString(APP_PIN_SALT, null)
     fun appPinHash(context: Context): String? = prefs(context).getString(APP_PIN_HASH, null)
     fun hasAppPin(context: Context): Boolean = appPinSalt(context) != null && appPinHash(context) != null
-    fun setAppPin(context: Context, salt: String, hash: String) = edit(context) {
-        putString(APP_PIN_SALT, salt); putString(APP_PIN_HASH, hash)
+    fun setAppPin(context: Context, salt: String, hash: String, length: Int) = edit(context) {
+        putString(APP_PIN_SALT, salt); putString(APP_PIN_HASH, hash); putInt(APP_PIN_LENGTH, length)
+        remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL)
     }
     fun clearAppPin(context: Context) = edit(context) {
-        remove(APP_PIN_SALT); remove(APP_PIN_HASH); remove(APP_BIOMETRIC_LOCK); putString(APP_LOCK_PREFERENCE, "PIN")
+        remove(APP_PIN_SALT); remove(APP_PIN_HASH); remove(APP_PIN_LENGTH); remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL)
+        remove(APP_BIOMETRIC_LOCK); putString(APP_LOCK_PREFERENCE, "PIN")
     }
+    /** How many digits the PIN has (0 for PINs set before this was stored). */
+    fun appPinLength(context: Context): Int = prefs(context).getInt(APP_PIN_LENGTH, 0)
+    /** Wrong PINs in a row, kept across restarts so closing the app doesn't reset the wait. */
+    fun appPinFailures(context: Context): Int = prefs(context).getInt(APP_PIN_FAILURES, 0)
+    fun appPinLockedUntil(context: Context): Long = prefs(context).getLong(APP_PIN_LOCKED_UNTIL, 0L)
+    fun setAppPinFailures(context: Context, failures: Int, lockedUntil: Long) = edit(context) {
+        putInt(APP_PIN_FAILURES, failures); putLong(APP_PIN_LOCKED_UNTIL, lockedUntil)
+    }
+    fun clearAppPinFailures(context: Context) = edit(context) { remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL) }
     fun biometricLock(context: Context): Boolean = prefs(context).getBoolean(APP_BIOMETRIC_LOCK, false)
     fun setBiometricLock(context: Context, enabled: Boolean) = edit(context) { putBoolean(APP_BIOMETRIC_LOCK, enabled) }
     fun appLockPreference(context: Context): String = prefs(context).getString(APP_LOCK_PREFERENCE, "PIN") ?: "PIN"

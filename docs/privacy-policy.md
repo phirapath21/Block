@@ -1,6 +1,6 @@
 # Block Privacy Policy
 
-**Effective date:** 11 November 2026
+**Effective date:** 17 November 2026
 
 Block ("the app") is a client for Nostr, an open social network, with Bitcoin market and network data, home-screen widgets and alerts. This policy explains what the app does with information. In short: **the developer runs no servers and collects no personal data; there are no ads, analytics or tracking.** What you post on Nostr is public, and it goes to the Nostr relays you use, not to the developer.
 
@@ -9,7 +9,9 @@ Block ("the app") is a client for Nostr, an open social network, with Bitcoin ma
 The app keeps the following only on your device, in its private app storage:
 
 - **Your settings** — theme, display currency, refresh interval, data sources, which metrics the widget shows and their order, collapsed sections.
-- **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth. It is never sent anywhere by the app.
+- **Your stack** — the amount of bitcoin you choose to enter (and its cost basis, if you add one), to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
+- **App lock** — if you set a PIN, the app stores a salted PBKDF2 hash of it (never the PIN itself), its length, and how many wrong PINs were entered in a row, so the wait after repeated wrong PINs survives a restart. If you turn on fingerprint or face unlock, only that choice is stored: Android checks your fingerprint or face and Block never sees it.
+- **Your own mempool server**, if you set one in Settings, used instead of mempool.space (see Network requests).
 - **Alerts** — the price, fee and network-event alerts you set.
 - **Cached market data** — the latest prices, network figures and hourly price history, so widgets and charts work offline.
 - **Widget state** — the mode, range or quote each placed widget shows.
@@ -21,15 +23,15 @@ The app keeps the following only on your device, in its private app storage:
 - **Your relay list**, if you edit it.
 - **Scheduled posts** — posts you scheduled, kept until they are published at their time (then signed and sent to your relays) or you cancel them. Excluded from Android backup and device transfer, and deleted when you log out.
 - **Drafts** — text you typed in the composer but didn't post (one per new post, reply or quote, up to 50), so you can pick up where you left off. Excluded from Android backup and device transfer, and deleted when you post or log out.
-- **A local database of Nostr events** you have seen (notes, profiles, lists, and private messages still in their encrypted form), so screens open instantly and work offline. It holds about 50,000 events at most, is excluded from Android backup and device transfer, and is deleted when you log out.
+- **A local database of Nostr events** you have seen (notes, profiles, lists, and private messages still in their encrypted form), so screens open instantly and work offline. It holds about 50,000 events at most, and events older than 30 days are removed automatically (you can choose 90 days or no age limit in Settings). It is excluded from Android backup and device transfer, and is deleted when you log out.
 
 Uninstalling the app or clearing its storage deletes all of this.
 
-**Sharing:** when you tap Share on the dashboard, the app saves an image of that metric in its cache and hands it, with a line of text, to the app you choose in Android's share sheet (for example a Nostr client). Block sends nothing itself; what happens next is up to the app you picked. Your stack is never offered for sharing.
+**Sharing:** when you tap Share on the dashboard, or make a share card from a note or a Bitcoin figure, the app draws the image on your phone, saves it in its cache and hands it, with a line of text, to the app you choose in Android's share sheet (for example a Nostr client). Block sends nothing itself; what happens next is up to the app you picked. Your stack is never offered for sharing.
 
 **Showing your key:** for an account whose key is on the phone, Settings › Nostr › More can show your nsec so you can back it up. It is shown only after a warning, with screenshots blocked, and copying marks it as sensitive so Android hides it from clipboard previews.
 
-**Android backup:** if you have Android backup turned on, Android may include the app's storage (except the Nostr account files and drafts) in your device backup to your own Google account, under your control. The developer cannot access these backups.
+**Android backup:** if you have Android backup turned on, Android may include the app's storage (except the Nostr account files, drafts, scheduled posts and the event database) in your device backup to your own Google account, under your control. This includes your settings and, if you set one, the app-lock PIN hash, so a restored phone asks for the same PIN. The developer cannot access these backups.
 
 ## Nostr: what you publish is public
 
@@ -41,7 +43,7 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Zaps:** when you zap, the app asks the recipient's Lightning address provider (the domain in their Lightning address, for example getalby.com) for an invoice and passes it to your Lightning wallet app. That provider sees your IP address, the amount and your signed zap request (who you zapped, and any comment, which become public in the zap receipt). Payment happens in your wallet app; Block never holds funds.
 
-**Private messages (NIP-17):** direct messages are end-to-end encrypted on your phone (NIP-44) and wrapped so relays can't see who sent them, what they say, or exactly when (timestamps are randomized up to two days back). Each message is sent as one encrypted "gift wrap" per recipient, to their inbox relays (their kind-10050 list), plus one copy for you. If you choose "Set up" in Messages, the app publishes your own inbox relay list (public) so others know where to deliver. On your phone, only the still-encrypted wraps are stored (in the local database); decrypted text is kept in memory only. With a signer app, it decrypts and encrypts messages for Block. **Photos in messages** have location data removed, are then encrypted on your phone with a new key, and only the encrypted file is uploaded to your media server; the key travels only inside the encrypted message, so the server can't see the photo. Reactions and replies to messages are sent the same private way. **Older messages (NIP-04)** that other apps sent are also read and shown, marked "old format": those were never hidden from relays (who talked to whom, and when), and Block never sends new ones. Messages from people you don't follow appear under Requests until you reply.
+**Private messages (NIP-17):** direct messages are end-to-end encrypted on your phone (NIP-44) and wrapped so relays can't see who sent them, what they say, or exactly when (timestamps are randomized up to two days back). Each message is sent as one encrypted "gift wrap" per recipient, to their inbox relays (their kind-10050 list), plus one copy for you. If you choose "Set up" in Messages, the app publishes your own inbox relay list (public) so others know where to deliver. On your phone, only the still-encrypted wraps are stored (in the local database); decrypted text is kept in memory only. With a signer app, it decrypts and encrypts messages for Block. **Files in messages** (photos, videos, audio files and documents, up to 25 MB) are encrypted on your phone with a new key (AES-GCM), and only the encrypted file is uploaded to your media server; the key travels only inside the encrypted message, so the server can't see the file. Photos have location data removed first; other files are encrypted as they are, so metadata saved inside them is kept for the person you send them to. Files you open or save from a message are decrypted on the phone. Reactions and replies to messages are sent the same private way. **Older messages (NIP-04)** that other apps sent are also read and shown, marked "old format": those were never hidden from relays (who talked to whom, and when), and Block never sends new ones. Messages from people you don't follow appear under Requests until you reply.
 
 **Notifications while the app is closed:** if you're logged in and "Phone notifications" is on (Settings › Nostr), the background refresh (every 15, 30 or 60 minutes) also asks your relays for new replies, mentions, reposts, likes, zaps and private messages addressed to you, decrypts messages on the phone, and shows a notification. Message text is hidden on the lock screen. Turn it off at any time in Settings.
 
@@ -81,7 +83,11 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Feeds from DVMs:** under Search › Feeds you can ask a Data Vending Machine (NIP-90) for a feed. The request goes through your relays to that service and is signed with a new throwaway key each time, so the service doesn't learn who asked, except for feeds marked "personalized", which use your account so they can tailor results.
 
-**QR codes:** your profile's QR code is drawn on the phone. Scanning a code uses Google's code scanner in Google Play services: the camera screen runs there, Block gets only the scanned text and needs no camera permission, and the scanner may be downloaded by Play services the first time. Pictures from the camera are processed on the phone. Like Google's other ML Kit services, the scanner may send Google basic information about how it runs (such as device type, app version and performance), never what it scanned; see Google's ML Kit terms and privacy information.
+**QR codes:** your profile's QR code is drawn on the phone. Scanning a code uses Block's own scanner: it asks for the camera permission the first time you scan, shows the camera only while the scan screen is open, and reads the code on the phone (ZXing). Camera frames are never saved or sent anywhere, and no Google Play services are involved.
+
+**Translation:** tapping Translate on a note translates it on your phone with Google's ML Kit. The note's text is not sent to any server. The first time you translate from or to a language, the app downloads that language's model from Google (about 30 MB), which, like any download, shows Google your IP address; ML Kit may also send Google basic information about how it runs (such as device type, app version and performance), never the text. See Google's ML Kit terms and privacy information.
+
+**Store (Marketplace):** listings (NIP-99 classified listings, and NIP-15 products from other apps) are read from your relays and are public. A listing you post, with its title, description, price, photos, location and shipping note, is public and signed by your key; photos are uploaded as described in Photos you post, and marking it sold or deleting it works like editing or deleting a note. When you check out, the order note (what you're buying, the price and any shipping address you type) is sent to the seller as an encrypted private message, if you choose to. Paying with Lightning is a plain payment to the seller's Lightning address, not a zap: the app asks the seller's Lightning provider (the domain in their Lightning address) for an invoice for the amount, which shows that provider your IP address and the amount, and then your wallet app (or your connected NWC wallet) pays it. Nothing is signed with your key and no public receipt is published, so others can't see that you bought something. Block never holds funds and is not part of the sale.
 
 **New accounts:** the setup after creating an account publishes only what you choose: your name, about and picture (public profile), the people you follow, and your message inbox list. The topics you pick are stored on the phone as Home feeds; finding people for them asks the search relays for recent notes with those hashtags.
 
@@ -101,7 +107,7 @@ To show market and network data, the app requests public data directly from thes
 | api.exchange.coinbase.com | 24-hour change and hourly price history | Always |
 | api.kraken.com | BTC price | Only if you choose Kraken as the price source |
 | api.bitkub.com | BTC/THB price and change | Only if you choose Bitkub for THB |
-| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity | Always |
+| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity, the blocks and transactions behind Bitcoin links in notes, and transactions you look up on the dashboard (the transaction id is sent) | Always, unless you set your own mempool server in Settings, which is then asked instead |
 | blockchain.info | Bitcoin in circulation | Always |
 | query1.finance.yahoo.com | Strategy (MSTR) share price | Always |
 | api.coingecko.com | Strategy (MSTR) bitcoin holdings | Always |
@@ -115,15 +121,17 @@ Requests run when you open or refresh the app and in the background at the inter
 - **Internet** — to fetch the data above.
 - **Storage (Android 9 and below only)** — asked only when you choose "Save image", to save that picture to Pictures/Block. Android 10 and later need no permission for this.
 - **Notifications** (Android 13 and later) — to show the alerts you switch on. Asked for only when you turn on an alert; you can revoke it in system settings at any time.
+- **Camera** — only to scan QR codes, asked the first time you open the scanner. Frames are read on the phone and never saved or sent. You can revoke it in system settings at any time; everything else works without it.
+- **Fingerprint or face** — only if you turn on biometric unlock for the app lock. Android handles the check; Block only learns whether it succeeded.
 - The background-work library the app uses (Android WorkManager) also declares permissions to check network status, keep scheduled updates after a restart, and run briefly in the background. They are used only to refresh the data above.
 
 ## What the app does not do
 
 - No accounts on any developer server: your Nostr key is yours, and the developer cannot see, recover or reset it.
 - No advertising or advertising identifiers.
-- No analytics, crash-reporting or tracking SDKs. If the app crashes, the next launch shows the saved report (phone model, Android version, app version and the error's stack trace), kept only on your phone. **Report on GitHub** opens a new issue on Block's public GitHub repository in your browser with that report filled in; nothing is sent unless you submit it there yourself, with your GitHub account, and the issue is public. Copy and Share hand the report to the app you choose; Continue deletes it. (Google's code scanner, used only when you scan a QR code, reports its own usage information to Google as described above.)
+- No analytics, crash-reporting or tracking SDKs. If the app crashes, the next launch shows the saved report (phone model, Android version, app version and the error's stack trace), kept only on your phone. **Report on GitHub** opens a new issue on Block's public GitHub repository in your browser with that report filled in; nothing is sent unless you submit it there yourself, with your GitHub account, and the issue is public. Copy and Share hand the report to the app you choose; Continue deletes it. (Google's ML Kit, used only when you translate a note, reports its own usage information to Google as described above.)
 - No selling or sharing of personal data — the developer does not collect any.
-- No access to your contacts, location, camera, microphone, files or other apps.
+- No access to your contacts, location, microphone, files or other apps. The camera is used only while you scan a QR code.
 
 ## Children
 

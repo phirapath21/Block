@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +67,7 @@ object AppPin {
         require(pin.matches(Regex("\\d{4,6}")))
         val salt = ByteArray(16).also(SecureRandom()::nextBytes)
         val hash = derive(pin, salt)
-        AppPrefs.setAppPin(context, Base64.encodeToString(salt, Base64.NO_WRAP), Base64.encodeToString(hash, Base64.NO_WRAP))
+        AppPrefs.setAppPin(context, Base64.encodeToString(salt, Base64.NO_WRAP), Base64.encodeToString(hash, Base64.NO_WRAP), pin.length)
     }
 
     fun verify(context: Context, pin: String): Boolean {
@@ -80,6 +82,37 @@ object AppPin {
         return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded }
         finally { spec.clearPassword() }
     }
+
+    /** Wrong PINs allowed before each further one makes you wait. */
+    private const val FREE_TRIES = 5
+    private const val FIRST_WAIT_MS = 30_000L
+    private const val LONGEST_WAIT_MS = 60 * 60_000L
+
+    /**
+     * How long to wait after [failures] wrong PINs in a row: nothing for the first few, then
+     * 30 s, doubling each time up to an hour, so guessing every PIN would take years.
+     */
+    fun waitAfter(failures: Int): Long =
+        if (failures < FREE_TRIES) 0L
+        else (FIRST_WAIT_MS shl (failures - FREE_TRIES).coerceAtMost(7)).coerceAtMost(LONGEST_WAIT_MS)
+
+    /** Notes a wrong PIN and returns when the next try is allowed (epoch ms). */
+    fun recordFailure(context: Context, now: Long = System.currentTimeMillis()): Long {
+        val failures = AppPrefs.appPinFailures(context) + 1
+        val until = now + waitAfter(failures)
+        AppPrefs.setAppPinFailures(context, failures, until)
+        return until
+    }
+
+    /** When the next try is allowed; a time further off than the longest wait (the clock moved back) is cut to it. */
+    fun lockedUntil(context: Context, now: Long = System.currentTimeMillis()): Long =
+        AppPrefs.appPinLockedUntil(context).coerceAtMost(now + LONGEST_WAIT_MS)
+}
+
+/** Whether the lock screen is up, so what's under it can be hidden from screen readers. */
+object AppLockState {
+    var locked by mutableStateOf(false)
+        internal set
 }
 
 /** Blocks the app after launch and each time it returns from the background. */
@@ -87,6 +120,13 @@ object AppPin {
 fun AppLockGate(activity: FragmentActivity?) {
     val context = LocalContext.current
     var locked by remember { mutableStateOf(AppPrefs.hasAppPin(context)) }
+    // The PIN's length, so a wrong 4-digit PIN is told as soon as 4 digits are in (0: not known,
+    // for PINs set before it was stored: then each length from 4 to 6 is tried).
+    val pinLength = remember(locked) { AppPrefs.appPinLength(context) }
+    val maxDigits = if (pinLength in 4..6) pinLength else 6
+    var waitUntil by remember { mutableStateOf(AppPin.lockedUntil(context)) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    androidx.compose.runtime.SideEffect { AppLockState.locked = locked }
     var pin by remember { mutableStateOf("") }
     var checking by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -108,11 +148,19 @@ fun AppLockGate(activity: FragmentActivity?) {
     }
     if (!locked) return
     BackHandler(enabled = true) { }
+    // Count down while a wait after wrong PINs is on.
+    LaunchedEffect(waitUntil) {
+        now = System.currentTimeMillis()
+        while (now < waitUntil) { kotlinx.coroutines.delay(1_000); now = System.currentTimeMillis() }
+    }
+    val waiting = now < waitUntil
 
     val prompt = remember(activity) {
         activity?.let { owner ->
             BiometricPrompt(owner, ContextCompat.getMainExecutor(context), object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    AppPrefs.clearAppPinFailures(context)
+                    waitUntil = 0L
                     locked = false
                     pin = ""
                     error = null
@@ -150,7 +198,8 @@ fun AppLockGate(activity: FragmentActivity?) {
 
     LaunchedEffect(pin) {
         checking = false
-        if (pin.length in 4..6) {
+        val complete = if (pinLength in 4..6) pin.length == pinLength else pin.length in 4..6
+        if (complete && !waiting) {
             val entered = pin
             checking = true
             kotlinx.coroutines.delay(80)
@@ -158,11 +207,14 @@ fun AppLockGate(activity: FragmentActivity?) {
             if (pin != entered) return@LaunchedEffect
             checking = false
             if (valid) {
+                AppPrefs.clearAppPinFailures(context)
+                waitUntil = 0L
                 view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                 locked = false
                 pin = ""
                 error = null
-            } else if (entered.length == 6) {
+            } else if (pinLength in 4..6 || entered.length == 6) {
+                waitUntil = withContext(Dispatchers.IO) { AppPin.recordFailure(context) }
                 error = tr("Incorrect PIN")
                 failedAttempt++
                 if (android.os.Build.VERSION.SDK_INT >= 30) view.performHapticFeedback(android.view.HapticFeedbackConstants.REJECT)
@@ -180,7 +232,12 @@ fun AppLockGate(activity: FragmentActivity?) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(EInk.Background), contentAlignment = Alignment.Center) {
+    // Every touch stops here: the app under the lock screen must not be tapped through it.
+    Box(
+        Modifier.fillMaxSize().background(EInk.Background)
+            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } },
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             Modifier.fillMaxWidth().widthIn(max = 420.dp).padding(horizontal = 22.dp, vertical = 18.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -237,9 +294,16 @@ fun AppLockGate(activity: FragmentActivity?) {
                             }
                         }
                         error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp) }
+                        if (waiting) {
+                            val seconds = ((waitUntil - now + 999) / 1000).coerceAtLeast(1)
+                            Text(
+                                tr("Too many wrong PINs. Try again in {0}", if (seconds >= 60) "%d:%02d".format(seconds / 60, seconds % 60) else tr("{0} s", seconds.toString())),
+                                color = EInk.Alert, fontSize = 13.sp
+                            )
+                        }
                         PinKeypad(
                             onDigit = { digit ->
-                                if (pin.length < 6) {
+                                if (pin.length < maxDigits) {
                                     view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
                                     pin += digit
                                     error = null
@@ -252,7 +316,7 @@ fun AppLockGate(activity: FragmentActivity?) {
                                 }
                                 error = null
                             },
-                            enabled = error == null
+                            enabled = error == null && !waiting
                         )
                     }
                     if (canUseBiometric && prompt != null) {
