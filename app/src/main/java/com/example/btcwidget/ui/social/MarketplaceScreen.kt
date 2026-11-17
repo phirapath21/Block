@@ -1434,12 +1434,7 @@ private fun CheckoutSheet(
                                 vm.sendOrder(listing.pubkey, buildOrderMessage("Lightning ($lud16)"))
                             }
                             onDismiss()
-                            vm.payLightning(
-                                seller = listing.pubkey,
-                                lud16 = lud16,
-                                amountSat = sats,
-                                memo = "Order: ${listing.title}"
-                            ) { invoice -> payInvoice(context, invoice) }
+                            vm.payLightning(seller = listing.pubkey, amountSat = sats) { invoice -> payInvoice(context, invoice) }
                         },
                     contentAlignment = Alignment.Center
                 ) {

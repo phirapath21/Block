@@ -2023,6 +2023,23 @@ class NostrRepository private constructor(private val context: Context) {
         Zaps.parseInvoice(httpGet(Zaps.callbackUrl(info, msat, request, lnurl))).getOrThrow()
     }
 
+    /**
+     * Gets a plain Lightning invoice (LNURL-pay, no zap request) for [amountSat] to [recipient]'s
+     * Lightning address. Unlike a zap nothing is signed and no public receipt is published, so
+     * paying for a Store order doesn't tell everyone who bought what.
+     */
+    suspend fun lnurlPayInvoice(recipient: String, amountSat: Long): String = withContext(Dispatchers.IO) {
+        val profile = _profiles.value[recipient] ?: refreshProfile(recipient)
+            ?: error("Couldn't load their profile")
+        val endpoint = Zaps.payEndpoint(profile) ?: error("They haven't set up a Lightning address")
+        val info = Zaps.parsePayInfo(httpGet(endpoint)) ?: error("Their Lightning address didn't answer")
+        val msat = amountSat * 1000
+        if (msat < info.minSendableMsat || msat > info.maxSendableMsat) {
+            error("Amount must be between ${info.minSendableMsat / 1000} and ${info.maxSendableMsat / 1000} sats")
+        }
+        Zaps.parseInvoice(httpGet(info.callback + (if ('?' in info.callback) "&" else "?") + "amount=$msat")).getOrThrow()
+    }
+
     private fun httpGet(url: String): String {
         require(url.startsWith("https://")) { "Refusing non-HTTPS request" }
         RelayPool.defaultClient.newCall(Request.Builder().url(url).header("Accept", "application/json").build()).execute().use { r ->

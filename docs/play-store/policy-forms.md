@@ -51,7 +51,7 @@ Apps where users post content must, in the app: let users **report** objectionab
 ## Financial features declaration
 
 - Block shows market data and lets users "zap" (tip) via their own external Lightning wallet: it fetches an invoice and opens the wallet app. It does not hold funds, trade, lend, transfer money itself or act as a wallet or exchange.
-- The Store shows Nostr classified listings posted by users. Paying a seller works like a zap (a Lightning invoice paid by the user's own wallet, or their connected NWC wallet); Block takes no part in the sale, holds nothing and charges nothing. Re-check whether the current form treats peer-to-peer listings as a marketplace feature before answering.
+- The Store shows Nostr classified listings posted by users. Paying a seller is a plain Lightning payment (an invoice from the seller's Lightning address, paid by the user's own wallet or their connected NWC wallet; no public zap receipt); Block takes no part in the sale, holds nothing and charges nothing. Re-check whether the current form treats peer-to-peer listings as a marketplace feature before answering.
 - Choose the option for apps that provide **no financial features** / information only. If the form requires a cryptocurrency choice, pick the one for **price information or market data only**, not wallets or exchanges.
 
 ## Government apps, news apps, health apps

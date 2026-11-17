@@ -289,6 +289,8 @@ internal val THAI: Map<String, String> = hashMapOf(
     "Unpinned" to "เลิกปักหมุดแล้ว",
     "Couldn't zap" to "Zap ไม่สำเร็จ",
     "⚡ Paying {0} sats…" to "⚡ กำลังจ่าย {0} sats…",
+    "⚡ Paid {0} sats" to "⚡ จ่ายแล้ว {0} sats",
+    "Couldn't pay" to "จ่ายไม่สำเร็จ",
     "⚡ Zapped {0} sats" to "⚡ Zap แล้ว {0} sats",
     "Wallet connected" to "เชื่อมวอลเล็ตแล้ว",
     "Wallet disconnected" to "ยกเลิกการเชื่อมวอลเล็ตแล้ว",

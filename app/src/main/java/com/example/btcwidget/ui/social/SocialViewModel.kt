@@ -701,9 +701,23 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Pays the seller's Lightning address: in the app with NWC, else [onInvoice] opens a wallet. */
-    fun payLightning(seller: String, lud16: String, amountSat: Long, memo: String, onInvoice: (String) -> Unit) =
-        zap(seller, amountSat, null, memo, lud16, onInvoice)
+    /**
+     * Pays the seller's Lightning address for a Store order: in the app with NWC, else [onInvoice]
+     * opens a wallet. A plain payment, not a zap: no signed request and no public receipt, so the
+     * purchase stays between buyer and seller (the order details go by encrypted message).
+     */
+    fun payLightning(seller: String, amountSat: Long, onInvoice: (String) -> Unit) =
+        act(tr("Couldn't pay")) {
+            val invoice = repo.lnurlPayInvoice(seller, amountSat)
+            if (repo.nwc.value != null) {
+                say(tr("⚡ Paying {0} sats…", amountSat))
+                repo.payWithNwc(invoice)
+                say(tr("⚡ Paid {0} sats", amountSat))
+                refreshWallet()
+            } else {
+                onInvoice(invoice)
+            }
+        }
 
     // ---- Images ----
 
