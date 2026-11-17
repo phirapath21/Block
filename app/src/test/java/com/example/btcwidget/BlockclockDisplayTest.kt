@@ -49,7 +49,7 @@ class BlockclockDisplayTest {
 
     @Test
     fun forKey_matchesModeOrder() {
-        assertEquals(14, BlockclockMetrics.MODE_COUNT)
+        assertEquals(17, BlockclockMetrics.MODE_COUNT)
         assertEquals(BlockclockMetrics.MODE_COUNT, BlockclockMetrics.MODE_NAMES.size)
         assertEquals("925000", BlockclockMetrics.forKey("BLOCK", data, "USD").value)
         assertEquals("7", BlockclockMetrics.forKey("FEES", data, "USD").value)
