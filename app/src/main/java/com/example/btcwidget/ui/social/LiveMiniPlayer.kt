@@ -84,8 +84,10 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
             val margin = with(density) { 12.dp.toPx() }
             val widthPx = with(density) { MINI_WIDTH.toPx() }
             val heightPx = widthPx * 9f / 16f + with(density) { 34.dp.toPx() }
-            val maxX = constraints.maxWidth - widthPx - margin
-            val maxY = constraints.maxHeight - heightPx - margin
+            // In a small window (split screen, a pop-up window) it may not fit: these never go
+            // below the margin, so nothing is asked to sit between a bigger and a smaller number.
+            val maxX = (constraints.maxWidth - widthPx - margin).coerceAtLeast(margin)
+            val maxY = (constraints.maxHeight - heightPx - margin).coerceAtLeast(margin)
             // Starts bottom right; remembered while it's shown.
             // Bottom right to start with, and again when the screen turns (its old spot may be off it now).
             val x = remember(maxX, maxY) { Animatable(maxX) }
@@ -105,12 +107,12 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
                                 // Settle at the nearer side, kept on screen.
                                 val targetX = if (x.value + widthPx / 2 < constraints.maxWidth / 2f) margin else maxX
                                 scope.launch { x.animateTo(targetX, spring(dampingRatio = 0.8f)) }
-                                scope.launch { y.animateTo(y.value.coerceIn(margin, maxY.coerceAtLeast(margin)), spring(dampingRatio = 0.8f)) }
+                                scope.launch { y.animateTo(y.value.coerceIn(margin, maxY), spring(dampingRatio = 0.8f)) }
                             }
                         ) { change, drag ->
                             change.consume()
-                            scope.launch { x.snapTo((x.value + drag.x).coerceIn(0f, constraints.maxWidth - widthPx)) }
-                            scope.launch { y.snapTo((y.value + drag.y).coerceIn(0f, constraints.maxHeight - heightPx)) }
+                            scope.launch { x.snapTo((x.value + drag.x).coerceIn(0f, (constraints.maxWidth - widthPx).coerceAtLeast(0f))) }
+                            scope.launch { y.snapTo((y.value + drag.y).coerceIn(0f, (constraints.maxHeight - heightPx).coerceAtLeast(0f))) }
                         }
                     }
                     .clickable(onClickLabel = if (l != null) tr("Back to the stream") else tr("Back to the video")) {

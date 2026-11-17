@@ -297,11 +297,14 @@ internal fun SpaceChat(
     showTopBar: Boolean = true,
     /** 0..1 while the pinned video is dragged down to the mini player: everything else fades with it. */
     fade: () -> Float = { 0f },
+    /** Kept by the caller when what's being typed must outlive this (a live stream turning on its side). */
+    draft: androidx.compose.runtime.MutableState<String>? = null,
     onSend: (String, (String?) -> Unit) -> Unit
 ) {
     val account by vm.account.collectAsState()
     val profiles by vm.profiles.collectAsState()
-    var text by remember { mutableStateOf("") }
+    val ownDraft = remember { mutableStateOf("") }
+    var text by (draft ?: ownDraft)
     var sending by remember { mutableStateOf(false) }
     val sendHaptics = rememberHaptics()
     var error by remember { mutableStateOf<String?>(null) }

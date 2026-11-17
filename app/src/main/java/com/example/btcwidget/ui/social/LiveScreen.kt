@@ -179,32 +179,48 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
     // Drag the stream down for the mini player, as on YouTube: the video shrinks with your finger
     // while everything else on the screen (details, chat, the box to type in) fades away together.
     val drag = dragToMinimize(enabled = !fullscreen && live?.isLive == true && live.streaming != null, onMinimize = onBack)
-    val fade = { drag.progress * 1.6f }
+    // The movable pieces below are made once; they read these, so they always see the latest
+    // stream, player and people (not the ones from the first frame, when nothing had loaded).
+    val liveNow by androidx.compose.runtime.rememberUpdatedState(live)
+    val loadedNow by androidx.compose.runtime.rememberUpdatedState(loaded)
+    val messagesNow by androidx.compose.runtime.rememberUpdatedState(messages)
+    val replayNow by androidx.compose.runtime.rememberUpdatedState(replayPlayer)
+    val accountNow by androidx.compose.runtime.rememberUpdatedState(account)
+    val followingNow by androidx.compose.runtime.rememberUpdatedState(following)
+    val profilesNow by androidx.compose.runtime.rememberUpdatedState(profiles)
+    val dragNow by androidx.compose.runtime.rememberUpdatedState(drag)
+    val onZapNow by androidx.compose.runtime.rememberUpdatedState(onZap)
+    // What you're typing in the chat outlives the screen turning, full screen, and the chat
+    // being hidden over the video.
+    val draft = rememberSaveable(address) { mutableStateOf("") }
     val chat = remember {
         androidx.compose.runtime.movableContentOf<(@Composable () -> Unit)?, Boolean> { pinned, overVideo ->
+            val l = liveNow
+            val found = loadedNow != null
             SpaceChat(
                 vm, navigate, onBack,
-                title = live?.title ?: tr("Live"),
-                note = if (loaded == null) tr("This stream couldn't be found on your relays.") else tr("Live chat: messages and zaps are public."),
-                messages = if (loaded == null) emptyList() else messages,
+                title = l?.title ?: tr("Live"),
+                note = if (!found) tr("This stream couldn't be found on your relays.") else tr("Live chat: messages and zaps are public."),
+                messages = if (!found) emptyList() else messagesNow,
                 pinned = pinned,
-                hosts = setOfNotNull(live?.host),
+                hosts = setOfNotNull(l?.host),
                 showTopBar = !overVideo,
-                fade = if (overVideo) ({ 0f }) else fade,
-                onSend = { text, done -> live?.let { vm.sendLiveChat(it, text) { ok -> done(if (ok) null else tr("Couldn't send")) } } ?: done(tr("Still loading")) }
+                fade = if (overVideo) ({ 0f }) else ({ dragNow.progress * 1.6f }),
+                draft = draft,
+                onSend = { text, done -> liveNow?.let { vm.sendLiveChat(it, text) { ok -> done(if (ok) null else tr("Couldn't send")) } } ?: done(tr("Still loading")) }
             )
         }
     }
     val playerContent = remember {
         androidx.compose.runtime.movableContentOf<LiveStreams.Live> { l ->
             LivePlayer(
-                l, profiles[l.host], replayPlayer,
-                isMe = account?.pubkey == l.host, isFollowing = l.host in following,
-                onFollow = { if (account == null) navigate(LoginKey) else vm.follow(l.host, l.host !in following) },
-                onZap = onZap,
+                l, profilesNow[l.host], replayNow,
+                isMe = accountNow?.pubkey == l.host, isFollowing = l.host in followingNow,
+                onFollow = { if (accountNow == null) navigate(LoginKey) else vm.follow(l.host, l.host !in followingNow) },
+                onZap = { onZapNow() },
                 onFullscreen = { fullscreen = true },
-                drag = drag.modifier,
-                fade = fade,
+                drag = dragNow.modifier,
+                fade = { dragNow.progress * 1.6f },
                 onHost = { navigate(ProfileKey(l.host)) }
             )
         }
