@@ -48,6 +48,15 @@ class BlockclockDisplayTest {
     }
 
     @Test
+    fun strive_perShareInSats() {
+        val withAsst = data.copy(asstUsd = 1.25)
+        val expected = Math.round(1.25 / data.btcUsd * 100_000_000).toString()
+        val d = BlockclockMetrics.forKey("ASST_RATIO", withAsst, "USD")
+        assertEquals("SATS", d.labelBottom)
+        assertEquals(expected, d.value)
+    }
+
+    @Test
     fun forKey_matchesModeOrder() {
         assertEquals(17, BlockclockMetrics.MODE_COUNT)
         assertEquals(BlockclockMetrics.MODE_COUNT, BlockclockMetrics.MODE_NAMES.size)
