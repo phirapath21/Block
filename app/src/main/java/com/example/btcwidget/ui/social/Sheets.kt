@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 /** The raised surface of sheets and dialogs: a step above the black background. */
 internal val SheetColor = Color(0xFF16181C)
 private val PillShape = RoundedCornerShape(50)
-private val AccentOrange = Color(0xFFF7931A)
+private val AccentOrange get() = EInk.Accent
 
 /** One row of an [ActionSheet]. [destructive] ones (delete, report) are red. */
 class SheetAction(
@@ -157,7 +157,7 @@ fun BlockDialog(
                     if (confirmLabel != null) Box(Modifier.weight(1f)) {
                         PillButtonFull(
                             confirmLabel, enabled = confirmEnabled,
-                            background = if (destructive) EInk.Alert else EInk.Value,
+                            background = if (destructive) EInk.Alert else EInk.Accent,
                             foreground = if (destructive) Color.White else Color.Black,
                             onClick = onConfirm
                         )
@@ -166,7 +166,7 @@ fun BlockDialog(
             } else Column(Modifier.padding(top = 22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (confirmLabel != null) PillButtonFull(
                     confirmLabel, enabled = confirmEnabled,
-                    background = if (destructive) EInk.Alert else EInk.Value,
+                    background = if (destructive) EInk.Alert else EInk.Accent,
                     foreground = if (destructive) Color.White else Color.Black,
                     onClick = onConfirm
                 )
@@ -231,7 +231,7 @@ private fun PillButtonFull(
     label: String,
     enabled: Boolean = true,
     outlined: Boolean = false,
-    background: Color = EInk.Value,
+    background: Color = EInk.Accent,
     foreground: Color = Color.Black,
     onClick: () -> Unit
 ) {
@@ -241,7 +241,7 @@ private fun PillButtonFull(
             .height(46.dp)
             .alpha(if (enabled) 1f else 0.4f)
             .clip(PillShape)
-            .then(if (outlined) Modifier.border(1.dp, EInk.Track, PillShape) else Modifier.background(background))
+            .then(if (outlined) Modifier.border(1.dp, EInk.BodyStroke, PillShape) else Modifier.background(background))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

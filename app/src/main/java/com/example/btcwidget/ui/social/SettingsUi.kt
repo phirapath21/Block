@@ -46,7 +46,7 @@ import com.example.btcwidget.ui.main.EInk
 // Settings rows, as X lays them out: full-width rows you tap anywhere on, a title with a
 // one-line explanation under it, and the control (chevron, switch, radio) at the right.
 
-internal val SettingsAccent = Color(0xFFF7931A)
+internal val SettingsAccent get() = EInk.Accent
 private val Destructive = Color(0xFFF4212E)
 
 /** A heading over a group of rows. */
@@ -149,11 +149,12 @@ fun SettingsTextField(
     isError: Boolean = false,
     textStyle: TextStyle = TextStyle(fontSize = 15.sp, color = EInk.Value),
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
 ) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange, singleLine = singleLine, isError = isError,
         placeholder = { Text(placeholder, color = EInk.Caption) },
-        textStyle = textStyle, keyboardOptions = keyboardOptions,
+        textStyle = textStyle, keyboardOptions = keyboardOptions, visualTransformation = visualTransformation,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = SettingsAccent, unfocusedBorderColor = EInk.BodyStroke, errorBorderColor = Destructive,

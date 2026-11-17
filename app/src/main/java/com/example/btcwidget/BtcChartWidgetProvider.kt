@@ -67,7 +67,9 @@ class BtcChartWidgetProvider : AppWidgetProvider() {
         if (intent.action != ACTION_NEXT_RANGE) return
         val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return
-        val next = ChartRange.entries[(AppPrefs.chartRange(context, id).ordinal + 1) % ChartRange.entries.size]
+        val widgetRanges = listOf(ChartRange.DAY, ChartRange.WEEK)
+        val current = widgetRanges.indexOf(AppPrefs.chartRange(context, id)).coerceAtLeast(0)
+        val next = widgetRanges[(current + 1) % widgetRanges.size]
         AppPrefs.setChartRange(context, id, next)
         updateWidgetLayout(context, AppWidgetManager.getInstance(context), id)
     }

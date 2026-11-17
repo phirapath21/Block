@@ -86,7 +86,7 @@ fun WebViewer(url: String, note: Event?, stats: NoteStats, actions: NoteActions,
                 }
             }
             if (page.progress in 1..99) LinearProgressIndicator(
-                progress = { page.progress / 100f }, color = Color(0xFFF7931A), trackColor = Color.Transparent,
+                progress = { page.progress / 100f }, color = EInk.Accent, trackColor = Color.Transparent,
                 modifier = Modifier.fillMaxWidth().height(2.dp)
             ) else HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 
@@ -132,11 +132,10 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
                     DisplayName(author, note.pubkey, EInk.Value, 15.sp)
                     Text(handleText(author, note.pubkey), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (note.pubkey != actions.me) Text(
-                    if (following) tr("Following") else tr("Follow"),
-                    color = if (following) EInk.Value else Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(if (following) EInk.Track else EInk.Value)
-                        .clickable { actions.follow(note.pubkey, !following) }.padding(horizontal = 16.dp, vertical = 8.dp)
+                if (note.pubkey != actions.me) PillButton(
+                    text = if (following) tr("Following") else tr("Follow"),
+                    filled = !following,
+                    onClick = { actions.follow(note.pubkey, !following) }
                 )
             }
             if (level >= 2) Text(

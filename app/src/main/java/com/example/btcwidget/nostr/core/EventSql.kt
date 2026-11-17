@@ -130,12 +130,27 @@ object EventSql {
      * Keeps the database to about [keep] events: the oldest are dropped first, except the
      * user's own events and the newest of every replaceable list (profiles, follows).
      */
-    fun prune(keep: Int, me: String?): List<Statement> = listOf(
-        Statement(
-            "DELETE FROM events WHERE id IN (SELECT id FROM events WHERE pubkey != ? AND kind NOT IN (0, 3, 10002) " +
-                "ORDER BY created_at DESC LIMIT -1 OFFSET ?)",
-            listOf(me ?: "", keep)
-        ),
-        Statement("DELETE FROM tags WHERE event_id NOT IN (SELECT id FROM events)", emptyList())
-    )
+    fun prune(keep: Int, me: String?): List<Statement> = prune(keep, setOfNotNull(me), emptySet())
+
+    fun prune(keep: Int, myPubkeys: Set<String>, protectedIds: Set<String>): List<Statement> {
+        val where = mutableListOf("kind NOT IN (0, 3, 10002)")
+        val args = mutableListOf<Any>()
+        if (myPubkeys.isNotEmpty()) {
+            where += "pubkey NOT IN (${myPubkeys.joinToString(",") { "?" }})"
+            args.addAll(myPubkeys)
+        }
+        if (protectedIds.isNotEmpty()) {
+            where += "id NOT IN (${protectedIds.joinToString(",") { "?" }})"
+            args.addAll(protectedIds)
+        }
+        args += keep
+        return listOf(
+            Statement(
+                "DELETE FROM events WHERE id IN (SELECT id FROM events WHERE ${where.joinToString(" AND ")} " +
+                    "ORDER BY created_at DESC LIMIT -1 OFFSET ?)",
+                args
+            ),
+            Statement("DELETE FROM tags WHERE event_id NOT IN (SELECT id FROM events)", emptyList())
+        )
+    }
 }

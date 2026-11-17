@@ -12,14 +12,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -39,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
@@ -69,7 +76,13 @@ import kotlinx.coroutines.launch
  * People, Media, Articles) with filters.
  */
 @Composable
-fun SearchScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, onBack: (() -> Unit)? = null) {
+fun SearchScreen(
+    vm: SocialViewModel,
+    navigate: (NavKey) -> Unit,
+    onBack: (() -> Unit)? = null,
+    leadingMenu: (@Composable () -> Unit)? = null
+) {
+    val account by vm.account.collectAsState()
     val stats by vm.stats.collectAsState()
     val following by vm.following.collectAsState()
     val profiles by vm.profiles.collectAsState()
@@ -80,6 +93,14 @@ fun SearchScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, onBack: (() ->
     var query by rememberSaveable { mutableStateOf("") }
     // Results: 0 Top, 1 Latest, 2 People, 3 Media, 4 Articles.
     var tab by rememberSaveable { mutableStateOf(0) }
+    val exploreTabs = remember(account) {
+        buildList {
+            add("Trending"); add("Latest"); add("Live"); add("Articles"); add("Feeds"); add("Follow packs")
+            if (account != null) add("Who to follow")
+        }
+    }
+    var exploreTab by rememberSaveable { mutableStateOf("Trending") }
+    if (exploreTab !in exploreTabs) exploreTab = exploreTabs.first()
     var followsOnly by rememberSaveable { mutableStateOf(false) }
     var oldestFirst by rememberSaveable { mutableStateOf(false) }
     var filterSheet by remember { mutableStateOf(false) }
@@ -171,18 +192,19 @@ fun SearchScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, onBack: (() ->
     )
 
     Column(Modifier.fillMaxSize().background(EInk.Background)) {
-        // ← · the search box · QR (or Cancel while typing).
+        // ← (or avatar menu) · the search box · QR (or Cancel while typing).
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.then(if (onBack != null) Modifier.statusBarsPadding() else Modifier).fillMaxWidth().height(58.dp).padding(horizontal = 6.dp)
+            modifier = Modifier.then(if (onBack != null) Modifier.statusBarsPadding() else Modifier).fillMaxWidth().height(56.dp).padding(horizontal = 6.dp)
         ) {
             if (onBack != null) Box(
                 Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Back"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Back, contentDescription = tr("Back"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
+            else leadingMenu?.invoke()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(42.dp).clip(RoundedCornerShape(50)).background(EInk.Body)
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp).clip(RoundedCornerShape(50)).background(EInk.Body)
                     .then(if (focused) Modifier.border(1.dp, SettingsAccent, RoundedCornerShape(50)) else Modifier)
                     .padding(start = 14.dp, end = 4.dp)
             ) {
@@ -222,101 +244,230 @@ fun SearchScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, onBack: (() ->
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Qr, contentDescription = tr("Scan a QR code"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
         }
+        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 
         SocialScaffold(vm, navigate) { actions ->
-            when {
-                // Typing: suggestions.
-                focused -> SearchSuggestions(
-                    vm = vm,
-                    query = query.trim(),
-                    people = suggested,
-                    following = following,
-                    recents = recents,
-                    recentProfiles = recentProfiles.map { pk -> pk to profiles[pk] },
-                    onSearch = { run(it) },
-                    onProfile = { openProfile(it) },
-                    onTag = { openTag(it) },
-                    onRemoveRecent = { com.example.btcwidget.AppPrefs.removeRecentSearch(context, it); recents = com.example.btcwidget.AppPrefs.recentSearches(context) },
-                    onClearRecents = {
-                        com.example.btcwidget.AppPrefs.clearRecentSearches(context); com.example.btcwidget.AppPrefs.clearRecentProfiles(context)
-                        recents = emptyList(); recentProfiles = emptyList()
-                    }
-                )
-                // Not searched yet: Explore.
-                searched == null -> Explore(vm, actions, navigate)
-                else -> {
-                    val q = searched.orEmpty()
-                    val shownNotes = notes.filter { !followsOnly || it.note.pubkey in following }
-                    val latest = if (oldestFirst) shownNotes.sortedBy { it.sortTime } else shownNotes.sortedByDescending { it.sortTime }
-                    val media = latest.filter { noteImageUrls(it.note).isNotEmpty() || com.example.btcwidget.nostr.core.Imeta.videoUrls(it.note).isNotEmpty() }
-                    val shownPeople = people.filter { !followsOnly || it.pubkey in following }
-                    val shownArticles = articles.filter { !followsOnly || it.pubkey in following }
-                        .let { l -> if (oldestFirst) l.sortedBy { it.event.createdAt } else l.sortedByDescending { it.event.createdAt } }
-                    Column(Modifier.fillMaxSize()) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()).padding(start = 4.dp)) {
-                                listOf("Top", "Latest", "People", "Media", "Articles").forEachIndexed { i, label ->
-                                    FeedTab(tr(label), selected = tab == i) { tab = i }
+            Box(Modifier.fillMaxSize()) {
+                when {
+                    // Typing: suggestions.
+                    focused -> SearchSuggestions(
+                        vm = vm,
+                        query = query.trim(),
+                        people = suggested,
+                        following = following,
+                        recents = recents,
+                        recentProfiles = recentProfiles.map { pk -> pk to profiles[pk] },
+                        onSearch = { run(it) },
+                        onProfile = { openProfile(it) },
+                        onTag = { openTag(it) },
+                        onRemoveRecent = { com.example.btcwidget.AppPrefs.removeRecentSearch(context, it); recents = com.example.btcwidget.AppPrefs.recentSearches(context) },
+                        onClearRecents = {
+                            com.example.btcwidget.AppPrefs.clearRecentSearches(context); com.example.btcwidget.AppPrefs.clearRecentProfiles(context)
+                            recents = emptyList(); recentProfiles = emptyList()
+                        }
+                    )
+                    // Not searched yet: Explore.
+                    searched == null -> Explore(vm, exploreTab, actions, navigate)
+                    else -> {
+                        val q = searched.orEmpty()
+                        val shownNotes = notes.filter { !followsOnly || it.note.pubkey in following }
+                        val latest = if (oldestFirst) shownNotes.sortedBy { it.sortTime } else shownNotes.sortedByDescending { it.sortTime }
+                        val media = latest.filter { noteImageUrls(it.note).isNotEmpty() || com.example.btcwidget.nostr.core.Imeta.videoUrls(it.note).isNotEmpty() }
+                        val shownPeople = people.filter { !followsOnly || it.pubkey in following }
+                        val shownArticles = articles.filter { !followsOnly || it.pubkey in following }
+                            .let { l -> if (oldestFirst) l.sortedBy { it.event.createdAt } else l.sortedByDescending { it.event.createdAt } }
+                        Column(Modifier.fillMaxSize()) {
+                            val tagLink: @Composable () -> Unit = {
+                                com.example.btcwidget.nostr.core.HomeFeed.cleanTag(q)?.takeIf { q.startsWith("#") }?.let { tag ->
+                                    TagRow(tag, tr("See every post with #{0}", tag)) { openTag(tag) }
                                 }
                             }
-                            Box {
-                                CircleIconButton(Glyphs.Sliders, tr("Search filters"), Modifier.padding(start = 4.dp, end = 10.dp)) { filterSheet = true }
-                                // A dot while a filter is on.
-                                if (followsOnly || oldestFirst) Box(Modifier.align(Alignment.TopEnd).padding(end = 10.dp).size(9.dp).clip(CircleShape).background(SettingsAccent))
-                            }
-                        }
-                        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-                        val tagLink: @Composable () -> Unit = {
-                            com.example.btcwidget.nostr.core.HomeFeed.cleanTag(q)?.takeIf { q.startsWith("#") }?.let { tag ->
-                                TagRow(tag, tr("See every post with #{0}", tag)) { openTag(tag) }
-                            }
-                        }
-                        when (tab) {
-                            0 -> {
-                                val nothing = !peopleLoading && !notesLoading && !articlesLoading && shownPeople.isEmpty() && shownNotes.isEmpty() && shownArticles.isEmpty()
-                                if (nothing && !q.startsWith("#")) NoResults(q) else NoteList(
-                                    shownNotes, stats, actions,
-                                    header = {
-                                        tagLink()
-                                        if (shownPeople.isNotEmpty()) {
-                                            SectionTitle(tr("People"), if (shownPeople.size > 3) tr("See all") else null) { tab = 2 }
-                                            shownPeople.take(3).forEach { p -> PersonRow(p, isFollowing = p.pubkey in following, onClick = { openProfile(p.pubkey) }) }
-                                        }
-                                        if (shownArticles.isNotEmpty()) {
-                                            SectionTitle(tr("Articles"), if (shownArticles.size > 2) tr("See all") else null) { tab = 4 }
-                                            shownArticles.take(2).forEach { a ->
-                                                ArticleRow(a, onClick = { actions.openArticle(com.example.btcwidget.nostr.core.Nip19.Address(a.event.kind, a.pubkey, a.identifier)) })
+                            when (tab) {
+                                0 -> {
+                                    val nothing = !peopleLoading && !notesLoading && !articlesLoading && shownPeople.isEmpty() && shownNotes.isEmpty() && shownArticles.isEmpty()
+                                    if (nothing && !q.startsWith("#")) NoResults(q) else NoteList(
+                                        shownNotes, stats, actions,
+                                        header = {
+                                            tagLink()
+                                            if (shownPeople.isNotEmpty()) {
+                                                SectionTitle(tr("People"), if (shownPeople.size > 3) tr("See all") else null) { tab = 2 }
+                                                shownPeople.take(3).forEach { p -> PersonRow(p, isFollowing = p.pubkey in following, onClick = { openProfile(p.pubkey) }) }
                                             }
+                                            if (shownArticles.isNotEmpty()) {
+                                                SectionTitle(tr("Articles"), if (shownArticles.size > 2) tr("See all") else null) { tab = 4 }
+                                                shownArticles.take(2).forEach { a ->
+                                                    ArticleRow(a, onClick = { actions.openArticle(com.example.btcwidget.nostr.core.Nip19.Address(a.event.kind, a.pubkey, a.identifier)) })
+                                                }
+                                            }
+                                            if (shownPeople.isNotEmpty() || shownArticles.isNotEmpty()) SectionTitle(tr("Posts"), null) {}
+                                            if (notesLoading && shownNotes.isEmpty()) NotesSkeleton(3)
                                         }
-                                        if (shownPeople.isNotEmpty() || shownArticles.isNotEmpty()) SectionTitle(tr("Posts"), null) {}
-                                        if (notesLoading && shownNotes.isEmpty()) NotesSkeleton(3)
-                                    }
-                                )
-                            }
-                            1 -> when {
-                                notesLoading && latest.isEmpty() -> NotesSkeleton()
-                                latest.isEmpty() -> NoResults(q)
-                                else -> NoteList(latest, stats, actions, header = tagLink)
-                            }
-                            2 -> when {
-                                peopleLoading && shownPeople.isEmpty() -> NotesSkeleton()
-                                shownPeople.isEmpty() -> NoResults(q)
-                                else -> LazyColumn(Modifier.fillMaxSize()) {
-                                    items(shownPeople, key = { it.pubkey }) { p -> PersonRow(p, isFollowing = p.pubkey in following, onClick = { openProfile(p.pubkey) }) }
+                                    )
                                 }
-                            }
-                            3 -> when {
-                                notesLoading && media.isEmpty() -> NotesSkeleton()
-                                media.isEmpty() -> NoResults(q)
-                                else -> NoteList(media, stats, actions)
-                            }
-                            else -> when {
-                                articlesLoading && shownArticles.isEmpty() -> NotesSkeleton()
-                                shownArticles.isEmpty() -> NoResults(q)
-                                else -> ArticleList(shownArticles, actions)
+                                1 -> when {
+                                    notesLoading && latest.isEmpty() -> NotesSkeleton()
+                                    latest.isEmpty() -> NoResults(q)
+                                    else -> NoteList(latest, stats, actions, header = tagLink)
+                                }
+                                2 -> when {
+                                    peopleLoading && shownPeople.isEmpty() -> NotesSkeleton()
+                                    shownPeople.isEmpty() -> NoResults(q)
+                                    else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
+                                        items(shownPeople, key = { it.pubkey }) { p -> PersonRow(p, isFollowing = p.pubkey in following, onClick = { openProfile(p.pubkey) }) }
+                                    }
+                                }
+                                3 -> when {
+                                    notesLoading && media.isEmpty() -> NotesSkeleton()
+                                    media.isEmpty() -> NoResults(q)
+                                    else -> NoteList(media, stats, actions)
+                                }
+                                else -> when {
+                                    articlesLoading && shownArticles.isEmpty() -> NotesSkeleton()
+                                    shownArticles.isEmpty() -> NoResults(q)
+                                    else -> ArticleList(shownArticles, actions)
+                                }
                             }
                         }
                     }
+                }
+
+                // Floating filter capsule at the bottom; rides directly above the keyboard when typing (like ReplyBar).
+                val showFloatingBar = LocalBarsVisible.current || focused
+                val floatAlpha by androidx.compose.animation.core.animateFloatAsState(if (showFloatingBar) 1f else 0f, label = "search_float_bar")
+                if (floatAlpha > 0.01f) {
+                    FloatingSearchFilterBar(
+                        searched = searched != null,
+                        exploreTabs = exploreTabs,
+                        selectedExploreTab = exploreTab,
+                        onSelectExploreTab = { t ->
+                            exploreTab = t
+                            if (focused) {
+                                query = ""
+                                focusManager.clearFocus()
+                                keyboard?.hide()
+                            }
+                        },
+                        selectedResultTab = tab,
+                        onSelectResultTab = { i ->
+                            tab = i
+                            if (focused) {
+                                focusManager.clearFocus()
+                                keyboard?.hide()
+                            }
+                        },
+                        hasActiveFilters = followsOnly || oldestFirst,
+                        onOpenFilters = {
+                            focusManager.clearFocus()
+                            keyboard?.hide()
+                            filterSheet = true
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .then(if (onBack != null) Modifier.navigationBarsPadding() else Modifier)
+                            .imePadding()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .graphicsLayer {
+                                alpha = floatAlpha
+                                translationY = (1f - floatAlpha) * 44f
+                            }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Floating filter capsule at the bottom of Search (and riding above the keyboard when typing):
+ * shows Explore categories (Trending, Latest, Live, Articles, Feeds, Follow packs) before a
+ * search, or Result tabs (Top, Latest, People, Media, Articles + filter button) after searching.
+ */
+@Composable
+private fun FloatingSearchFilterBar(
+    searched: Boolean,
+    exploreTabs: List<String>,
+    selectedExploreTab: String,
+    onSelectExploreTab: (String) -> Unit,
+    selectedResultTab: Int,
+    onSelectResultTab: (Int) -> Unit,
+    hasActiveFilters: Boolean,
+    onOpenFilters: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(50)
+    val resultTabs = remember { listOf("Top", "Latest", "People", "Media", "Articles") }
+    val rowState = rememberLazyListState()
+    val activeIndex = if (searched) selectedResultTab else exploreTabs.indexOf(selectedExploreTab)
+    LaunchedEffect(searched, activeIndex) {
+        if (activeIndex >= 0) rowState.animateScrollToItem((activeIndex - 1).coerceAtLeast(0))
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .shadow(12.dp, shape)
+            .clip(shape)
+            .background(EInk.Body.copy(alpha = 0.97f))
+            .border(0.75.dp, EInk.BodyStroke, shape)
+            .padding(horizontal = 6.dp)
+    ) {
+        LazyRow(
+            state = rowState,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            if (!searched) {
+                items(exploreTabs, key = { "exp:$it" }) { t ->
+                    val icon = when (t) {
+                        "Trending" -> Glyphs.Sparkle
+                        "Latest" -> Glyphs.Clock
+                        "Live" -> Glyphs.Play
+                        "Articles" -> Glyphs.ListLine
+                        "Feeds" -> Glyphs.Globe
+                        "Follow packs" -> Glyphs.Following
+                        else -> Glyphs.Person
+                    }
+                    FeedTab(
+                        label = tr(t),
+                        selected = selectedExploreTab == t,
+                        icon = icon,
+                        onClick = { onSelectExploreTab(t) }
+                    )
+                }
+            } else {
+                items(resultTabs.size, key = { "res:$it" }) { i ->
+                    val label = resultTabs[i]
+                    FeedTab(
+                        label = tr(label),
+                        selected = selectedResultTab == i,
+                        onClick = { onSelectResultTab(i) }
+                    )
+                }
+            }
+        }
+        if (searched) {
+            Box(
+                Modifier
+                    .padding(horizontal = 4.dp)
+                    .width(0.5.dp)
+                    .height(22.dp)
+                    .background(EInk.BodyStroke)
+            )
+            Box {
+                CircleIconButton(Glyphs.Sliders, tr("Search filters"), Modifier.size(36.dp), onClick = onOpenFilters)
+                if (hasActiveFilters) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 4.dp, end = 4.dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(SettingsAccent)
+                    )
                 }
             }
         }
@@ -373,7 +524,7 @@ private fun SearchSuggestions(
     onRemoveRecent: (String) -> Unit,
     onClearRecents: () -> Unit
 ) {
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         if (query.isEmpty()) {
             if (recents.isEmpty() && recentProfiles.isEmpty()) item(key = "hint") {
                 Text(
@@ -521,21 +672,10 @@ private fun localPeople(profiles: Map<String, Profile>, q: String): List<Profile
         .take(20)
 }
 
-/** Explore, before you search: tabs of things to find, as X's Explore. */
+/** Explore, before you search: tabs of things to find, controlled by the bottom FloatingSearchFilterBar. */
 @Composable
-private fun Explore(vm: SocialViewModel, actions: NoteActions, navigate: (NavKey) -> Unit) {
-    val account by vm.account.collectAsState()
-    val tabs = buildList {
-        add("Trending"); add("Latest"); add("Live"); add("Articles"); add("Feeds"); add("Follow packs")
-        if (account != null) add("Who to follow")
-    }
-    var tab by rememberSaveable { mutableStateOf("Trending") }
-    if (tab !in tabs) tab = tabs.first()
+private fun Explore(vm: SocialViewModel, tab: String, actions: NoteActions, navigate: (NavKey) -> Unit) {
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
-            tabs.forEach { t -> FeedTab(tr(t), selected = tab == t) { tab = t } }
-        }
-        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         when (tab) {
             "Trending" -> Trending(vm, navigate)
             "Latest" -> LatestPosts(vm, actions)
@@ -554,7 +694,7 @@ private fun Trending(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val trends by produceKept<List<NostrRepository.Trend>?>(null) { value = vm.trendingHashtags() }
     when (val l = trends) {
         null -> NotesSkeleton(5)
-        else -> if (l.isEmpty()) EmptyNote(tr("Nothing trending on your relays right now.")) else LazyColumn(Modifier.fillMaxSize()) {
+        else -> if (l.isEmpty()) EmptyNote(tr("Nothing trending on your relays right now.")) else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
             item(key = "note") {
                 Text(
                     tr("Topics the most people on your relays used in the last 24 hours."),
@@ -580,7 +720,7 @@ private fun LiveNow(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val list by produceKept<List<com.example.btcwidget.nostr.core.LiveStreams.Live>?>(null) { value = vm.liveStreams() }
     when (val l = list) {
         null -> NotesSkeleton(4)
-        else -> if (l.isEmpty()) EmptyNote(tr("No one is live right now.")) else LazyColumn(Modifier.fillMaxSize()) {
+        else -> if (l.isEmpty()) EmptyNote(tr("No one is live right now.")) else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
             items(l, key = { it.address }) { live -> LiveRow(live, profiles[live.host]) { navigate(com.example.btcwidget.LiveKey(live.address)) } }
         }
     }
@@ -630,7 +770,7 @@ private fun LatestPosts(vm: SocialViewModel, actions: NoteActions) {
 /** Articles, newest first; tap to read. */
 @Composable
 private fun ArticleList(list: List<com.example.btcwidget.nostr.core.Article>, actions: NoteActions, header: (@Composable () -> Unit)? = null) {
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         header?.let { h -> item(key = "header") { h() } }
         items(list, key = { it.pubkey + ":" + it.identifier }) { a ->
             Column {
@@ -647,18 +787,39 @@ private fun ArticleList(list: List<com.example.btcwidget.nostr.core.Article>, ac
     }
 }
 
-/** Recent long-form articles: from people you follow, or from everyone. */
+/** Recent long-form articles: from people you follow, or from everyone, with an in-app Write Article button. */
 @Composable
 private fun RecentArticles(vm: SocialViewModel, actions: NoteActions) {
     val account by vm.account.collectAsState()
     var following by rememberSaveable { mutableStateOf(account != null) }
-    val list by produceKept<List<com.example.btcwidget.nostr.core.Article>?>(null, following) {
+    var reload by rememberSaveable { mutableStateOf(0) }
+    var composingArticle by remember { mutableStateOf(false) }
+    val list by produceKept<List<com.example.btcwidget.nostr.core.Article>?>(null, following, reload) {
         value = null; value = vm.recentArticles(following)
     }
+    if (composingArticle) {
+        ArticleComposerDialog(
+            vm = vm,
+            onDismiss = { composingArticle = false },
+            onPublished = { published ->
+                composingArticle = false
+                reload++
+                actions.openArticle(com.example.btcwidget.nostr.core.Nip19.Address(published.event.kind, published.pubkey, published.identifier))
+            }
+        )
+    }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             if (account != null) ChoicePill(tr("Following"), selected = following) { following = true }
             ChoicePill(tr("Everyone"), selected = !following) { following = false }
+            Spacer(Modifier.weight(1f))
+            if (account != null) {
+                ChoicePill("+ " + tr("Write article"), selected = false, icon = Glyphs.Quote) { composingArticle = true }
+            }
         }
         when (val l = list) {
             null -> Spinner(Modifier.padding(top = 30.dp))
@@ -679,7 +840,7 @@ private fun DvmFeeds(vm: SocialViewModel, actions: NoteActions) {
     if (c == null) {
         when (val l = services) {
             null -> Spinner(Modifier.padding(top = 30.dp))
-            else -> if (l.isEmpty()) EmptyNote(tr("No feeds found on your relays.")) else LazyColumn(Modifier.fillMaxSize()) {
+            else -> if (l.isEmpty()) EmptyNote(tr("No feeds found on your relays.")) else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
                 item(key = "note") {
                     Text(
                         tr("Feeds from Data Vending Machines: services that pick notes for you. Asking one doesn't reveal who you are, except feeds marked personalized."),
@@ -733,7 +894,7 @@ private fun WhoToFollow(vm: SocialViewModel, actions: NoteActions) {
     val list by produceKept<List<Pair<Profile, Int>>?>(null) { value = vm.followSuggestions() }
     when (val l = list) {
         null -> Spinner(Modifier.padding(top = 30.dp))
-        else -> if (l.isEmpty()) EmptyNote(tr("No suggestions yet. Follow a few people first.")) else LazyColumn(Modifier.fillMaxSize()) {
+        else -> if (l.isEmpty()) EmptyNote(tr("No suggestions yet. Follow a few people first.")) else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
             items(l, key = { it.first.pubkey }) { (p, shared) ->
                 val on = p.pubkey in following
                 Column {

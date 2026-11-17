@@ -35,7 +35,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+        run: ./gradlew test --stacktrace
 
       - name: Lint
         # Reported, not blocking, until the existing findings are triaged.

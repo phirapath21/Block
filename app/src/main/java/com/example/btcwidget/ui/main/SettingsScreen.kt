@@ -54,7 +54,8 @@ fun BitcoinSettingsRoute(viewModel: MainScreenViewModel = androidx.lifecycle.vie
         currency = settings.currency, onCurrency = viewModel::setCurrency,
         theme = settings.theme, onTheme = viewModel::setTheme,
         refreshInterval = settings.refreshInterval, onRefreshInterval = viewModel::setRefreshInterval,
-        dataSources = settings.dataSources, onDataSources = viewModel::setDataSources
+        dataSources = settings.dataSources, onDataSources = viewModel::setDataSources,
+        mempoolUrl = settings.mempoolUrl, onMempoolUrl = viewModel::setMempoolUrl
     )
 }
 
@@ -65,6 +66,7 @@ fun BitcoinSettings(
     theme: AppTheme, onTheme: (AppTheme) -> Unit,
     refreshInterval: Int, onRefreshInterval: (Int) -> Unit,
     dataSources: DataSources, onDataSources: (DataSources) -> Unit,
+    mempoolUrl: String = "", onMempoolUrl: (String) -> Unit = {},
 ) {
     SettingsHeader(tr("Currency"))
     SettingsNote(tr("Prices, sats and alerts"))
@@ -90,6 +92,28 @@ fun BitcoinSettings(
     SettingsRadioRow(tr("USD price × exchange rate"), selected = dataSources.thb == ThbSource.CONVERTED) { onDataSources(dataSources.copy(thb = ThbSource.CONVERTED)) }
     SettingsRadioRow(tr("Bitkub's BTC/THB market"), selected = dataSources.thb == ThbSource.BITKUB) { onDataSources(dataSources.copy(thb = ThbSource.BITKUB)) }
     SettingsNote(tr("If a source is unreachable, Block falls back to Coinbase or the last known price."))
+
+    SettingsDivider()
+    SettingsHeader(tr("Mempool API"))
+    SettingsNote(tr("Use your own mempool.space compatible node. Leave blank for the public server."))
+    var mempoolDraft by remember(mempoolUrl) { mutableStateOf(mempoolUrl) }
+    val cleanMempoolUrl = mempoolDraft.trim().trimEnd('/')
+    val mempoolValid = cleanMempoolUrl.isEmpty() || runCatching {
+        val uri = java.net.URI(cleanMempoolUrl)
+        uri.scheme == "https" && !uri.host.isNullOrBlank()
+    }.getOrDefault(false)
+    SettingsTextField(
+        value = mempoolDraft,
+        onValueChange = { mempoolDraft = it.take(300) },
+        placeholder = "https://mempool.example.com",
+        isError = !mempoolValid,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    )
+    SettingsButton(tr("Save Mempool URL"), primary = true, enabled = mempoolValid && cleanMempoolUrl != mempoolUrl) {
+        onMempoolUrl(cleanMempoolUrl)
+    }
+    if (!mempoolValid) SettingsNote(tr("Enter an https:// URL or leave it empty."))
 }
 
 /** A labelled settings row with controls on the right and an optional note under the label. */
@@ -107,19 +131,18 @@ internal fun SettingRow(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
             Text(
                 text = label,
                 color = if (dimmed) EInk.Caption else EInk.Value,
-                fontSize = 13.sp,
-                fontFamily = FontFamily.Monospace
+                fontSize = 15.sp
             )
             if (note != null) {
                 Text(
                     text = note,
                     color = EInk.Caption,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
         }
@@ -132,4 +155,4 @@ internal fun SettingRow(
 }
 
 /** Published copy of docs/privacy-policy.md (also the URL for the Play listing). */
-const val PRIVACY_POLICY_URL = "https://github.com/phirapath21/btcwidget/blob/main/docs/privacy-policy.md"
+const val PRIVACY_POLICY_URL = "https://github.com/phirapath21/Block/blob/main/docs/privacy-policy.md"

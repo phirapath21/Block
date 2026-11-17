@@ -3,7 +3,11 @@ package com.example.btcwidget
 /** Time windows the price chart can show. */
 enum class ChartRange(val label: String, val hours: Int) {
     DAY("24H", 24),
-    WEEK("7D", 24 * 7)
+    WEEK("7D", 24 * 7),
+    MONTH("30D", 24 * 30),
+    YEAR("1Y", 24 * 365),
+    HALVING("4Y", 24 * 365 * 4),
+    ALL("ALL", Int.MAX_VALUE)
 }
 
 /** Summary of a price series for the chart header and accessibility. */
@@ -18,7 +22,11 @@ object ChartMath {
     fun slice(points: List<PricePoint>, range: ChartRange, factor: Double = 1.0): List<PricePoint> {
         if (points.isEmpty()) return emptyList()
         val since = points.last().time - range.hours * 3600L
-        return points.filter { it.time >= since }.map { it.copy(price = it.price * factor) }
+        val hourly = range == ChartRange.DAY || range == ChartRange.WEEK
+        return points.filter {
+            it.time >= since && if (hourly) it.resolutionSeconds <= 3600L else it.resolutionSeconds >= 86_400L
+        }
+            .map { it.copy(price = it.price * factor) }
     }
 
     fun summary(points: List<PricePoint>): ChartSummary? {
@@ -65,13 +73,16 @@ object ChartMath {
     }
 
     /** Encodes history for the offline cache: "time:price,time:price". */
-    fun encode(points: List<PricePoint>): String = points.joinToString(",") { "${it.time}:${it.price}" }
+    fun encode(points: List<PricePoint>): String = points.joinToString(",") { "${it.time}:${it.price}:${it.resolutionSeconds}" }
 
     fun decode(text: String?): List<PricePoint> =
         text.orEmpty().split(',').mapNotNull { part ->
-            val (t, p) = part.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
+            val fields = part.split(':')
+            if (fields.size !in 2..3) return@mapNotNull null
+            val (t, p) = fields
             val time = t.toLongOrNull() ?: return@mapNotNull null
             val price = p.toDoubleOrNull() ?: return@mapNotNull null
-            PricePoint(time, price)
+            val resolution = fields.getOrNull(2)?.toLongOrNull() ?: 3600L
+            PricePoint(time, price, resolution)
         }
 }

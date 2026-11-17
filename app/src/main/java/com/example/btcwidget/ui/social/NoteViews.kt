@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,9 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Content
 import com.example.btcwidget.nostr.core.Event
@@ -61,6 +65,7 @@ import com.example.btcwidget.nostr.core.ThreadRef
 import com.example.btcwidget.ui.main.EInk
 
 /** Everything a note row can do; screens pass one shared instance. */
+@androidx.compose.runtime.Stable
 class NoteActions(
     val openNote: (Event) -> Unit,
     val openProfile: (String) -> Unit,
@@ -105,6 +110,7 @@ class NoteActions(
     val vote: (com.example.btcwidget.nostr.core.Poll, List<String>, (Boolean) -> Unit) -> Unit,
     val resolveArticle: suspend (com.example.btcwidget.nostr.core.Nip19.Address) -> com.example.btcwidget.nostr.core.Article?,
     val openArticle: (com.example.btcwidget.nostr.core.Nip19.Address) -> Unit,
+    val resolveListing: (suspend (com.example.btcwidget.nostr.core.Nip19.Address) -> com.example.btcwidget.nostr.core.Listing?) = { null },
     val linkPreview: suspend (String) -> com.example.btcwidget.nostr.core.LinkPreview?,
     val me: String?
 )
@@ -120,7 +126,7 @@ fun NoteCard(
     showDivider: Boolean = true,
     large: Boolean = false
 ) {
-    val author = actions.profileOf(note.pubkey)
+    val author by remember(note.pubkey, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(note.pubkey) } }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -128,8 +134,9 @@ fun NoteCard(
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (repostedBy != null) {
+            val reposter by remember(repostedBy, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(repostedBy) } }
             Text(
-                text = tr("⟲ {0} reposted", actions.profileOf(repostedBy)?.bestName ?: Profile.shortNpub(repostedBy)),
+                text = tr("⟲ {0} reposted", reposter?.bestName ?: Profile.shortNpub(repostedBy)),
                 color = EInk.Caption,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -152,6 +159,10 @@ fun NoteCard(
                     )
                 }
             }
+            val stamp = remember(note.id) { BlockStamp.fromEvent(note) }
+            if (stamp != null) {
+                BlockStampBadge(stamp, note, actions)
+            }
             ReplyingTo(note, actions, Modifier.padding(top = 10.dp))
             // The opened post's text can be selected: long-press, drag the handles, Copy.
             androidx.compose.foundation.text.selection.SelectionContainer {
@@ -166,16 +177,21 @@ fun NoteCard(
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 AuthorLine(note, author, actions)
-                ThreadRef.of(note).parent?.let { parentId ->
-                    val parentAuthor = note.tagValues("p").firstOrNull()
-                    if (parentAuthor != null) {
-                        Text(
-                            text = tr("Replying to @") + (actions.profileOf(parentAuthor)?.bestName ?: Profile.shortNpub(parentAuthor)),
-                            color = EInk.Caption,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(top = 1.dp)
-                        )
-                    }
+                val stamp = remember(note.id) { BlockStamp.fromEvent(note) }
+                if (stamp != null) {
+                    BlockStampBadge(stamp, note, actions)
+                }
+                val parentAuthor = remember(note.id) {
+                    if (ThreadRef.of(note).parent != null) note.tagValues("p").firstOrNull() else null
+                }
+                if (parentAuthor != null) {
+                    val parentProfile by remember(parentAuthor, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(parentAuthor) } }
+                    Text(
+                        text = tr("Replying to @") + (parentProfile?.bestName ?: Profile.shortNpub(parentAuthor)),
+                        color = EInk.Caption,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 1.dp)
+                    )
                 }
                 NoteBody(note, actions, fontSize = 15)
                 ActionRow(note, stats, actions)
@@ -257,7 +273,7 @@ private fun NoteMenu(note: Event, actions: NoteActions, onDismiss: () -> Unit) {
 @Composable
 fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int = 0, collapse: Boolean = true) {
     // NIP-36: hide behind a warning until the reader chooses to see it.
-    val warning = note.firstTag("content-warning") ?: note.tags.firstOrNull { it.firstOrNull() == "content-warning" }
+    val warning = remember(note.id) { note.firstTag("content-warning") ?: note.tags.firstOrNull { it.firstOrNull() == "content-warning" } }
     var revealed by remember(note.id) { mutableStateOf(false) }
     if (warning != null && !revealed) {
         Row(
@@ -303,24 +319,33 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         }
         parsed + fromTags
     }
-    val uriHandler = LocalUriHandler.current
-    val linkStyle = TextLinkStyles(SpanStyle(color = EInk.Value, fontWeight = FontWeight.Bold))
-    val text: AnnotatedString = buildAnnotatedString {
-        for (seg in segments) when (seg) {
-            is Content.Segment.Text -> append(seg.text)
-            is Content.Segment.Link -> withLink(LinkAnnotation.Clickable("url", linkStyle) { actions.openLink(seg.url, note) }) {
-                append(seg.url.removePrefix("https://").removePrefix("http://").let { if (it.length > 40) it.take(38) + "…" else it })
+    val mentionedNames by remember(note.id, segments, actions) {
+        androidx.compose.runtime.derivedStateOf {
+            segments.mapNotNull { (it as? Content.Segment.ProfileRef)?.pubkey }
+                .distinct()
+                .map { pk -> pk to (actions.profileOf(pk)?.bestName ?: Profile.shortNpub(pk)) }
+        }
+    }
+    val text: AnnotatedString = remember(note.id, mentionedNames) {
+        val nameByPk = mentionedNames.toMap()
+        val linkStyle = TextLinkStyles(SpanStyle(color = EInk.Value, fontWeight = FontWeight.Bold))
+        buildAnnotatedString {
+            for (seg in segments) when (seg) {
+                is Content.Segment.Text -> append(seg.text)
+                is Content.Segment.Link -> withLink(LinkAnnotation.Clickable("url", linkStyle) { actions.openLink(seg.url, note) }) {
+                    append(seg.url.removePrefix("https://").removePrefix("http://").let { if (it.length > 40) it.take(38) + "…" else it })
+                }
+                is Content.Segment.Hashtag -> withLink(LinkAnnotation.Clickable("tag", linkStyle) { actions.openHashtag(seg.tag) }) {
+                    append("#" + seg.tag)
+                }
+                is Content.Segment.ProfileRef -> withLink(LinkAnnotation.Clickable("p", linkStyle) { actions.openProfile(seg.pubkey) }) {
+                    append("@" + (nameByPk[seg.pubkey] ?: Profile.shortNpub(seg.pubkey)))
+                }
+                // Custom emoji (NIP-30) draw inline as small images.
+                is Content.Segment.Emoji -> appendInlineContent("emoji:" + seg.url, ":" + seg.code + ":")
+                // Images and quoted notes are shown as blocks below.
+                is Content.Segment.Image, is Content.Segment.Video, is Content.Segment.NoteRef, is Content.Segment.AddressRef -> Unit
             }
-            is Content.Segment.Hashtag -> withLink(LinkAnnotation.Clickable("tag", linkStyle) { actions.openHashtag(seg.tag) }) {
-                append("#" + seg.tag)
-            }
-            is Content.Segment.ProfileRef -> withLink(LinkAnnotation.Clickable("p", linkStyle) { actions.openProfile(seg.pubkey) }) {
-                append("@" + (actions.profileOf(seg.pubkey)?.bestName ?: Profile.shortNpub(seg.pubkey)))
-            }
-            // Custom emoji (NIP-30) draw inline as small images.
-            is Content.Segment.Emoji -> appendInlineContent("emoji:" + seg.url, ":" + seg.code + ":")
-            // Images and quoted notes are shown as blocks below.
-            is Content.Segment.Image, is Content.Segment.Video, is Content.Segment.NoteRef, is Content.Segment.AddressRef -> Unit
         }
     }
     val emojiContent = remember(note.id) {
@@ -330,7 +355,12 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             ) { AsyncImage(model = e.url, contentDescription = ":" + e.code + ":", modifier = Modifier.fillMaxSize()) }
         }
     }
-    val shown = text.text.trim()
+    val shown = remember(text) { text.text.trim() }
+    val translationTarget = OnDeviceTranslation.targetLanguage()
+    var translatedText by remember(note.id, translationTarget) { mutableStateOf<String?>(null) }
+    var translationError by remember(note.id, translationTarget) { mutableStateOf<String?>(null) }
+    var translating by remember(note.id, translationTarget) { mutableStateOf(false) }
+    val translationScope = rememberCoroutineScope()
     // Long notes are cut in timelines, profiles and quotes, with "Show more" under them.
     val maxLines = when {
         !collapse -> Int.MAX_VALUE
@@ -349,10 +379,42 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             lineHeight = (fontSize * 1.35).sp,
             maxLines = if (expanded) Int.MAX_VALUE else maxLines,
             overflow = TextOverflow.Ellipsis,
-            onTextLayout = { cut = it.hasVisualOverflow },
-            modifier = Modifier.padding(top = 2.dp).animateContentSize(androidx.compose.animation.core.tween(220))
+            onTextLayout = { if (!expanded) cut = it.hasVisualOverflow },
+            modifier = Modifier.padding(top = 2.dp)
         )
         if (cut && !expanded) ShowMore { if (depth > 0) actions.openNote(note) else expanded = true }
+        if (shown.length >= 20) {
+            Text(
+                text = when {
+                    translating -> tr("Translating on this device…")
+                    translatedText != null -> tr("Hide translation")
+                    else -> tr("Translate to {0}", if (translationTarget == "th") tr("Thai") else tr("English"))
+                },
+                color = SettingsAccent,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 6.dp).clickable(enabled = !translating) {
+                    if (translatedText != null) {
+                        translatedText = null
+                        translationError = null
+                    } else {
+                        translating = true
+                        translationError = null
+                        translationScope.launch {
+                            runCatching { withContext(Dispatchers.IO) { OnDeviceTranslation.translate(shown, translationTarget) } }
+                                .onSuccess { translatedText = it }
+                                .onFailure { translationError = it.message ?: tr("Couldn't translate this note") }
+                            translating = false
+                        }
+                    }
+                }
+            )
+            translatedText?.let {
+                Text(it, color = EInk.Label, fontSize = fontSize.sp, lineHeight = (fontSize * 1.35).sp, modifier = Modifier.padding(top = 4.dp))
+                Text(tr("Translated on this device"), color = EInk.Caption, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+            translationError?.let { Text(tr(it), color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+        }
     }
     if (note.kind == com.example.btcwidget.nostr.core.Kind.POLL) {
         com.example.btcwidget.nostr.core.Poll.of(note)?.let { PollView(it, actions) }
@@ -361,7 +423,12 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
     segments.filterIsInstance<Content.Segment.Video>().take(2).forEach { VideoPlayer(it.url, note, actions) }
     // A card for the first web link (not for posts that already show photos, video or a quote).
     if (depth == 0 && segments.none { it is Content.Segment.Image || it is Content.Segment.Video || it is Content.Segment.NoteRef || it is Content.Segment.AddressRef }) {
-        segments.filterIsInstance<Content.Segment.Link>().firstOrNull()?.let { LinkCard(it.url, note, actions) }
+        val btcEmbed = remember(note.id) { BitcoinContextDetector.detect(note) }
+        if (btcEmbed != null) {
+            BitcoinContextCard(btcEmbed, note, actions)
+        } else {
+            segments.filterIsInstance<Content.Segment.Link>().firstOrNull()?.let { LinkCard(it.url, note, actions) }
+        }
     }
     if (depth == 0) {
         segments.filterIsInstance<Content.Segment.NoteRef>().distinctBy { it.id }.take(2).forEach { ref ->
@@ -369,6 +436,9 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         }
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.Kind.ARTICLE }
             .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ArticleCard(it.address, actions) }
+        // A linked store listing (NIP-99 / NIP-15): cover, title and price.
+        segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind in com.example.btcwidget.nostr.core.Marketplace.KINDS }
+            .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ListingInlineCard(it.address, actions) }
         // A linked live stream (NIP-53): a button to watch it.
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND }
             .take(1).forEach { ref ->
@@ -434,19 +504,19 @@ private const val QUOTE_LINES = 5
 @Composable
 private fun ShowMore(onClick: () -> Unit) {
     Text(
-        tr("Show more"), color = androidx.compose.ui.graphics.Color(0xFFF7931A), fontSize = 15.sp, fontWeight = FontWeight.Medium,
+        tr("Show more"), color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(6.dp))
             .clickable(onClickLabel = tr("Read the whole post"), onClick = onClick).padding(vertical = 4.dp)
     )
 }
 
-/** A highlight (NIP-84): the reader's comment, the passage with an orange bar, and where it's from. */
+/** A highlight (NIP-84): the reader's comment, the passage with an accent bar, and where it's from. */
 @Composable
 private fun HighlightBody(note: Event, actions: NoteActions, fontSize: Int) {
     val h = remember(note.id) { com.example.btcwidget.nostr.core.Highlights.parse(note) } ?: return
     h.comment?.let { Text(it, color = EInk.Value, fontSize = fontSize.sp, lineHeight = (fontSize * 1.35).sp, modifier = Modifier.padding(top = 2.dp)) }
     Row(Modifier.padding(top = 6.dp).height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
-        Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(androidx.compose.ui.graphics.Color(0xFFF7931A)))
+        Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(EInk.Accent))
         Text(
             h.text, color = EInk.Value, fontSize = fontSize.sp, lineHeight = (fontSize * 1.35).sp,
             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, maxLines = 12, overflow = TextOverflow.Ellipsis,
@@ -479,14 +549,18 @@ internal fun plainText(note: Event, actions: NoteActions): String =
         }
     }.trim()
 
+private val imageRatioCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
+
 /**
  * A picture (or GIF) in a note, shown whole at its own shape: the size comes from the note's
- * imeta "dim" when given, else from the image once loaded. Only very tall or very wide
- * pictures are trimmed, to keep the timeline readable.
+ * imeta "dim" when given, else from the image once loaded (and cached in [imageRatioCache] so
+ * scrolling back and forth never jumps height). Only very tall or very wide pictures are trimmed.
  */
 @Composable
 private fun NoteImage(note: Event, url: String, actions: NoteActions) {
-    var ratio by remember(note.id, url) { mutableStateOf(com.example.btcwidget.nostr.core.Imeta.aspectRatio(note, url)) }
+    var ratio by remember(note.id, url) {
+        mutableStateOf(com.example.btcwidget.nostr.core.Imeta.aspectRatio(note, url) ?: imageRatioCache[url])
+    }
     val shape = RoundedCornerShape(14.dp)
     // A soft blur of the picture, at its size, until it has loaded (when the note gives one).
     val blur = rememberBlurhashPainter(remember(note.id, url) { com.example.btcwidget.nostr.core.Imeta.blurhash(note, url) })
@@ -497,12 +571,16 @@ private fun NoteImage(note: Event, url: String, actions: NoteActions) {
         placeholder = blur,
         onSuccess = { state ->
             val size = state.painter.intrinsicSize
-            if (size.width > 0f && size.height > 0f) ratio = size.width / size.height
+            if (size.width > 0f && size.height > 0f) {
+                val r = size.width / size.height
+                imageRatioCache[url] = r
+                if (ratio == null) ratio = r
+            }
         },
         modifier = Modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .then(ratio?.let { Modifier.aspectRatio(mediaRatio(it, MIN_RATIO, MAX_RATIO)) } ?: Modifier.heightIn(min = 120.dp, max = 320.dp))
+            .then(ratio?.let { Modifier.aspectRatio(mediaRatio(it, MIN_RATIO, MAX_RATIO)) } ?: Modifier.heightIn(min = 160.dp, max = 320.dp))
             .clip(shape)
             .background(EInk.Body)
             .border(0.5.dp, EInk.BodyStroke, shape)
@@ -537,6 +615,52 @@ private fun ArticleCard(address: com.example.btcwidget.nostr.core.Nip19.Address,
             Text(tr("ARTICLE"), color = EInk.Caption, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text(a?.title ?: tr("Loading article…"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             a?.summary?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }
+        }
+    }
+}
+
+/** A linked marketplace listing (NIP-99 / NIP-15) inside a note or chat message. */
+@Composable
+private fun ListingInlineCard(address: com.example.btcwidget.nostr.core.Nip19.Address, actions: NoteActions) {
+    val listing by produceState<com.example.btcwidget.nostr.core.Listing?>(null, address) { value = actions.resolveListing(address) }
+    val l = listing
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(EInk.Body)
+            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+            .clickable { actions.openArticle(address) }
+            .padding(10.dp)
+    ) {
+        val cover = l?.images?.firstOrNull()
+        if (cover != null) {
+            AsyncImage(
+                model = cover, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Track)
+            )
+            Spacer(Modifier.width(12.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (l?.sold == true) tr("STORE · SOLD") else tr("STORE"),
+                color = if (l?.sold == true) EInk.Alert else EInk.Accent,
+                fontSize = 11.sp, fontWeight = FontWeight.Bold
+            )
+            Text(
+                l?.title ?: tr("Loading listing…"),
+                color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+            l?.price?.let { p ->
+                Text(
+                    "⚡ " + com.example.btcwidget.nostr.core.Marketplace.formatRaw(p),
+                    color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
     }
 }
@@ -599,7 +723,7 @@ internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
         val sats = (stats.zapMsat / 1000).toInt()
         // Not coloured: the zap total isn't split by who zapped.
         ActionButton(Glyphs.Zap, sats, "Zap", tint = null) { actions.zap(note) }
-        val saved = actions.isBookmarked(note.id)
+        val saved by remember(note.id, actions) { androidx.compose.runtime.derivedStateOf { actions.isBookmarked(note.id) } }
         ActionButton(if (saved) Glyphs.Bookmarked else Glyphs.Bookmark, 0, if (saved) "Remove bookmark" else "Bookmark", tint = EInk.Value.takeIf { saved }) { actions.bookmark(note) }
     }
 }
@@ -713,6 +837,10 @@ fun fullTimestamp(createdAt: Long, zone: java.util.TimeZone = java.util.TimeZone
         .apply { timeZone = zone }
         .format(java.util.Date(createdAt * 1000))
 
+private val yearFormat = ThreadLocal.withInitial { java.text.SimpleDateFormat("yyyy", java.util.Locale.US) }
+private val dayMonthFormat = ThreadLocal.withInitial { java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault()) }
+private val dayMonthYearFormat = ThreadLocal.withInitial { java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault()) }
+
 /** "now", "5m", "3h", "2d", then "12 Mar" / "12 Mar 2025". */
 fun relativeTime(createdAt: Long, now: Long = System.currentTimeMillis() / 1000): String {
     val s = (now - createdAt).coerceAtLeast(0)
@@ -723,8 +851,9 @@ fun relativeTime(createdAt: Long, now: Long = System.currentTimeMillis() / 1000)
         s < 7 * 86_400 -> "${s / 86_400}d"
         else -> {
             val date = java.util.Date(createdAt * 1000)
-            val sameYear = java.text.SimpleDateFormat("yyyy", java.util.Locale.US).let { it.format(date) == it.format(java.util.Date(now * 1000)) }
-            java.text.SimpleDateFormat(if (sameYear) "d MMM" else "d MMM yyyy", java.util.Locale.getDefault()).format(date)
+            val yf = yearFormat.get()!!
+            val sameYear = yf.format(date) == yf.format(java.util.Date(now * 1000))
+            (if (sameYear) dayMonthFormat.get()!! else dayMonthYearFormat.get()!!).format(date)
         }
     }
 }

@@ -15,6 +15,6 @@ Block is a window onto Nostr, an open network that no company runs. Block doesn'
 
 - **Mute** hides an account everywhere in Block (⋯ on a post; Unmute on their profile).
 - **Report** (⋯ › Report on a post) publishes a NIP-56 report to your relays so relays and other apps can act on it.
-- **Contact:** for anything urgent or illegal, open an issue at <https://github.com/phirapath21/btcwidget/issues>, or contact the relay that hosts the post.
+- **Contact:** for anything urgent or illegal, open an issue at <https://github.com/phirapath21/Block/issues>, or contact the relay that hosts the post.
 
 Posts on Nostr are public and permanent: relays may keep copies even after you delete. Breaking these rules can get you reported, muted by others, and refused by relays.

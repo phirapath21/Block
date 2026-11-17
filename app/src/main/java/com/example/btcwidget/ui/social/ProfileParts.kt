@@ -76,6 +76,103 @@ internal fun copyToClipboard(context: android.content.Context, label: String, te
     android.widget.Toast.makeText(context, toast, android.widget.Toast.LENGTH_SHORT).show()
 }
 
+/**
+ * Opens Block Wallet to pay [pubkey] in one tap, and only Block Wallet: never BlueWallet or
+ * another app that also handles `bitcoin:`. Tries, in order:
+ * 1. `blockwallet://pay?…` (Block Wallet's own scheme);
+ * 2. a BIP-21 `bitcoin:` link sent explicitly to whichever installed app is labelled Block Wallet;
+ * 3. Block Wallet's launcher with the details as extras.
+ * Without Block Wallet the payment link is copied. Used by the Store checkout.
+ *
+ * [amountSats], [memo] (what's bought) and [reference] (the listing's naddr) are optional;
+ * [address] overrides the on-chain address found in the profile.
+ */
+internal fun openBlockWalletPay(
+    context: android.content.Context,
+    pubkey: String,
+    profile: Profile?,
+    amountSats: Long? = null,
+    memo: String? = null,
+    reference: String? = null,
+    address: String? = null
+) {
+    val npub = com.example.btcwidget.nostr.core.Nip19.npub(pubkey)
+    val name = profile?.bestName ?: Profile.shortNpub(pubkey)
+    val lud16 = profile?.lud16?.trim().orEmpty()
+    val btcAddress = address?.trim()?.takeIf { it.isNotEmpty() } ?: profile?.about?.let { about ->
+        Regex("""\b(bc1[ac-hj-np-z02-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b""").find(about)?.value
+    }.orEmpty()
+    val blockUri = android.net.Uri.Builder()
+        .scheme("blockwallet")
+        .authority("pay")
+        .appendQueryParameter("pubkey", pubkey)
+        .appendQueryParameter("npub", npub)
+        .appendQueryParameter("name", name)
+        .apply {
+            if (btcAddress.isNotEmpty()) appendQueryParameter("address", btcAddress)
+            if (lud16.isNotEmpty()) appendQueryParameter("lud16", lud16)
+            if (amountSats != null && amountSats > 0) appendQueryParameter("amount", amountSats.toString())
+            memo?.takeIf { it.isNotBlank() }?.let { appendQueryParameter("memo", it) }
+            reference?.takeIf { it.isNotBlank() }?.let { appendQueryParameter("ref", it) }
+        }
+        .build()
+    val pm = context.packageManager
+    val newTask = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+
+    // 1. Block Wallet's own scheme, only if something actually handles it.
+    val blockIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, blockUri).addFlags(newTask)
+    if (blockIntent.resolveActivity(pm) != null && runCatching { context.startActivity(blockIntent) }.isSuccess) return
+
+    // 2. BIP-21, addressed to the app named Block Wallet (so BlueWallet never catches it).
+    val blockPackage = findBlockWalletPackage(context)
+    if (blockPackage != null) {
+        val btcAmount = amountSats?.takeIf { it > 0 }?.let { java.math.BigDecimal(it).movePointLeft(8).stripTrailingZeros().toPlainString() }
+        val query = buildList {
+            btcAmount?.let { add("amount=$it") }
+            add("label=" + android.net.Uri.encode(name))
+            memo?.takeIf { it.isNotBlank() }?.let { add("message=" + android.net.Uri.encode(it)) }
+            if (lud16.isNotEmpty()) add("lightning=" + android.net.Uri.encode(lud16))
+            add("nostr=" + android.net.Uri.encode(npub))
+        }.joinToString("&")
+        val bip21 = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("bitcoin:$btcAddress?$query"))
+            .setPackage(blockPackage).addFlags(newTask)
+        if (bip21.resolveActivity(pm) != null && runCatching { context.startActivity(bip21) }.isSuccess) return
+        // 3. Just open Block Wallet with the details.
+        pm.getLaunchIntentForPackage(blockPackage)?.apply {
+            addFlags(newTask)
+            data = blockUri
+            putExtra("pubkey", pubkey); putExtra("npub", npub); putExtra("name", name)
+            if (btcAddress.isNotEmpty()) putExtra("address", btcAddress)
+            if (lud16.isNotEmpty()) putExtra("lud16", lud16)
+            amountSats?.let { putExtra("amount", it) }
+            memo?.let { putExtra("memo", it) }
+        }?.let { if (runCatching { context.startActivity(it) }.isSuccess) return }
+    }
+
+    copyToClipboard(context, "Block Wallet payment URI", blockUri.toString(), tr("Block Wallet not installed yet — payment link copied"))
+}
+
+/** The installed app that calls itself Block Wallet (by its `bitcoin:` handler or launcher label). */
+private fun findBlockWalletPackage(context: android.content.Context): String? {
+    val pm = context.packageManager
+    fun isBlockWallet(info: android.content.pm.ResolveInfo): Boolean {
+        val pkg = info.activityInfo?.packageName ?: return false
+        if (pkg == context.packageName) return false
+        val label = runCatching { info.loadLabel(pm).toString() }.getOrDefault("") + " " +
+            runCatching { pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString() }.getOrDefault("")
+        return label.contains("block wallet", ignoreCase = true) || label.contains("blockwallet", ignoreCase = true) ||
+            pkg.contains("blockwallet", ignoreCase = true)
+    }
+    val bitcoinHandlers = runCatching {
+        pm.queryIntentActivities(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("bitcoin:")), 0)
+    }.getOrDefault(emptyList())
+    bitcoinHandlers.firstOrNull(::isBlockWallet)?.let { return it.activityInfo.packageName }
+    val launchers = runCatching {
+        pm.queryIntentActivities(android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(android.content.Intent.CATEGORY_LAUNCHER), 0)
+    }.getOrDefault(emptyList())
+    return launchers.firstOrNull(::isBlockWallet)?.activityInfo?.packageName
+}
+
 /** The small copy button at the end of a profile row. */
 @Composable
 private fun CopyButton(label: String, onClick: () -> Unit) {

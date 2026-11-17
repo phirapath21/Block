@@ -11,6 +11,8 @@ import com.example.btcwidget.nostr.NostrNotification
 import com.example.btcwidget.nostr.NostrRepository
 import com.example.btcwidget.nostr.SignerRejected
 import com.example.btcwidget.nostr.core.Event
+import com.example.btcwidget.nostr.core.Filter
+import com.example.btcwidget.nostr.core.Kind
 import com.example.btcwidget.nostr.core.Profile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -58,6 +60,29 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private var accountLoaded = false
+    private var stopRealtimeNotifications: (() -> Unit)? = null
+    private var realtimeAccount: String? = null
+    private val liveNotificationIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /** Keeps a relay subscription only while this ViewModel (and its foreground Activity) lives. */
+    fun startRealtimeNotifications() {
+        val me = repo.pubkey ?: return
+        if (realtimeAccount == me && stopRealtimeNotifications != null) return
+        stopRealtimeNotifications?.invoke()
+        realtimeAccount = me
+        val since = System.currentTimeMillis() / 1000 - 60
+        stopRealtimeNotifications = repo.pool.subscribe(
+            listOf(Filter(kinds = listOf(Kind.TEXT_NOTE, Kind.REPOST, Kind.REACTION, Kind.ZAP_RECEIPT), tags = mapOf("p" to listOf(me)), since = since)),
+            { event, _ ->
+                if (event.pubkey == me || !liveNotificationIds.add(event.id)) return@subscribe
+                repo.scope.launch {
+                    delay(350)
+                    com.example.btcwidget.nostr.NostrBackground.notifyLiveActivity(getApplication(), event)
+                    refreshNotifications()
+                }
+            }
+        )
+    }
 
     // Scroll positions of the main lists. Kept here, not in the screen, so switching tabs,
     // opening a note and coming back, or the Activity being recreated leaves you where you were.
@@ -427,6 +452,27 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     fun setMediaServers(urls: List<String>, onDone: () -> Unit) =
         act(tr("Couldn't save media servers")) { repo.setMediaServers(urls); say(tr("Media servers saved")); onDone() }
 
+    fun storageStats(onResult: (com.example.btcwidget.nostr.StorageStats) -> Unit) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val stats = repo.storageStats()
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onResult(stats) }
+        }
+    }
+
+    fun eventRetentionDays(): Int = repo.eventRetentionDays()
+
+    fun setEventRetentionDays(days: Int) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { repo.setEventRetentionDays(days) }
+    }
+
+    fun clearMediaCache(onDone: (Boolean) -> Unit) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val imageCleared = com.example.btcwidget.BlockApp.clearImageCache(app)
+            val videoCleared = VideoCache.clear(app)
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onDone(imageCleared && videoCleared) }
+        }
+    }
+
     fun setDmInbox(urls: List<String>, onDone: () -> Unit) =
         act(tr("Couldn't save inbox relays")) { repo.dms.setUpInbox(urls); say(tr("Inbox relays saved")); onDone() }
 
@@ -535,10 +581,54 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Reading for detail screens ----
 
+    private val savedArticlesPrefs by lazy {
+        getApplication<Application>().getSharedPreferences("saved_articles_prefs", android.content.Context.MODE_PRIVATE)
+    }
+    private val _savedArticles = MutableStateFlow(loadSavedArticles())
+    /** Articles saved to the user's offline Reading List, newest saved first. */
+    val savedArticles: StateFlow<List<com.example.btcwidget.nostr.core.Article>> = _savedArticles.asStateFlow()
+
+    private fun loadSavedArticles(): List<com.example.btcwidget.nostr.core.Article> = runCatching {
+        val raw = savedArticlesPrefs.getString("events_json", null) ?: return emptyList()
+        val arr = org.json.JSONArray(raw)
+        (0 until arr.length()).mapNotNull { i ->
+            runCatching { com.example.btcwidget.nostr.core.Event.fromJson(arr.getString(i)) }.getOrNull()
+                ?.let { com.example.btcwidget.nostr.core.Article.of(it) }
+        }
+    }.getOrDefault(emptyList())
+
+    private fun persistSavedArticles(list: List<com.example.btcwidget.nostr.core.Article>) {
+        val arr = org.json.JSONArray()
+        list.forEach { arr.put(it.event.toJson()) }
+        savedArticlesPrefs.edit().putString("events_json", arr.toString()).apply()
+    }
+
+    fun toggleSavedArticle(article: com.example.btcwidget.nostr.core.Article) {
+        val cur = _savedArticles.value
+        val exists = cur.any { it.address == article.address }
+        val next = if (exists) cur.filterNot { it.address == article.address } else listOf(article) + cur
+        _savedArticles.value = next
+        persistSavedArticles(next)
+        say(if (exists) tr("Removed from Reading List") else tr("Saved to Reading List (available offline)"))
+    }
+
+    /** Publishes a long-form article (NIP-23 kind 30023); [onResult] gets the published Article or null. */
+    fun publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Article?) -> Unit) {
+        var result: com.example.btcwidget.nostr.core.Article? = null
+        act(tr("Couldn't publish the article"), finally = { onResult(result) }) {
+            result = repo.publishArticle(unsigned)
+            say(tr("Article published"))
+        }
+    }
+
     suspend fun thread(id: String) = runCatching { repo.thread(id) }.getOrNull()
     suspend fun note(id: String) = runCatching { repo.note(id) }.getOrNull()
     fun hashtagSuggestions(prefix: String) = repo.hashtagSuggestions(prefix)
-    suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address) = runCatching { repo.article(address) }.getOrNull()
+    suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address): com.example.btcwidget.nostr.core.Article? {
+        val key = "${address.kind}:${address.pubkey}:${address.identifier}"
+        return runCatching { repo.article(address) }.getOrNull()
+            ?: _savedArticles.value.firstOrNull { it.address == key }
+    }
     suspend fun articlesBy(pubkey: String) = runCatching { repo.articlesBy(pubkey) }.getOrDefault(emptyList())
     /** Video posts for Shorts: by the people you follow, or by everyone on your relays. */
     suspend fun videoFeed(everyone: Boolean, until: Long? = null) =
@@ -562,6 +652,58 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     suspend fun refreshProfile(pubkey: String) = runCatching { repo.refreshProfile(pubkey) }.getOrNull()
     suspend fun followingOf(pubkey: String) = runCatching { repo.followingOf(pubkey) }.getOrDefault(emptySet())
     fun loadProfiles(pubkeys: Collection<String>) = viewModelScope.launch { runCatching { repo.loadProfiles(pubkeys) } }
+
+    // ---- Store (NIP-99 marketplace) ----
+
+    /** Listings for the store: everyone's, or only [seller]'s shop. Kept between visits. */
+    private val _listings = MutableStateFlow<List<com.example.btcwidget.nostr.core.Listing>?>(null)
+    val listings: StateFlow<List<com.example.btcwidget.nostr.core.Listing>?> = _listings.asStateFlow()
+    private val _storeLoading = MutableStateFlow(false)
+    val storeLoading: StateFlow<Boolean> = _storeLoading.asStateFlow()
+
+    fun refreshStore() {
+        if (_storeLoading.value) return
+        _storeLoading.value = true
+        viewModelScope.launch {
+            runCatching { repo.listings() }.onSuccess { _listings.value = it }
+            if (_listings.value == null) _listings.value = emptyList()
+            _storeLoading.value = false
+        }
+    }
+
+    suspend fun shopListings(seller: String) = runCatching { repo.listings(sellers = listOf(seller)) }.getOrDefault(emptyList())
+    suspend fun listing(address: String) = runCatching { repo.listing(address) }.getOrNull()
+
+    /** Publishes a listing (new or edited); [onResult] gets it, or null on failure. */
+    fun publishListing(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Listing?) -> Unit) {
+        var result: com.example.btcwidget.nostr.core.Listing? = null
+        act(tr("Couldn't publish the listing"), finally = { onResult(result) }) {
+            result = repo.publishListing(unsigned)
+            result?.let { l -> _listings.value = (listOf(l) + _listings.value.orEmpty().filter { it.address != l.address }) }
+            say(tr("Listing published"))
+        }
+    }
+
+    fun deleteListing(listing: com.example.btcwidget.nostr.core.Listing, onDone: () -> Unit = {}) =
+        act(tr("Couldn't delete the listing"), finally = onDone) {
+            repo.deleteListing(listing)
+            _listings.value = _listings.value?.filter { it.address != listing.address }
+            say(tr("Listing deleted"))
+        }
+
+    /** Sends the order to the seller as a private message (NIP-17). */
+    fun sendOrder(seller: String, text: String, onResult: (Boolean) -> Unit = {}) {
+        var ok = false
+        act(tr("Couldn't send the order to the seller"), finally = { onResult(ok) }) {
+            repo.dms.send(listOf(seller), text, null)
+            ok = true
+            say(tr("Order sent to the seller"))
+        }
+    }
+
+    /** Pays the seller's Lightning address: in the app with NWC, else [onInvoice] opens a wallet. */
+    fun payLightning(seller: String, lud16: String, amountSat: Long, memo: String, onInvoice: (String) -> Unit) =
+        zap(seller, amountSat, null, memo, lud16, onInvoice)
 
     // ---- Images ----
 
@@ -601,6 +743,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     val dmLoading get() = repo.dms.loading
     val dmLocked get() = repo.dms.locked
     val dmInbox get() = repo.dms.inbox
+    val dmUnsentIds get() = repo.dms.unsentIds
 
     fun startDms() { if (repo.pubkey != null) viewModelScope.launch { runCatching { repo.dms.start() } } }
 
@@ -613,14 +756,81 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     fun reactDm(peers: List<String>, target: com.example.btcwidget.nostr.core.Nip17.Message, emoji: String) =
         act(tr("Couldn't react")) { repo.dms.react(peers, target, emoji) }
 
+    fun deleteDmForMe(messageId: String) {
+        repo.dms.deleteForMe(messageId)
+        say(tr("Message deleted for you"))
+    }
+
+    fun unsendDm(peers: List<String>, target: com.example.btcwidget.nostr.core.Nip17.Message) =
+        act(tr("Couldn't unsend the message")) {
+            repo.dms.unsend(peers, target)
+            say(tr("Message unsent"))
+        }
+
     /** Sends a photo, encrypted on the phone (location data removed first). */
-    fun sendDmImage(peers: List<String>, uri: android.net.Uri, onResult: (Boolean) -> Unit) {
+    fun sendDmImage(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
         var ok = false
         act(tr("Couldn't send the photo"), finally = { onResult(ok) }) {
             val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
                 com.example.btcwidget.nostr.ImagePrep.prepare(getApplication(), uri)
             }
-            repo.dms.sendImage(peers, prepared)
+            repo.dms.sendImage(peers, prepared, replyTo)
+            ok = true
+        }
+    }
+
+    /** Sends an encrypted video (NIP-17 kind 15, AES-GCM encrypted up to 25 MB). */
+    fun sendDmVideo(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
+        var ok = false
+        act(tr("Couldn't send the video"), finally = { onResult(ok) }) {
+            val (bytes, mime, dims) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val prep = com.example.btcwidget.nostr.VideoPrep.prepare(getApplication(), uri)
+                try {
+                    if (prep.size > com.example.btcwidget.nostr.DirectMessages.MAX_FILE) {
+                        error(tr("Videos in encrypted chats can be up to 25 MB"))
+                    }
+                    Triple(prep.file.readBytes(), prep.mime, prep.width to prep.height)
+                } finally {
+                    prep.file.delete()
+                }
+            }
+            repo.dms.sendFile(peers, bytes, mime, fileName = null, width = dims.first, height = dims.second, replyTo = replyTo)
+            ok = true
+        }
+    }
+
+    /** Sends any encrypted file, audio, or document (NIP-17 kind 15, AES-GCM encrypted up to 25 MB). */
+    fun sendDmFile(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
+        var ok = false
+        act(tr("Couldn't send the file"), finally = { onResult(ok) }) {
+            val (bytes, mime, fileName) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val app = getApplication<android.app.Application>()
+                val resolver = app.contentResolver
+                val type = resolver.getType(uri) ?: "application/octet-stream"
+                var name: String? = null
+                runCatching {
+                    resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                        if (c.moveToFirst()) name = c.getString(0)
+                    }
+                }
+                val raw = (resolver.openInputStream(uri) ?: error(tr("Couldn't open the file"))).use { input ->
+                    val out = java.io.ByteArrayOutputStream()
+                    val buf = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > com.example.btcwidget.nostr.DirectMessages.MAX_FILE) {
+                            error(tr("Files in encrypted chats can be up to 25 MB"))
+                        }
+                        out.write(buf, 0, n)
+                    }
+                    out.toByteArray()
+                }
+                Triple(raw, type, name)
+            }
+            repo.dms.sendFile(peers, bytes, mime, fileName = fileName, replyTo = replyTo)
             ok = true
         }
     }
@@ -677,6 +887,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         quote: Event?,
         images: List<Attachment> = emptyList(),
         contentWarning: String? = null,
+        extraTags: List<List<String>> = emptyList(),
         onResult: (Boolean) -> Unit
     ) {
         var ok = false
@@ -690,7 +901,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
             val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
                 // NIP-36: other apps hide the note behind a warning until tapped.
-                listOfNotNull(contentWarning?.let { listOf("content-warning", it) })
+                listOfNotNull(contentWarning?.let { listOf("content-warning", it) }) +
+                extraTags
             val event = when {
                 replyTo != null -> repo.reply(body, replyTo, tags)
                 quote != null -> repo.quote(body, quote, tags)
@@ -712,11 +924,18 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /** Saves a new post to publish at [at] (seconds), with the same tags [send] would add. */
-    fun schedule(text: String, images: List<Attachment>, contentWarning: String?, at: Long): Boolean {
+    fun schedule(
+        text: String,
+        images: List<Attachment>,
+        contentWarning: String?,
+        at: Long,
+        extraTags: List<List<String>> = emptyList()
+    ): Boolean {
         val me = repo.pubkey ?: return false
         val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
         val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
-            listOfNotNull(contentWarning?.let { listOf("content-warning", it) })
+            listOfNotNull(contentWarning?.let { listOf("content-warning", it) }) +
+            extraTags
         com.example.btcwidget.nostr.ScheduledPosts.schedule(getApplication(), me, at, body, tags)
         refreshScheduled()
         say(tr("Scheduled for ") + java.text.SimpleDateFormat("EEE, MMM d - h:mm a", java.util.Locale.ENGLISH).format(java.util.Date(at * 1000)))
@@ -767,6 +986,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         stopLive?.invoke()
+        stopRealtimeNotifications?.invoke()
         super.onCleared()
     }
 
@@ -977,7 +1197,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         say(tr("Wallet disconnected"))
     }
 
-    private fun say(message: String) { _messages.tryEmit(message) }
+    internal fun say(message: String) { _messages.tryEmit(message) }
 
     // ---- Progress of what's being sent (repost, reply, post) ----
 

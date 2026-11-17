@@ -3,6 +3,7 @@ package com.example.btcwidget.nostr.core
 import org.json.JSONObject
 
 /** Profile metadata (kind 0, NIP-01 / NIP-24). */
+@androidx.compose.runtime.Immutable
 data class Profile(
     val pubkey: String,
     val name: String? = null,
@@ -39,12 +40,17 @@ data class Profile(
             )
         }.getOrNull()
 
+        private val shortNpubCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
         fun shortNpub(pubkey: String): String =
-            runCatching { Nip19.npub(pubkey).let { it.take(10) + "…" + it.takeLast(4) } }.getOrDefault(pubkey.take(8))
+            shortNpubCache.getOrPut(pubkey) {
+                runCatching { Nip19.npub(pubkey).let { it.take(10) + "…" + it.takeLast(4) } }.getOrDefault(pubkey.take(8))
+            }
     }
 }
 
 /** NIP-10 thread position of a kind-1 note. */
+@androidx.compose.runtime.Immutable
 data class ThreadRef(val root: String?, val reply: String?, val rootRelay: String? = null) {
     val isReply get() = reply != null || root != null
 

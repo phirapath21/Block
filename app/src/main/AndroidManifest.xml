@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Only to save images on Android 9 and below; newer versions need no permission. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -19,6 +22,20 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="lightning" />
+        </intent>
+        <!-- Store checkout: Block Wallet, found by its own scheme, its bitcoin: handler or its
+             launcher label (so payments go to it, never to another bitcoin: wallet). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="blockwallet" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bitcoin" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
         </intent>
     </queries>
 

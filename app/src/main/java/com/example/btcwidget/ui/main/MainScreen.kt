@@ -48,6 +48,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,6 +108,7 @@ fun MainScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val historyLoading by viewModel.historyLoading.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     val social: com.example.btcwidget.ui.social.SocialViewModel = viewModel()
@@ -117,8 +120,8 @@ fun MainScreen(
     val notificationItems by social.notifications.collectAsStateWithLifecycle()
 
     // Badges: load notifications and messages when the account is known and on every return.
-    LaunchedEffect(account) { social.refreshBadges() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { social.refreshBadges() }
+    LaunchedEffect(account) { social.refreshBadges(); social.startRealtimeNotifications() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { social.refreshBadges(); social.startRealtimeNotifications() }
     // Opening the Notifications tab marks them seen.
     LaunchedEffect(selectedTab, notificationItems) {
         if (selectedTab == MainTab.NOTIFICATIONS) social.markNotificationsSeen()
@@ -159,11 +162,22 @@ fun MainScreen(
         appVersion = viewModel.appVersion,
         stackSats = settings.stackSats,
         stackUnit = settings.stackUnit,
+        stackHidden = settings.stackHidden,
+        onToggleStackHidden = viewModel::toggleStackHidden,
         onStackChange = viewModel::setStack,
         dataSources = settings.dataSources,
         onDataSourcesChange = viewModel::setDataSources,
         history = history,
+        historyLoading = historyLoading,
+        onChartRangeSelected = viewModel::loadHistory,
         onShare = { key, data -> ShareCard.share(context, key, data, settings.currency, EInk.theme.palette) },
+        onPostToNostr = { key ->
+            val data = (state as? MainScreenUiState.Success)?.data ?: return@MainScreenContent
+            val text = com.example.btcwidget.ShareText.forKey(key, data, settings.currency) ?: return@MainScreenContent
+            val image = runCatching { ShareCard.imageUri(context, key, data, settings.currency, EInk.theme.palette) }.getOrNull()
+            if (image != null) onItemClick(com.example.btcwidget.ComposeKey(initialText = text, initialImageUri = image.toString()))
+            else android.widget.Toast.makeText(context, tr("Couldn't prepare the Bitcoin card"), android.widget.Toast.LENGTH_SHORT).show()
+        },
         onModeToggle = viewModel::setModeEnabled,
         onRefresh = viewModel::refreshData,
         isRefreshing = isRefreshing,
@@ -177,7 +191,9 @@ fun MainScreen(
         },
         notificationsAllowed = settings.notificationsAllowed,
         homeContent = { com.example.btcwidget.ui.social.HomeScreen(social, onItemClick) },
-        shortsContent = { com.example.btcwidget.ui.social.ShortsScreen(social, startEveryone = false, navigate = onItemClick, onBack = null) },
+        searchContent = { leadingMenu -> com.example.btcwidget.ui.social.SearchScreen(social, onItemClick, onBack = null, leadingMenu = leadingMenu) },
+        shortsContent = { com.example.btcwidget.ui.social.ShortsScreen(social, startEveryone = false, navigate = onItemClick, onBack = { selectedTab = MainTab.HOME }) },
+        storeContent = { com.example.btcwidget.ui.social.MarketplaceScreen(social, data = (state as? MainScreenUiState.Success)?.data, currency = settings.currency, navigate = onItemClick) },
         messagesContent = { com.example.btcwidget.ui.social.MessagesScreen(social, onItemClick) },
         bookmarksContent = { com.example.btcwidget.ui.social.BookmarksScreen(social, onItemClick) },
         communitiesContent = { com.example.btcwidget.ui.social.SpacesScreen(social, onItemClick) },
@@ -235,18 +251,26 @@ fun MainScreenContent(
     appVersion: String? = null,
     stackSats: Long = 0,
     stackUnit: StackUnit = StackUnit.BTC,
+    stackHidden: Boolean = false,
+    onToggleStackHidden: () -> Unit = {},
     onStackChange: (Long, StackUnit) -> Unit = { _, _ -> },
     dataSources: DataSources = DataSources(PriceSource.COINBASE, ThbSource.CONVERTED),
     onDataSourcesChange: (DataSources) -> Unit = {},
     history: List<PricePoint> = emptyList(),
+    historyLoading: Boolean = false,
+    onChartRangeSelected: (com.example.btcwidget.ChartRange) -> Unit = {},
     onShare: (String, PriceData) -> Unit = { _, _ -> },
+    onPostToNostr: (String) -> Unit = {},
     homeContent: @Composable () -> Unit = {},
+    searchContent: @Composable (leadingMenu: (@Composable () -> Unit)?) -> Unit = {},
     notificationsContent: @Composable () -> Unit = {},
     profileContent: @Composable () -> Unit = {},
     /** The Settings page (its categories; each opens its own screen). */
     settingsContent: @Composable () -> Unit = {},
-    /** Short videos, full screen, as a tab of their own. */
+    /** Short videos, full screen, opened from the side bar. */
     shortsContent: @Composable () -> Unit = {},
+    /** Nostr Store (NIP-99 classifieds & NIP-15 products). */
+    storeContent: @Composable () -> Unit = {},
     messagesContent: @Composable () -> Unit = {},
     bookmarksContent: @Composable () -> Unit = {},
     communitiesContent: @Composable () -> Unit = {},
@@ -328,24 +352,29 @@ fun MainScreenContent(
             }
         }
         val showBars = barsVisible || !hides
+        val imeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
+        val menuOpen = drawerState.isOpen || selectedTab in DRAWER_PAGES
+        val menuButtonSlot: (@Composable () -> Unit)? = if (wide) null else ({
+            MenuIconButton(
+                menuIcon = menuButtonIcon,
+                menuOpen = menuOpen,
+                onMenu = { scope.launch { drawerState.open() } },
+                onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null
+            )
+        })
         // Tap Bitcoin again: fetch fresh prices.
         val refreshNow by androidx.compose.runtime.rememberUpdatedState(onRefresh)
         androidx.compose.runtime.LaunchedEffect(Unit) {
             com.example.btcwidget.ui.social.TabTaps.flow.collect { if (it == MainTab.DASHBOARD.name) refreshNow() }
         }
-        if (!shorts) androidx.compose.animation.AnimatedVisibility(
+        if (!shorts && selectedTab != MainTab.SEARCH) androidx.compose.animation.AnimatedVisibility(
             visible = showBars,
             enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
         ) {
             TopBar(
-                // Search sits at the top of every page, after your avatar.
-                onSearch = { onItemClick(com.example.btcwidget.SearchKey) },
-                // On the rail when wide.
-                menuIcon = if (wide) null else menuButtonIcon,
-                menuOpen = drawerState.isOpen || selectedTab in DRAWER_PAGES,
-                onMenu = { scope.launch { drawerState.open() } },
-                onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null
+                title = tr(selectedTab.title),
+                menuButton = menuButtonSlot
             )
         }
         androidx.compose.runtime.CompositionLocalProvider(com.example.btcwidget.ui.social.LocalBarsVisible provides showBars) {
@@ -360,9 +389,11 @@ fun MainScreenContent(
             com.example.btcwidget.ui.social.ReadableColumn(enabled = wide && selectedTab !in FULL_WIDTH_PAGES) {
             when (selectedTab) {
                 MainTab.HOME -> homeContent()
+                MainTab.SEARCH -> searchContent(menuButtonSlot)
                 MainTab.SHORTS -> androidx.compose.runtime.CompositionLocalProvider(
                     com.example.btcwidget.ui.social.LocalBottomOverlay provides if (wide) 0.dp else BOTTOM_BAR_HEIGHT
                 ) { shortsContent() }
+                MainTab.STORE -> storeContent()
                 MainTab.MESSAGES -> messagesContent()
                 MainTab.BOOKMARKS -> bookmarksContent()
                 MainTab.COMMUNITIES -> communitiesContent()
@@ -382,7 +413,7 @@ fun MainScreenContent(
                                 state = pullState,
                                 isRefreshing = isRefreshing,
                                 containerColor = EInk.Body,
-                                color = EInk.Value,
+                                color = Accent,
                                 modifier = Modifier.align(Alignment.TopCenter)
                             )
                         }
@@ -396,10 +427,15 @@ fun MainScreenContent(
                                 currencySetting = currencySetting,
                                 stackSats = stackSats,
                                 stackUnit = stackUnit,
+                                stackHidden = stackHidden,
+                                onToggleStackHidden = onToggleStackHidden,
                                 onStackChange = onStackChange,
                                 onSetUpStack = { onTabSelected(MainTab.DASHBOARD) },
                                 history = history,
-                                onShare = { key -> onShare(key, currentState.data) }
+                                historyLoading = historyLoading,
+                                onChartRangeSelected = onChartRangeSelected,
+                                onShare = { key -> onShare(key, currentState.data) },
+                                onPostToNostr = onPostToNostr
                             )
                             else -> Column(
                                 modifier = Modifier
@@ -407,7 +443,7 @@ fun MainScreenContent(
                                     .verticalScroll(rememberScrollState())
                                     .padding(horizontal = 12.dp)
                             ) {
-                                HeaderSection(title = "BLOCK", subtitle = tr("Bitcoin at a glance"))
+                                HeaderSection(title = "Block", subtitle = tr("Bitcoin at a glance"))
                                 if (currentState is MainScreenUiState.Error) {
                                     ErrorScreen(error = currentState.throwable, onRefresh = onRefresh)
                                 } else {
@@ -452,7 +488,7 @@ fun MainScreenContent(
 
         }
         if (!wide && !shorts) androidx.compose.animation.AnimatedVisibility(
-            visible = showBars,
+            visible = showBars && !imeVisible,
             enter = androidx.compose.animation.expandVertically(expandFrom = Alignment.Top) + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically(shrinkTowards = Alignment.Top) + androidx.compose.animation.fadeOut()
         ) {
@@ -469,13 +505,13 @@ fun MainScreenContent(
     }
 }
 
-private val Accent = Color(0xFFF7931A)
+private val Accent get() = EInk.Accent
 
 /** From this width (dp) the tabs move to a rail on the left and pages get a readable column. */
 private const val WIDE_DP = 600
 
 /** Pages that use the whole width even when wide. */
-private val FULL_WIDTH_PAGES get() = setOf(MainTab.WIDGETS, MainTab.SHORTS)
+private val FULL_WIDTH_PAGES get() = setOf(MainTab.WIDGETS, MainTab.SHORTS, MainTab.STORE)
 
 /** The bottom bar's height above the navigation bar. */
 private val BOTTOM_BAR_HEIGHT = 56.dp
@@ -575,7 +611,7 @@ private fun BottomBar(
                     onClick = { onTab(tab) }
                 ) {
                     Box {
-                        Icon(tab.icon.of(selected), contentDescription = null, tint = if (overVideo) Color.White else EInk.Value, modifier = Modifier.size(27.dp))
+                        Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else if (overVideo) Color.White else EInk.Value, modifier = Modifier.size(27.dp))
                         if (count > 0) CountBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 9.dp, y = (-6).dp))
                     }
                 }
@@ -612,13 +648,42 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
     ) { Text(if (count > 99) "99+" else "$count", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold, lineHeight = 10.sp) }
 }
 
+@Composable
+private fun MenuIconButton(
+    menuIcon: @Composable () -> Unit,
+    menuOpen: Boolean,
+    onMenu: () -> Unit,
+    onMenuLongPress: (() -> Unit)?
+) {
+    val haptics = com.example.btcwidget.ui.social.rememberHaptics()
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .combinedClickable(
+                onClickLabel = tr("Open menu"),
+                onLongClickLabel = if (onMenuLongPress != null) tr("Switch accounts") else null,
+                onLongClick = onMenuLongPress?.let { lc -> { haptics.heavy(); lc() } },
+                onClick = onMenu
+            )
+            .semantics { contentDescription = tr("Open menu") }
+    ) {
+        Box(
+            Modifier.size(34.dp).clip(CircleShape)
+                .then(if (menuOpen) Modifier.border(2.dp, Accent, CircleShape) else Modifier)
+                .padding(if (menuOpen) 3.dp else 1.dp),
+            contentAlignment = Alignment.Center
+        ) { menuIcon() }
+    }
+}
+
 /**
  * Title row above every page: your avatar at the left opens the side bar (long-press it to
  * switch accounts), as on X; ringed in orange while one of the side bar's pages is open.
  */
 @Composable
-private fun TopBar(onSearch: () -> Unit, menuIcon: (@Composable () -> Unit)?, menuOpen: Boolean, onMenu: () -> Unit, onMenuLongPress: (() -> Unit)?) {
-    val haptics = com.example.btcwidget.ui.social.rememberHaptics()
+private fun TopBar(title: String, menuButton: (@Composable () -> Unit)?) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -626,42 +691,14 @@ private fun TopBar(onSearch: () -> Unit, menuIcon: (@Composable () -> Unit)?, me
             .height(52.dp)
             .padding(horizontal = 8.dp)
     ) {
-        if (menuIcon != null) Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .combinedClickable(
-                    onClickLabel = tr("Open menu"),
-                    onLongClickLabel = if (onMenuLongPress != null) tr("Switch accounts") else null,
-                    onLongClick = onMenuLongPress?.let { lc -> { haptics.heavy(); lc() } },
-                    onClick = onMenu
-                )
-                .semantics { contentDescription = tr("Open menu") }
-        ) {
-            Box(
-                Modifier.size(34.dp).clip(CircleShape)
-                    .then(if (menuOpen) Modifier.border(2.dp, Accent, CircleShape) else Modifier)
-                    .padding(if (menuOpen) 3.dp else 1.dp),
-                contentAlignment = Alignment.Center
-            ) { menuIcon() }
-        }
-        // Search, as a long pill after your avatar (X's Explore has it there).
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .padding(start = if (menuIcon != null) 6.dp else 4.dp, end = 4.dp)
-                .weight(1f)
-                .height(38.dp)
-                .clip(CircleShape)
-                .background(EInk.Body)
-                .clickable(onClickLabel = tr("Search"), onClick = onSearch)
-                .semantics(mergeDescendants = true) { contentDescription = tr("Search") }
-                .padding(horizontal = 14.dp)
-        ) {
-            Icon(com.example.btcwidget.ui.social.NavIcons.Search.outline, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(18.dp))
-            Text(tr("Search Block"), color = EInk.Caption, fontSize = 15.sp, maxLines = 1, modifier = Modifier.padding(start = 10.dp))
-        }
+        menuButton?.invoke()
+        Text(
+            text = title,
+            color = EInk.Value,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = if (menuButton != null) 10.dp else 8.dp)
+        )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
@@ -716,7 +753,9 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
  */
 enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.NavIcon, val title: String = label) {
     HOME("Home", com.example.btcwidget.ui.social.NavIcons.Home),
+    SEARCH("Search", com.example.btcwidget.ui.social.NavIcons.Search),
     SHORTS("Shorts", com.example.btcwidget.ui.social.NavIcons.Shorts),
+    STORE("Store", com.example.btcwidget.ui.social.NavIcons.Store),
     DASHBOARD("Bitcoin", com.example.btcwidget.ui.social.NavIcons.Bitcoin),
     NOTIFICATIONS("Notifications", com.example.btcwidget.ui.social.NavIcons.Bell),
     MESSAGES("Messages", com.example.btcwidget.ui.social.NavIcons.Messages),
@@ -731,12 +770,12 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
 
 // Getters, not stored values: a top-level val that touches MainTab would initialize the
 // enum while this file's other top-level vals are still null (that crashed the app once).
-private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SHORTS, MainTab.DASHBOARD, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
+private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.DASHBOARD, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
 
 /** Pages with sideways drags of their own, where a swipe must not open the side bar. */
 private val DRAG_PAGES get() = setOf(MainTab.DASHBOARD, MainTab.WIDGETS)
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.COMMUNITIES, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.COMMUNITIES, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
-private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)
+private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.STORE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)
 

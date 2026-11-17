@@ -83,8 +83,7 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
-  // Activity results (the signer app's answers) need Fragment 1.3+. It used to come in through
-  // ML Kit; the QR scanner alone brings an old one, which release lint rejects.
+  // AndroidX biometric prompts and in-app QR camera preview.
   implementation(libs.androidx.fragment)
 
   // Arch Components
@@ -132,12 +131,18 @@ dependencies {
   // Animated GIFs in notes, and video playback
   implementation(libs.coil.gif)
   implementation(libs.media3.exoplayer)
+  // On-device note translation; models download once and translation runs locally.
+  implementation(libs.mlkit.translate)
+  implementation(libs.mlkit.language.id)
+  // Fingerprint / face prompt with compatibility down to Android 7.
+  implementation(libs.androidx.biometric)
   // HLS (.m3u8) streams: the videos that offer several qualities to choose from
   implementation(libs.media3.exoplayer.hls)
-  // QR codes: drawing them (ZXing) and scanning them with Google's code scanner, which runs in
-  // Play services so the app needs no camera permission
+  // QR codes: ZXing core encoder/decoder with our own CameraX preview and analyzer.
   implementation(libs.zxing.core)
-  implementation(libs.play.services.code.scanner)
+  implementation(libs.androidx.camera.camera2)
+  implementation(libs.androidx.camera.lifecycle)
+  implementation(libs.androidx.camera.view)
 
   // Navigation
   implementation(libs.androidx.navigation3.ui)

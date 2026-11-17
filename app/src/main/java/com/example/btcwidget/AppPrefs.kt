@@ -27,8 +27,15 @@ object AppPrefs {
     private const val THB_SOURCE = "thb_source"
     private const val STACK_SATS = "stack_sats"
     private const val STACK_UNIT = "stack_unit"
+    private const val STACK_HIDDEN = "stack_hidden"
     private const val HISTORY = "history_cache"
     private const val HISTORY_AT = "history_fetched_at"
+    private const val MEMPOOL_URL = "mempool_url"
+    private const val EVENT_RETENTION_DAYS = "event_retention_days"
+    private const val APP_PIN_SALT = "app_pin_salt"
+    private const val APP_PIN_HASH = "app_pin_hash"
+    private const val APP_BIOMETRIC_LOCK = "app_biometric_lock"
+    private const val APP_LOCK_PREFERENCE = "app_lock_preference"
     private const val VIDEO_AUTOPLAY = "video_autoplay"
     private const val VIDEO_QUALITY = "video_quality"
     private const val LANDING_DONE = "landing_done"
@@ -164,6 +171,35 @@ object AppPrefs {
         putString(THB_SOURCE, value.thb.name)
     }
 
+    /** Custom base URL for the mempool.space compatible Bitcoin API; empty uses public mempool.space. */
+    fun mempoolUrl(context: Context): String = prefs(context).getString(MEMPOOL_URL, "").orEmpty()
+    fun setMempoolUrl(context: Context, value: String) = edit(context) {
+        val normalized = value.trim().trimEnd('/')
+        if (normalized.isEmpty()) remove(MEMPOOL_URL) else putString(MEMPOOL_URL, normalized)
+    }
+
+    /** Automatic Nostr event retention; zero disables age-based cleanup. */
+    fun eventRetentionDays(context: Context): Int = prefs(context).getInt(EVENT_RETENTION_DAYS, 30)
+    fun setEventRetentionDays(context: Context, days: Int) = edit(context) {
+        putInt(EVENT_RETENTION_DAYS, days.takeIf { it in setOf(0, 30, 90) } ?: 30)
+    }
+
+    fun appPinSalt(context: Context): String? = prefs(context).getString(APP_PIN_SALT, null)
+    fun appPinHash(context: Context): String? = prefs(context).getString(APP_PIN_HASH, null)
+    fun hasAppPin(context: Context): Boolean = appPinSalt(context) != null && appPinHash(context) != null
+    fun setAppPin(context: Context, salt: String, hash: String) = edit(context) {
+        putString(APP_PIN_SALT, salt); putString(APP_PIN_HASH, hash)
+    }
+    fun clearAppPin(context: Context) = edit(context) {
+        remove(APP_PIN_SALT); remove(APP_PIN_HASH); remove(APP_BIOMETRIC_LOCK); putString(APP_LOCK_PREFERENCE, "PIN")
+    }
+    fun biometricLock(context: Context): Boolean = prefs(context).getBoolean(APP_BIOMETRIC_LOCK, false)
+    fun setBiometricLock(context: Context, enabled: Boolean) = edit(context) { putBoolean(APP_BIOMETRIC_LOCK, enabled) }
+    fun appLockPreference(context: Context): String = prefs(context).getString(APP_LOCK_PREFERENCE, "PIN") ?: "PIN"
+    fun setAppLockPreference(context: Context, preference: String) = edit(context) {
+        putString(APP_LOCK_PREFERENCE, preference.takeIf { it == "PIN" || it == "BIOMETRIC" } ?: "PIN")
+    }
+
     // ---- Your stack (stored only on this device, in satoshis) ----
 
     fun stackSats(context: Context): Long = prefs(context).getLong(STACK_SATS, 0L)
@@ -176,6 +212,10 @@ object AppPrefs {
         putLong(STACK_SATS, sats.coerceAtLeast(0))
         putString(STACK_UNIT, unit.name)
     }
+
+    /** Whether stack amounts are hidden on the Bitcoin dashboard (off by default). */
+    fun stackHidden(context: Context): Boolean = prefs(context).getBoolean(STACK_HIDDEN, false)
+    fun setStackHidden(context: Context, hidden: Boolean) = edit(context) { putBoolean(STACK_HIDDEN, hidden) }
 
     /** Total cost basis of the user's stack in [currency] (0.0 if not set). */
     fun stackCostBasis(context: Context, currency: String): Double =

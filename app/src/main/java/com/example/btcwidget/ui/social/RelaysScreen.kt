@@ -2,6 +2,8 @@ package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +36,7 @@ import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.delay
 
 private val Green = Color(0xFF3FB950)
-private val Orange = Color(0xFFF7931A)
+private val Orange get() = EInk.Accent
 private val Red = Color(0xFFE5534B)
 
 /**
@@ -48,7 +50,7 @@ fun RelaysScreen(vm: SocialViewModel, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(EInk.Background)) {
         SocialTopBar(tr("Relays"), onBack)
         androidx.compose.foundation.layout.Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
             listOf("STATUS", "MY RELAYS", "SEARCH", "BLOCKED").forEachIndexed { i, t ->

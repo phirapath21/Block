@@ -53,7 +53,7 @@ import kotlinx.coroutines.delay
 private val LiveRedDot = Color(0xFFE5534B)
 
 /** How close to the newest part of a live stream counts as watching it live. */
-private const val LIVE_EDGE_SLACK_MS = 8_000L
+private const val LIVE_EDGE_SLACK_MS = 4_500L
 
 /**
  * YouTube-style controls over a live stream or its replay. Tap the video to show them (they
@@ -74,12 +74,14 @@ internal fun StreamControls(
     var playing by remember(player) { mutableStateOf(player.isPlaying || player.playWhenReady) }
     var position by remember(player) { mutableLongStateOf(0L) }
     var duration by remember(player) { mutableLongStateOf(0L) }
+    var liveLimit by remember(player) { mutableLongStateOf(0L) }
     var seekable by remember(player) { mutableStateOf(false) }
     // How far behind live we are, and the smallest that's been seen (the server's live edge).
-    var behind by remember(player) { mutableLongStateOf(0L) }
+    var behindMs by remember(player) { mutableLongStateOf(0L) }
     var edge by remember(player) { mutableLongStateOf(Long.MAX_VALUE) }
     var scrub by remember(player) { mutableStateOf<Float?>(null) }
     var touched by remember(player) { mutableLongStateOf(0L) }
+    val window = remember { androidx.media3.common.Timeline.Window() }
     val haptics = rememberHaptics()
 
     LaunchedEffect(player) {
@@ -89,8 +91,20 @@ internal fun StreamControls(
             if (scrub == null) position = player.currentPosition.coerceAtLeast(0)
             seekable = player.isCurrentMediaItemSeekable && duration > 0
             if (live) {
+                val tl = player.currentTimeline
+                val defaultPos = if (!tl.isEmpty) tl.getWindow(player.currentMediaItemIndex, window).defaultPositionMs.coerceAtLeast(0L) else 0L
+                val maxPlayable = if (defaultPos in 1..duration) maxOf(defaultPos, position.coerceAtMost(duration)) else duration
+                liveLimit = maxPlayable
                 val offset = player.currentLiveOffset
-                if (offset >= 0) { behind = offset; if (offset < edge) edge = offset }
+                behindMs = if (offset >= 0) {
+                    if (offset < edge) edge = offset
+                    (offset - edge).coerceAtLeast(0L)
+                } else {
+                    (maxPlayable - position).coerceAtLeast(0L)
+                }
+            } else {
+                liveLimit = duration
+                behindMs = 0L
             }
             delay(250)
         }
@@ -100,11 +114,14 @@ internal fun StreamControls(
         if (shown && playing && scrub == null) { delay(3_500); shown = false }
     }
 
-    val atLive = !live || edge == Long.MAX_VALUE || behind - edge <= LIVE_EDGE_SLACK_MS
+    val effectiveMax = (if (live && liveLimit > 0) liveLimit else duration).coerceAtLeast(1L)
+    val atLive = !live || !seekable || (scrub?.let { it >= 0.97f } ?: (behindMs <= LIVE_EDGE_SLACK_MS))
     fun seekBy(ms: Long) {
         if (!seekable) return
         haptics.tick(); touched = System.nanoTime()
-        player.seekTo((player.currentPosition + ms).coerceIn(0, duration))
+        val target = (player.currentPosition + ms).coerceIn(0, effectiveMax)
+        if (live && target >= effectiveMax - 1_000L) player.seekToDefaultPosition() else player.seekTo(target)
+        position = target
     }
 
     Box(
@@ -138,7 +155,9 @@ internal fun StreamControls(
                             Row(
                                 Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
                                     .clickable(enabled = !atLive, onClickLabel = tr("Go to live")) {
-                                        haptics.tick(); touched = System.nanoTime(); player.seekToDefaultPosition(); player.play()
+                                        haptics.tick(); touched = System.nanoTime()
+                                        player.seekToDefaultPosition(); player.play()
+                                        behindMs = 0L; position = effectiveMax
                                     }
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -146,10 +165,13 @@ internal fun StreamControls(
                                 Box(Modifier.size(8.dp).clip(CircleShape).background(if (atLive) LiveRedDot else Color(0xFFAAAAAA)))
                                 Text(tr("LIVE"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
                             }
-                            if (!atLive) Text(
-                                "-" + clockLabel(behind - edge.coerceAtMost(behind)), color = Color.White, fontSize = 13.sp,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                            if (!atLive) {
+                                val lag = scrub?.let { ((1f - it) * effectiveMax).toLong() } ?: behindMs
+                                Text(
+                                    "-" + clockLabel(lag.coerceAtLeast(1_000L)), color = Color.White, fontSize = 13.sp,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
                         } else if (duration > 0) Text(
                             clockLabel(((scrub ?: (position.toFloat() / duration)) * duration).toLong()) + " / " + clockLabel(duration),
                             color = Color.White, fontSize = 13.sp
@@ -158,10 +180,40 @@ internal fun StreamControls(
                         extra()
                     }
                     if (seekable) SeekBar(
-                        fraction = scrub ?: if (duration > 0) position.toFloat() / duration else 0f,
+                        fraction = scrub ?: when {
+                            live && atLive -> 1f
+                            effectiveMax > 0 -> (position.toFloat() / effectiveMax).coerceIn(0f, 1f)
+                            else -> 0f
+                        },
                         dragging = scrub != null,
-                        onScrub = { f -> scrub = f; touched = System.nanoTime(); if (f != null) player.seekTo((f * duration).toLong()) },
-                        onSeek = { f -> haptics.tick(); position = (f * duration).toLong(); player.seekTo(position); touched = System.nanoTime() }
+                        onScrub = { f ->
+                            val prev = scrub
+                            scrub = f
+                            touched = System.nanoTime()
+                            if (f != null) {
+                                val target = (f * effectiveMax).toLong()
+                                position = target
+                                player.seekTo(target)
+                            } else if (live && prev != null && prev >= 0.97f) {
+                                player.seekToDefaultPosition()
+                                behindMs = 0L
+                                position = effectiveMax
+                            }
+                        },
+                        onSeek = { f ->
+                            haptics.tick()
+                            touched = System.nanoTime()
+                            if (live && f >= 0.97f) {
+                                player.seekToDefaultPosition()
+                                behindMs = 0L
+                                position = effectiveMax
+                            } else {
+                                val target = (f * effectiveMax).toLong()
+                                position = target
+                                behindMs = (effectiveMax - target).coerceAtLeast(0L)
+                                player.seekTo(target)
+                            }
+                        }
                     ) else Spacer(Modifier.height(10.dp))
                 }
             }
@@ -169,7 +221,8 @@ internal fun StreamControls(
         // While dragging: the time you'd land on, large in the middle.
         scrub?.let { f ->
             Text(
-                if (live) "-" + clockLabel(((1f - f) * duration).toLong()) else clockLabel((f * duration).toLong()) + "  /  " + clockLabel(duration),
+                if (live) (if (f >= 0.97f) tr("LIVE") else "-" + clockLabel(((1f - f) * effectiveMax).toLong()))
+                else clockLabel((f * duration).toLong()) + "  /  " + clockLabel(duration),
                 color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)
                     .clip(RoundedCornerShape(12.dp)).background(Color(0x99000000)).padding(horizontal = 14.dp, vertical = 6.dp)
@@ -197,12 +250,12 @@ private fun SkipButton(icon: ImageVector, label: String, enabled: Boolean, onCli
 @Composable
 internal fun SeekBar(fraction: Float, dragging: Boolean, onScrub: (Float?) -> Unit, onSeek: (Float) -> Unit) {
     val barHeight by animateDpAsState(if (dragging) 6.dp else 3.dp, label = "bar")
-    var width by remember { mutableFloatStateOf(1f) }
+    val thumbSize = if (dragging) 16.dp else 12.dp
+    val clamped = fraction.coerceIn(0f, 1f)
     Box(
         Modifier.fillMaxWidth().height(26.dp)
             .semantics { contentDescription = tr("Video position") }
             .pointerInput(Unit) {
-                width = size.width.toFloat()
                 detectTapGestures { at -> onSeek((at.x / size.width).coerceIn(0f, 1f)) }
             }
             .pointerInput(Unit) {
@@ -215,13 +268,13 @@ internal fun SeekBar(fraction: Float, dragging: Boolean, onScrub: (Float?) -> Un
             },
         contentAlignment = Alignment.Center
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Box(Modifier.fillMaxWidth().height(barHeight).clip(RoundedCornerShape(2.dp)).background(Color(0x55FFFFFF))) {
-                Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(barHeight).background(VideoAccent))
+                Box(Modifier.fillMaxWidth(clamped).height(barHeight).background(VideoAccent))
             }
             Box(
-                Modifier.offset(x = maxWidth * fraction.coerceIn(0f, 1f) - if (dragging) 8.dp else 6.dp, y = if (dragging) (-5).dp else (-4.5).dp)
-                    .size(if (dragging) 16.dp else 12.dp).clip(CircleShape).background(VideoAccent)
+                Modifier.offset(x = (maxWidth - thumbSize) * clamped)
+                    .size(thumbSize).clip(CircleShape).background(VideoAccent)
             )
         }
     }

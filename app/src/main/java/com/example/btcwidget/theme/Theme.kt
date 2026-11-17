@@ -13,9 +13,8 @@ val BitcoinOrange = Color(0xFFF7931A)
 
 /**
  * Block's colours for the Material components it uses (menus, dialogs, sheets, text fields,
- * switches, the bottom bar). Fixed and dark, the same as the app's own screens (the Classic
- * palette in [com.example.btcwidget.Palette]): no wallpaper colours (Material You), no light
- * mode, no Material purple. Widget themes are separate and don't touch this.
+ * switches, the bottom bar). Fixed and dark, matching the unified X-style dark palette
+ * ([com.example.btcwidget.ui.main.EInk]) with [BitcoinOrange] as the accent.
  */
 private val BlockColors = darkColorScheme(
     primary = BitcoinOrange,
@@ -23,38 +22,38 @@ private val BlockColors = darkColorScheme(
     primaryContainer = Color(0xFF3A2306),
     onPrimaryContainer = Color(0xFFFFD9A8),
     inversePrimary = BitcoinOrange,
-    secondary = Color(0xFFD7DCDF),
+    secondary = Color(0xFFE7E9EA),
     onSecondary = Color.Black,
-    secondaryContainer = Color(0xFF2A2C31),
-    onSecondaryContainer = Color(0xFFD7DCDF),
+    secondaryContainer = Color(0xFF16181C),
+    onSecondaryContainer = Color(0xFFE7E9EA),
     tertiary = BitcoinOrange,
     onTertiary = Color.Black,
     tertiaryContainer = Color(0xFF3A2306),
     onTertiaryContainer = Color(0xFFFFD9A8),
-    background = Color(0xFF0E0F11),
-    onBackground = Color(0xFFD7DCDF),
-    surface = Color(0xFF0E0F11),
-    onSurface = Color(0xFFD7DCDF),
-    surfaceVariant = Color(0xFF1A1B1F),
-    onSurfaceVariant = Color(0xFF8C9196),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFE7E9EA),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFE7E9EA),
+    surfaceVariant = Color(0xFF16181C),
+    onSurfaceVariant = Color(0xFF71767B),
     surfaceTint = Color.Transparent, // no tinting of raised surfaces
-    inverseSurface = Color(0xFFD7DCDF),
-    inverseOnSurface = Color(0xFF0E0F11),
-    error = Color(0xFFE5534B),
+    inverseSurface = Color(0xFFE7E9EA),
+    inverseOnSurface = Color(0xFF000000),
+    error = Color(0xFFF4212E),
     onError = Color.White,
     errorContainer = Color(0xFF3D1513),
     onErrorContainer = Color(0xFFFFB4AE),
-    outline = Color(0xFF34363B),
-    outlineVariant = Color(0xFF2A2C31),
+    outline = Color(0xFF2F3336),
+    outlineVariant = Color(0xFF202327),
     scrim = Color.Black,
     // Raised surfaces: menus, dialogs and sheets sit a step above the black background.
-    surfaceBright = Color(0xFF26282D),
-    surfaceDim = Color(0xFF0E0F11),
-    surfaceContainerLowest = Color(0xFF0A0B0C),
-    surfaceContainerLow = Color(0xFF141518),
-    surfaceContainer = Color(0xFF1A1B1F),
-    surfaceContainerHigh = Color(0xFF1E2024),
-    surfaceContainerHighest = Color(0xFF26282D),
+    surfaceBright = Color(0xFF202327),
+    surfaceDim = Color(0xFF000000),
+    surfaceContainerLowest = Color(0xFF000000),
+    surfaceContainerLow = Color(0xFF16181C),
+    surfaceContainer = Color(0xFF16181C),
+    surfaceContainerHigh = Color(0xFF202327),
+    surfaceContainerHighest = Color(0xFF2F3336),
 )
 
 private val BlockShapes = Shapes(

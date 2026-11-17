@@ -27,9 +27,18 @@ class FeedTabsTest {
                 onSelect = { picked = it }, onManage = { managed = true }
             )
         }
+        // Collapsed by default: only the currently selected feed is shown.
         composeTestRule.onNodeWithText("Latest").assertExists()
+        composeTestRule.onNodeWithText("With replies").assertDoesNotExist()
+
+        // Tap the pill to slide out the feed menu.
+        composeTestRule.onNodeWithText("Latest").performClick()
+        composeTestRule.onNodeWithText("With replies").assertExists()
         composeTestRule.onNodeWithText("With replies").performClick()
         composeTestRule.runOnIdle { assertEquals(HomeFeed.Following(true), picked) }
+
+        // Menu auto-collapses after selecting; tap the pill again to access Manage feeds.
+        composeTestRule.onNodeWithText("Latest").performClick()
         composeTestRule.onNodeWithContentDescription("Manage feeds").performClick()
         composeTestRule.runOnIdle { assertTrue(managed) }
     }

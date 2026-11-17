@@ -354,7 +354,7 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
                     if (isFollowing) tr("Following") else tr("Follow"),
                     color = if (isFollowing) EInk.Value else Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.clip(RoundedCornerShape(50))
-                        .then(if (isFollowing) Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)) else Modifier.background(EInk.Value))
+                        .then(if (isFollowing) Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)) else Modifier.background(EInk.Accent))
                         .clickable(onClick = onFollow).padding(horizontal = 14.dp, vertical = 7.dp)
                 )
                 Row(

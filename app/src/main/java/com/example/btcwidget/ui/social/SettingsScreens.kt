@@ -8,7 +8,10 @@ import android.os.Build
 import android.os.PersistableBundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +23,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +48,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation3.runtime.NavKey
@@ -44,6 +56,8 @@ import com.example.btcwidget.nostr.SignerType
 import com.example.btcwidget.nostr.core.Nip19
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The settings pages, in the order the Settings list shows them. Pages that also appear in the
@@ -57,6 +71,8 @@ enum class SettingsPage(val title: String, val summary: String, val icon: () -> 
     RELAYS("Relays and servers", "Where your notes, messages and media go", { Glyphs.Server }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
     BITCOIN("Bitcoin and widgets", "Your stack, currency, price sources, refresh", { NavIcons.Bitcoin.outline }),
+    SECURITY("App lock", "Protect Block with a PIN and biometrics", { Glyphs.Lock }),
+    STORAGE("Storage and cache", "Event database, retention and media cache", { Glyphs.Server }),
     ABOUT("About Block", "Version, privacy policy, community rules", { Glyphs.Info });
 
     companion object {
@@ -75,6 +91,8 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
     "Relays" to SettingsPage.RELAYS, "Message inbox relays" to SettingsPage.RELAYS, "Media servers" to SettingsPage.RELAYS,
     "Wallet (NWC)" to SettingsPage.WALLET,
+    "Storage and cache" to SettingsPage.STORAGE, "Event database" to SettingsPage.STORAGE, "Media cache" to SettingsPage.STORAGE,
+    "App lock" to SettingsPage.SECURITY, "PIN" to SettingsPage.SECURITY, "Fingerprint or face unlock" to SettingsPage.SECURITY,
     "Your stack" to SettingsPage.BITCOIN, "Currency" to SettingsPage.BITCOIN, "Widget theme" to SettingsPage.BITCOIN,
     "Refresh every" to SettingsPage.BITCOIN, "BTC price" to SettingsPage.BITCOIN, "THB price" to SettingsPage.BITCOIN,
     "Privacy policy" to SettingsPage.ABOUT, "Version" to SettingsPage.ABOUT,
@@ -140,6 +158,8 @@ fun SettingsPageScreen(
                 SettingsPage.RELAYS -> RelaysPage(vm, navigate)
                 SettingsPage.WALLET -> WalletPage(vm)
                 SettingsPage.BITCOIN -> bitcoin()
+                SettingsPage.SECURITY -> SecurityPage()
+                SettingsPage.STORAGE -> StoragePage(vm)
                 SettingsPage.ABOUT -> AboutPage(appVersion, navigate)
             }
         }
@@ -454,12 +474,293 @@ private fun RelaysPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
     SettingsDivider()
     SettingsHeader(tr("Media servers"))
-    SettingsNote(tr("Blossom servers your photos and videos upload to, in order (your kind 10063 list). Empty uses blossom.primal.net."))
+    SettingsNote(tr("Blossom servers your photos and videos upload to, in order (your kind 10063 list). Block tries blossom.primal.net last if these fail."))
     SettingsListEditor(
         initial = remember(acct.pubkey) { vm.mediaServers() },
         placeholder = "https://blossom.example.com",
         valid = { it.startsWith("https://") }
     ) { urls, done -> vm.setMediaServers(urls, done) }
+}
+
+// ---- App lock ----
+
+@Composable
+private fun SecurityPage() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var hasPin by remember { mutableStateOf(com.example.btcwidget.AppPrefs.hasAppPin(context)) }
+    var biometric by remember { mutableStateOf(com.example.btcwidget.AppPrefs.biometricLock(context)) }
+    var preferredUnlock by remember { mutableStateOf(com.example.btcwidget.AppPrefs.appLockPreference(context)) }
+    var pinEditorExpanded by remember(hasPin) { mutableStateOf(!hasPin) }
+    var currentPin by remember { mutableStateOf("") }
+    var newPin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    var confirmRemove by remember { mutableStateOf(false) }
+    val biometricAvailable = androidx.biometric.BiometricManager.from(context)
+        .canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK) == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+    LaunchedEffect(message) {
+        if (message != null) {
+            kotlinx.coroutines.delay(3_500)
+            message = null
+        }
+    }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Spacer(Modifier.height(10.dp))
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+            color = EInk.Body,
+            border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke)
+        ) {
+            Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp),
+                    color = if (hasPin) EInk.Accent.copy(alpha = .14f) else EInk.Track,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Glyphs.Lock, contentDescription = null, tint = if (hasPin) EInk.Accent else EInk.Caption, modifier = Modifier.size(23.dp))
+                    }
+                }
+                Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                    Text(tr(if (hasPin) "App lock is on" else "Protect Block"), color = EInk.Value, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        tr(if (hasPin) "PIN protection is active on this device." else "Add a PIN to protect your private messages and account."),
+                        color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 3.dp)
+                    )
+                }
+                if (hasPin) Text(tr("ON"), color = EInk.Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        message?.let { status ->
+            val isError = status in listOf(tr("PINs don't match"), tr("Current PIN is incorrect"), tr("Enter your current PIN"), tr("Enable biometric unlock first"))
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                color = (if (isError) EInk.Alert else EInk.Accent).copy(alpha = .12f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, (if (isError) EInk.Alert else EInk.Accent).copy(alpha = .24f))
+            ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (isError) "!" else "✓", color = if (isError) EInk.Alert else EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(status, color = if (isError) EInk.Alert else EInk.Value, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
+                }
+            }
+        }
+
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+            color = EInk.Body,
+            border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                SettingsHeader(
+                    tr(when { !hasPin -> "Set PIN"; pinEditorExpanded -> "Change PIN"; else -> "PIN protection" }),
+                    Modifier.padding(top = 0.dp)
+                )
+                SettingsNote(tr(if (pinEditorExpanded) "Use 4–6 digits. Block asks for it when opened and whenever you return to the app." else "Your PIN protects Block whenever you open or return to the app."))
+                if (hasPin && !pinEditorExpanded) {
+                    SettingsLinkRow(tr("Change PIN"), summary = tr("Update your app unlock PIN"), leading = {
+                        Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
+                    }) {
+                        message = null
+                        currentPin = ""; newPin = ""; confirmPin = ""
+                        pinEditorExpanded = true
+                    }
+                }
+                AnimatedVisibility(
+                    visible = pinEditorExpanded,
+                    enter = fadeIn(tween(180)) + expandVertically(expandFrom = Alignment.Top, animationSpec = tween(220)),
+                    exit = fadeOut(tween(120)) + shrinkVertically(shrinkTowards = Alignment.Top, animationSpec = tween(180))
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (hasPin) PinEntry(tr("Current PIN"), currentPin) { currentPin = it }
+                        PinEntry(tr("New PIN"), newPin) { newPin = it }
+                        PinEntry(tr("Confirm new PIN"), confirmPin) { confirmPin = it }
+                        SecurityActionButton(
+                            tr(if (saving) "Saving…" else if (hasPin) "Save new PIN" else "Set PIN"),
+                            primary = true,
+                            enabled = !saving && newPin.length in 4..6 && confirmPin.length in 4..6
+                        ) {
+                            if (newPin != confirmPin) message = tr("PINs don't match")
+                            else if (hasPin && currentPin.length !in 4..6) message = tr("Enter your current PIN")
+                            else {
+                                saving = true
+                                val old = currentPin
+                                val next = newPin
+                                scope.launch {
+                                    val accepted = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                        (!hasPin || AppPin.verify(context, old)).also { if (it) AppPin.save(context, next) }
+                                    }
+                                    saving = false
+                                    if (accepted) {
+                                        hasPin = true
+                                        pinEditorExpanded = false
+                                        currentPin = ""; newPin = ""; confirmPin = ""
+                                        message = tr("PIN saved")
+                                    } else message = tr("Current PIN is incorrect")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+            color = EInk.Body,
+            border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                SettingsHeader(tr("Biometric unlock"), Modifier.padding(top = 0.dp))
+                if (biometricAvailable) {
+                    SettingsSwitchRow(
+                        tr("Fingerprint or face unlock"),
+                        summary = tr("Use biometrics on this device. Your PIN is always available as a fallback."),
+                        checked = biometric,
+                        enabled = hasPin
+                    ) {
+                        biometric = it
+                        com.example.btcwidget.AppPrefs.setBiometricLock(context, it)
+                        if (!it && preferredUnlock == "BIOMETRIC") {
+                            preferredUnlock = "PIN"
+                            com.example.btcwidget.AppPrefs.setAppLockPreference(context, "PIN")
+                        }
+                        message = if (it) tr("Biometric unlock enabled") else tr("Biometric unlock disabled")
+                    }
+                } else SettingsNote(tr("Enroll a fingerprint or face in Android settings to use biometric unlock."))
+                if (hasPin) {
+                    SettingsHeader(tr("Preferred unlock method"), Modifier.padding(top = 6.dp))
+                    SettingsNote(tr("Block opens this method first. The other method remains available as a fallback."))
+                    SettingsRadioRow(
+                        tr("PIN"), summary = tr("Show the PIN keypad first"), selected = preferredUnlock == "PIN"
+                    ) {
+                        preferredUnlock = "PIN"
+                        com.example.btcwidget.AppPrefs.setAppLockPreference(context, "PIN")
+                    }
+                    if (biometric) SettingsRadioRow(
+                        tr("Fingerprint or face"), summary = tr("Open biometric unlock first"),
+                        selected = preferredUnlock == "BIOMETRIC", onClick = {
+                            preferredUnlock = "BIOMETRIC"
+                            com.example.btcwidget.AppPrefs.setAppLockPreference(context, "BIOMETRIC")
+                        }
+                    ) else SettingsLinkRow(
+                        tr("Fingerprint or face"), summary = tr("Enable biometric unlock first"), chevron = false
+                    ) { message = tr("Enable biometric unlock first") }
+                }
+            }
+        }
+
+        if (hasPin) SecurityActionButton(tr("Remove PIN"), destructive = true) { confirmRemove = true }
+    }
+
+    if (confirmRemove) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmRemove = false },
+        title = { Text(tr("Remove app lock?")) },
+        text = { Text(tr("Anyone with this device can open Block.")) },
+        confirmButton = { SettingsButton(tr("Remove PIN"), destructive = true) {
+            com.example.btcwidget.AppPrefs.clearAppPin(context)
+            hasPin = false; biometric = false; preferredUnlock = "PIN"; currentPin = ""; newPin = ""; confirmPin = ""; confirmRemove = false
+            message = tr("App lock removed")
+        } },
+        dismissButton = { SettingsButton(tr("Cancel")) { confirmRemove = false } },
+        containerColor = EInk.Body,
+        titleContentColor = EInk.Value,
+        textContentColor = EInk.Label
+    )
+}
+
+@Composable
+private fun PinEntry(label: String, value: String, onValue: (String) -> Unit) {
+    SettingsTextField(
+        value = value,
+        onValueChange = { onValue(it.filter(Char::isDigit).take(6)) },
+        placeholder = label,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, color = EInk.Value, letterSpacing = 4.sp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    )
+}
+
+@Composable
+private fun SecurityActionButton(
+    label: String,
+    primary: Boolean = false,
+    destructive: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+    val foreground = when {
+        !enabled -> EInk.Caption
+        primary -> Color.Black
+        destructive -> EInk.Alert
+        else -> EInk.Value
+    }
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(48.dp)
+            .clip(shape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        shape = shape,
+        color = if (primary && enabled) EInk.Accent else EInk.Background,
+        border = if (primary) null else androidx.compose.foundation.BorderStroke(1.dp, if (destructive) EInk.Alert.copy(alpha = .45f) else EInk.BodyStroke)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(label, color = foreground, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ---- Local storage ----
+
+@Composable
+private fun StoragePage(vm: SocialViewModel) {
+    var stats by remember { mutableStateOf<com.example.btcwidget.nostr.StorageStats?>(null) }
+    var retention by remember { mutableStateOf(vm.eventRetentionDays()) }
+    var message by remember { mutableStateOf<String?>(null) }
+    fun refresh() = vm.storageStats { stats = it }
+    LaunchedEffect(Unit) { refresh() }
+
+    fun size(bytes: Long): String = when {
+        bytes >= 1024L * 1024L -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
+        bytes >= 1024L -> "%.0f KB".format(bytes / 1024.0)
+        else -> "$bytes B"
+    }
+
+    SettingsHeader(tr("Event database"))
+    SettingsNote(
+        stats?.let { tr("{0} events · {1}", it.eventCount, size(it.databaseBytes)) }
+            ?: tr("Reading database size…")
+    )
+
+    SettingsDivider()
+    SettingsHeader(tr("Automatically remove old events"))
+    SettingsNote(tr("Keeps your own posts and bookmarked events. Cleanup runs when Block opens."))
+    listOf(0 to "Off", 30 to "30 days", 90 to "90 days").forEach { (days, label) ->
+        SettingsRadioRow(tr(label), selected = retention == days) {
+            retention = days
+            vm.setEventRetentionDays(days)
+            message = tr("Retention setting saved")
+            refresh()
+        }
+    }
+
+    SettingsDivider()
+    SettingsHeader(tr("Image and video cache"))
+    SettingsNote(
+        stats?.let { tr("Using {0}", size(it.mediaCacheBytes)) }
+            ?: tr("Reading cache size…")
+    )
+    SettingsButton(tr("Clear media cache"), destructive = true) {
+        message = tr("Clearing media cache…")
+        vm.clearMediaCache { cleared ->
+            message = if (cleared) tr("Media cache cleared") else tr("Some media cache files are in use")
+            refresh()
+        }
+    }
+    message?.let { SettingsNote(it) }
 }
 
 // ---- Wallet and zaps ----
@@ -508,22 +809,20 @@ private fun WalletPage(vm: SocialViewModel) {
 
         SettingsDivider()
         SettingsHeader(tr("Receive (Create invoice)"))
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                SettingsTextField(
-                    value = recvAmount,
-                    onValueChange = { recvAmount = it.filter { c -> c.isDigit() }.take(10) },
-                    placeholder = tr("Amount (sats)"),
-                    modifier = Modifier.weight(1f)
-                )
-                SettingsTextField(
-                    value = recvDesc,
-                    onValueChange = { recvDesc = it.take(80) },
-                    placeholder = tr("Note (optional)"),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(Modifier.height(8.dp))
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingsTextField(
+                value = recvAmount,
+                onValueChange = { recvAmount = it.filter { c -> c.isDigit() }.take(10) },
+                placeholder = tr("Amount (sats)"),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+            SettingsTextField(
+                value = recvDesc,
+                onValueChange = { recvDesc = it.take(80) },
+                placeholder = tr("Note (optional)"),
+                modifier = Modifier.fillMaxWidth()
+            )
             val amt = recvAmount.toLongOrNull() ?: 0L
             SettingsButton(
                 if (creatingInvoice) tr("Creating…") else tr("Create invoice"),
@@ -599,7 +898,7 @@ private fun WalletPage(vm: SocialViewModel) {
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Column(Modifier.weight(1f).padding(end = 12.dp)) {
                         Text(
                             tx.description.takeIf { it.isNotBlank() } ?: if (incoming) tr("Received") else tr("Paid"),
                             color = EInk.Value, fontSize = 15.sp, maxLines = 1,

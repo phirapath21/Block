@@ -38,7 +38,9 @@ data class SettingsState(
     val collapsedCategories: Set<MetricCategory>,
     val stackSats: Long,
     val stackUnit: StackUnit,
+    val stackHidden: Boolean,
     val dataSources: DataSources,
+    val mempoolUrl: String,
     val alerts: List<AlertRule>,
     val notificationsAllowed: Boolean
 ) {
@@ -64,10 +66,14 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _history = MutableStateFlow<List<PricePoint>>(emptyList())
+    private val _historyLoading = MutableStateFlow(false)
+    val historyLoading: StateFlow<Boolean> = _historyLoading.asStateFlow()
 
-    /** Hourly BTC/USD closes for the last week (oldest first), for the price chart. */
+    /** Hourly and daily BTC/USD closes (oldest first), for the dashboard chart. */
     val history: StateFlow<List<PricePoint>> = _history.asStateFlow()
     private var historyFetchedAt = 0L
+    private var historyRangeFetched = ChartRange.DAY
+    private var pendingHistoryRange: ChartRange? = null
 
     private val _settings = MutableStateFlow(readSettings())
     val settings: StateFlow<SettingsState> = _settings.asStateFlow()
@@ -93,7 +99,9 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         collapsedCategories = AppPrefs.collapsedCategories(appContext),
         stackSats = AppPrefs.stackSats(appContext),
         stackUnit = AppPrefs.stackUnit(appContext),
+        stackHidden = AppPrefs.stackHidden(appContext),
         dataSources = AppPrefs.dataSources(appContext),
+        mempoolUrl = AppPrefs.mempoolUrl(appContext),
         alerts = AlertStore.load(appContext),
         notificationsAllowed = AlertNotifier.canNotify(appContext)
     )
@@ -168,10 +176,23 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         WidgetUpdater.updateAllWidgets(appContext)
     }
 
+    fun toggleStackHidden() {
+        val hidden = !_settings.value.stackHidden
+        AppPrefs.setStackHidden(appContext, hidden)
+        _settings.update { it.copy(stackHidden = hidden) }
+    }
+
     fun setDataSources(sources: DataSources) {
         AppPrefs.setDataSources(appContext, sources)
         _settings.update { it.copy(dataSources = sources) }
         // Show the new source's price right away.
+        refreshData()
+    }
+
+    fun setMempoolUrl(url: String) {
+        AppPrefs.setMempoolUrl(appContext, url)
+        val saved = AppPrefs.mempoolUrl(appContext)
+        _settings.update { it.copy(mempoolUrl = saved) }
         refreshData()
     }
 
@@ -201,25 +222,40 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     // ---- Market data ----
 
     /**
-     * Shows the cached history, then fetches a fresh week unless one was fetched in the
+     * Shows the cached history, then fetches a fresh year unless one was fetched in the
      * last [HISTORY_MAX_AGE_MS] (hourly candles change slowly). [force] skips that check.
      */
-    fun loadHistory(force: Boolean = false) {
+    fun loadHistory(force: Boolean = false) = loadHistory(ChartRange.YEAR, force)
+
+    fun loadHistory(range: ChartRange, force: Boolean = false) {
         if (_history.value.isEmpty()) _history.value = AppPrefs.history(appContext)
+        val needsLonger = range.hours > historyRangeFetched.hours
         val now = System.currentTimeMillis()
-        if (!force && now - historyFetchedAt < HISTORY_MAX_AGE_MS) return
+        if (!force && !needsLonger && now - historyFetchedAt < HISTORY_MAX_AGE_MS) return
+        if (_historyLoading.value) {
+            if (range.hours > (pendingHistoryRange ?: historyRangeFetched).hours) pendingHistoryRange = range
+            return
+        }
         historyFetchedAt = now
+        _historyLoading.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            val fresh = runCatching { PriceRepository.fetchHistory(ChartRange.WEEK.hours) }.getOrNull()
-            if (fresh != null && fresh.size >= 2) {
-                _history.value = fresh
-                AppPrefs.setHistory(appContext, fresh)
-            } else {
-                historyFetchedAt = 0L // try again next time
+            try {
+                val fresh = runCatching { PriceRepository.fetchHistory(range.hours) }.getOrNull()
+                if (fresh != null && fresh.size >= 2) {
+                    _history.value = (_history.value + fresh).distinctBy { it.time to it.resolutionSeconds }.sortedBy { it.time }
+                    historyRangeFetched = if (range.hours > historyRangeFetched.hours) range else historyRangeFetched
+                    AppPrefs.setHistory(appContext, _history.value)
+                } else {
+                    historyFetchedAt = 0L
+                }
+            } finally {
+                _historyLoading.value = false
+                val pending = pendingHistoryRange
+                pendingHistoryRange = null
+                if (pending != null && pending.hours > historyRangeFetched.hours) loadHistory(pending)
             }
         }
     }
-
     /** Shows cached data immediately and refreshes in the background if it is old. */
     private fun loadInitialData() {
         loadHistory()

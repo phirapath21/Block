@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.ContentScale
@@ -100,6 +101,8 @@ fun SocialTopBar(title: String, onBack: () -> Unit) {
     }
 }
 
+private val EmptyNoteStats = NoteStats()
+
 /** A feed of notes with infinite scroll. */
 @Composable
 fun NoteList(
@@ -111,6 +114,7 @@ fun NoteList(
     state: LazyListState = rememberKept { LazyListState() },
     loadingMore: Boolean = false,
     onLoadMore: (() -> Unit)? = null,
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(bottom = 84.dp),
     header: (@Composable () -> Unit)? = null
 ) {
     val nearEnd by remember {
@@ -121,12 +125,12 @@ fun NoteList(
     }
     if (onLoadMore != null) LaunchedEffect(nearEnd, items.size) { if (nearEnd && items.isNotEmpty()) onLoadMore() }
 
-    LazyColumn(state = state, modifier = modifier.fillMaxSize()) {
-        if (header != null) item(key = "header") { header() }
-        items(items, key = { it.key }) { item ->
-            NoteCard(item.note, stats[item.note.id] ?: NoteStats(), actions, repostedBy = item.repostedBy)
+    LazyColumn(state = state, contentPadding = contentPadding, modifier = modifier.fillMaxSize()) {
+        if (header != null) item(key = "header", contentType = "header") { header() }
+        items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
+            NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
         }
-        if (loadingMore) item(key = "more") { Spinner() }
+        if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
     }
 }
 
@@ -148,18 +152,18 @@ fun EmptyNote(text: String) {
     )
 }
 
-/** Primary pill button, X-style. */
+/** Primary pill button, X-style with Block's Bitcoin Orange accent. */
 @Composable
 fun PillButton(text: String, filled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(50))
-            .then(if (filled) Modifier.background(EInk.Value) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
+            .then(if (filled) Modifier.background(EInk.Accent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
             .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (filled) EInk.Background else EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = if (filled) androidx.compose.ui.graphics.Color.Black else EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -187,25 +191,17 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             } else {
                 val shown = home.items
                 var feedMenu by remember { mutableStateOf(false) }
-                Column(Modifier.fillMaxSize()) {
-                    val feeds by vm.homeFeeds.collectAsState()
-                    FeedTabBar(
-                        feeds, feed,
-                        // The open tab again: back to the top (and again: refresh), as on X.
-                        onSelect = { f -> if (f == feed) TabTaps.tap("HOME") else vm.selectFeed(f) },
-                        onManage = { feedMenu = true }
-                    )
-                    PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
-                        when {
-                            home.loading && home.items.isEmpty() -> Spinner(Modifier.padding(top = 40.dp))
-                            shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
-                                item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
-                            }
-                            else -> NoteList(
-                                items = shown, stats = stats, actions = actions, state = listState,
-                                loadingMore = home.loading, onLoadMore = vm::loadMoreHome
-                            )
+                val feeds by vm.homeFeeds.collectAsState()
+                PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
+                    when {
+                        home.loading && home.items.isEmpty() -> Spinner(Modifier.padding(top = 40.dp))
+                        shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
+                            item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
                         }
+                        else -> NoteList(
+                            items = shown, stats = stats, actions = actions, state = listState,
+                            loadingMore = home.loading, onLoadMore = vm::loadMoreHome
+                        )
                     }
                 }
                 if (newPosts.isNotEmpty()) {
@@ -216,7 +212,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             .align(Alignment.TopCenter)
                             .padding(top = 12.dp)
                             .clip(RoundedCornerShape(50))
-                            .background(EInk.Value)
+                            .background(EInk.Accent)
                             .clickable(onClickLabel = tr("Show new posts")) {
                                 vm.showNewPosts()
                                 scope.launch { listState.animateScrollToItem(0) }
@@ -228,24 +224,50 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                         }
                         Text(
                             tr("  ↑ {0} new post{1}", newPosts.size, plural(newPosts.size)),
-                            color = EInk.Background, fontSize = 13.sp, fontWeight = FontWeight.Bold
+                            color = androidx.compose.ui.graphics.Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold
                         )
                     }
                 }
                 if (feedMenu) FeedMenu(vm, onClose = { feedMenu = false })
                 FirstTimeTip(
                     "home-tabs-v2", tr("Tap Home again to jump back to the top. Long-press your picture at the top left to switch accounts."),
-                    Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 84.dp, bottom = 16.dp)
+                    Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = 74.dp)
                 )
-                // Fades away with the bars while you scroll down.
+                // Floating bottom Feed Picker Pill (slides out horizontally on tap) + Compose button.
                 val fab by androidx.compose.animation.core.animateFloatAsState(if (LocalBarsVisible.current) 1f else 0f, label = "fab")
-                if (fab > 0.01f) FloatingActionButton(
-                    onClick = { navigate(ComposeKey()) },
-                    containerColor = androidx.compose.ui.graphics.Color(0xFFF7931A),
-                    contentColor = androidx.compose.ui.graphics.Color.Black,
-                    shape = CircleShape,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).graphicsLayer { alpha = fab; scaleX = 0.6f + 0.4f * fab; scaleY = 0.6f + 0.4f * fab }
-                ) { Text("+", fontSize = 26.sp, fontWeight = FontWeight.Bold) }
+                if (fab > 0.01f) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .graphicsLayer {
+                                alpha = fab
+                                translationY = (1f - fab) * 44f
+                            }
+                    ) {
+                        Box(Modifier.weight(1f, fill = false).padding(end = 10.dp)) {
+                            FeedTabBar(
+                                feeds = feeds,
+                                current = feed,
+                                onSelect = { f -> if (f == feed) TabTaps.tap("HOME") else vm.selectFeed(f) },
+                                onManage = { feedMenu = true },
+                                collapseSignal = listState.isScrollInProgress
+                            )
+                        }
+                        FloatingActionButton(
+                            onClick = { navigate(ComposeKey()) },
+                            containerColor = EInk.Accent,
+                            contentColor = androidx.compose.ui.graphics.Color.Black,
+                            shape = CircleShape,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text("+", fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }
@@ -275,7 +297,7 @@ fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                         .width(56.dp)
                         .height(3.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(if (i == selected) EInk.Value else androidx.compose.ui.graphics.Color.Transparent)
+                        .background(if (i == selected) EInk.Accent else androidx.compose.ui.graphics.Color.Transparent)
                 )
             }
         }
@@ -443,61 +465,203 @@ internal fun feedTabTitle(f: HomeFeed): String = when (f) {
 }
 
 /**
- * The feeds as tabs across the top of Home, as on X: tap one to switch, tap the open one again
- * to go back to the top. At the end, the button to manage feeds (Shorts has its own tab). Slides away with
- * the top bar while you scroll down.
+ * Floating Feed Picker Pill at the bottom of Home:
+ * Shows ONLY the currently selected feed by default. Tapping the pill smoothly slides out
+ * the horizontal feed menu tray (other feeds + Manage feeds button) right from the pill.
  */
 @Composable
 internal fun FeedTabBar(
     feeds: List<HomeFeed>,
     current: HomeFeed,
     onSelect: (HomeFeed) -> Unit,
-    onManage: () -> Unit
+    onManage: () -> Unit,
+    modifier: Modifier = Modifier,
+    collapseSignal: Boolean = false
 ) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = LocalBarsVisible.current,
-        enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-        exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(collapseSignal) {
+        if (collapseSignal && expanded) expanded = false
+    }
+    val haptics = rememberHaptics()
+    val shape = RoundedCornerShape(50)
+    val borderColor by androidx.compose.animation.animateColorAsState(
+        targetValue = if (expanded) SettingsAccent.copy(alpha = 0.55f) else EInk.BodyStroke,
+        label = "feed_pill_border"
+    )
+    val chevronRotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.78f,
+            stiffness = 420f
+        ),
+        label = "feed_pill_chevron"
+    )
+    val otherFeeds = remember(feeds, current) { feeds.filter { it != current } }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .height(48.dp)
+            .shadow(14.dp, shape)
+            .clip(shape)
+            .background(EInk.Body.copy(alpha = 0.97f))
+            .border(0.75.dp, borderColor, shape)
+            .padding(horizontal = 6.dp)
     ) {
-        Column(Modifier.fillMaxWidth().background(EInk.Background)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val row = androidx.compose.foundation.lazy.rememberLazyListState()
-                val index = feeds.indexOf(current)
-                // Keeps the open feed's tab in view (after switching from the sheet, or on start).
-                LaunchedEffect(index) { if (index >= 0) row.animateScrollToItem((index - 1).coerceAtLeast(0)) }
-                androidx.compose.foundation.lazy.LazyRow(
-                    state = row, modifier = Modifier.weight(1f).testTag("feed_tabs"),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 4.dp, end = 4.dp)
-                ) {
-                    items(feeds, key = { it.id }) { f -> FeedTab(feedTabTitle(f), selected = f == current) { onSelect(f) } }
+        // Primary Selected Feed Pill (always visible; tap to slide out / retract the feed menu)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .height(36.dp)
+                .clip(RoundedCornerShape(50))
+                .background(SettingsAccent)
+                .clickable(onClickLabel = feedTabTitle(current)) {
+                    haptics.tick()
+                    expanded = !expanded
                 }
-                CircleIconButton(Glyphs.Sliders, tr("Manage feeds"), Modifier.padding(start = 4.dp, end = 12.dp), onClick = onManage)
+                .padding(start = 13.dp, end = 10.dp)
+        ) {
+            androidx.compose.material3.Icon(
+                feedIcon(current),
+                contentDescription = null,
+                tint = androidx.compose.ui.graphics.Color.Black,
+                modifier = Modifier.size(15.dp)
+            )
+            Text(
+                feedTabTitle(current),
+                color = androidx.compose.ui.graphics.Color.Black,
+                fontSize = 13.5.sp,
+                maxLines = 1,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.widthIn(max = 150.dp),
+                overflow = TextOverflow.Ellipsis
+            )
+            androidx.compose.material3.Icon(
+                Glyphs.Chevron,
+                contentDescription = if (expanded) tr("Close") else tr("Feeds"),
+                tint = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f),
+                modifier = Modifier
+                    .size(16.dp)
+                    .graphicsLayer { rotationZ = chevronRotation }
+            )
+        }
+
+        // Slide-out menu emerging horizontally from the Feed Picker Pill
+        androidx.compose.animation.AnimatedVisibility(
+            visible = expanded,
+            enter = androidx.compose.animation.expandHorizontally(
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = 0.82f,
+                    stiffness = 380f
+                ),
+                expandFrom = Alignment.Start
+            ) + androidx.compose.animation.fadeIn(
+                animationSpec = androidx.compose.animation.core.tween(180)
+            ),
+            exit = androidx.compose.animation.shrinkHorizontally(
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = 0.9f,
+                    stiffness = 460f
+                ),
+                shrinkTowards = Alignment.Start
+            ) + androidx.compose.animation.fadeOut(
+                animationSpec = androidx.compose.animation.core.tween(130)
+            ),
+            modifier = Modifier.weight(1f, fill = false)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (otherFeeds.isNotEmpty()) {
+                    Box(
+                        Modifier
+                            .padding(horizontal = 5.dp)
+                            .width(0.75.dp)
+                            .height(22.dp)
+                            .background(EInk.BodyStroke)
+                    )
+                    androidx.compose.foundation.lazy.LazyRow(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f, fill = false).testTag("feed_tabs"),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp)
+                    ) {
+                        items(otherFeeds, key = { it.id }) { f ->
+                            FeedTab(
+                                label = feedTabTitle(f),
+                                selected = false,
+                                icon = feedIcon(f),
+                                onClick = {
+                                    expanded = false
+                                    onSelect(f)
+                                }
+                            )
+                        }
+                    }
+                }
+                Box(
+                    Modifier
+                        .padding(horizontal = 4.dp)
+                        .width(0.75.dp)
+                        .height(22.dp)
+                        .background(EInk.BodyStroke)
+                )
+                CircleIconButton(
+                    Glyphs.Sliders,
+                    tr("Manage feeds"),
+                    Modifier.size(36.dp),
+                    onClick = {
+                        expanded = false
+                        onManage()
+                    }
+                )
             }
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         }
     }
 }
 
-/** One tab: the name, and an orange bar under it when it's open. */
+/** One pill inside a floating filter/feed capsule: Bitcoin Orange pill when selected, subtle chip with icon when in slide-out tray. */
 @Composable
-internal fun FeedTab(label: String, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+internal fun FeedTab(
+    label: String,
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit
+) {
+    val haptics = rememberHaptics()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = label, onClick = onClick)
-            .padding(horizontal = 12.dp)
-            .padding(top = 13.dp)
-            .width(androidx.compose.foundation.layout.IntrinsicSize.Max)
+            .height(36.dp)
+            .clip(RoundedCornerShape(50))
+            .background(
+                when {
+                    selected -> SettingsAccent
+                    icon != null -> EInk.Track.copy(alpha = 0.55f)
+                    else -> androidx.compose.ui.graphics.Color.Transparent
+                }
+            )
+            .clickable(onClickLabel = label) { haptics.tick(); onClick() }
+            .padding(horizontal = if (selected) 14.dp else 12.dp)
     ) {
+        if (icon != null) {
+            androidx.compose.material3.Icon(
+                icon,
+                contentDescription = null,
+                tint = if (selected) androidx.compose.ui.graphics.Color.Black else SettingsAccent,
+                modifier = Modifier.size(14.dp)
+            )
+        }
         Text(
-            label, color = if (selected) EInk.Value else EInk.Caption, fontSize = 15.sp, maxLines = 1,
+            label,
+            color = if (selected) androidx.compose.ui.graphics.Color.Black else EInk.Value,
+            fontSize = 13.5.sp,
+            maxLines = 1,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier.widthIn(max = 180.dp), overflow = TextOverflow.Ellipsis
-        )
-        Box(
-            Modifier.padding(top = 10.dp).fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp))
-                .background(if (selected) SettingsAccent else androidx.compose.ui.graphics.Color.Transparent)
+            modifier = Modifier.widthIn(max = 160.dp),
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

@@ -23,7 +23,7 @@ abstract class ApkSizeReport @Inject constructor(private val exec: ExecOperation
 
     @TaskAction
     fun report() {
-        val apk = apkDir.get().asFile.listFiles { f -> f.extension == "apk" }?.maxByOrNull { it.lastModified() }
+        val apk = apkDir.get().asFile.walkTopDown().filter { f -> f.extension == "apk" && "release" in f.path.lowercase() }.maxByOrNull { it.lastModified() }
         if (apk == null) {
             logger.lifecycle("APK size report: no release APK found")
             return
@@ -124,11 +124,9 @@ abstract class ApkSizeReport @Inject constructor(private val exec: ExecOperation
             "androidx.media3" to "Video: ExoPlayer (media3)",
             "coil3.gif" to "GIFs (coil-gif)",
             "coil3" to "Images (Coil)",
-            "com.google.mlkit" to "Google code scanner (QR)",
-            "com.google.android.gms" to "Google Play services (QR scanner)",
-            "com.google.android.datatransport" to "Google Play services (QR scanner)",
-            "com.google.firebase" to "Google Play services (QR scanner)",
+            "androidx.camera" to "QR camera preview and analysis (CameraX)",
             "com.google.zxing" to "QR codes (ZXing)",
+            "com.google.mlkit" to "On-device translation (ML Kit)",
             "fr.acinq" to "Signatures (secp256k1)",
             "okhttp3" to "Network (OkHttp, Okio)",
             "okio" to "Network (OkHttp, Okio)",
@@ -181,7 +179,7 @@ abstract class ApkSizeReport @Inject constructor(private val exec: ExecOperation
 val apkSizeReport = tasks.register<ApkSizeReport>("apkSizeReport") {
     group = "reporting"
     description = "Prints what takes the room in the release APK."
-    apkDir.set(layout.buildDirectory.dir("outputs/apk/release"))
+    apkDir.set(layout.buildDirectory.dir("outputs/apk"))
     mappingFile.set(layout.buildDirectory.file("outputs/mapping/release/mapping.txt"))
     reportFile.set(layout.buildDirectory.file("reports/apk-size.md"))
     // Android Studio writes the SDK folder to local.properties; CI sets ANDROID_HOME instead.
