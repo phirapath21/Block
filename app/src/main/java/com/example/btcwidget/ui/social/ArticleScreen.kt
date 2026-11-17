@@ -1003,7 +1003,7 @@ private fun ArticleBody(
                 articleTitle = article.title
             )
         }
-        NostrShareStudioSheet(
+        NoteShareSheet(
             data = studioData,
             onDismiss = { showShareStudio = false }
         )

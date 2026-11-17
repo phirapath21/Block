@@ -58,4 +58,25 @@ class ApiParsersTest {
         assertTrue(PriceMath.satsChangePct(Double.NaN).isNaN())
         assertTrue(PriceMath.changePct(0.0, 5.0).isNaN())
     }
+
+    @Test
+    fun treasury_findsStrategyAndStrive() {
+        val json = """{"total_holdings":1,"companies":[
+            {"name":"Strategy","symbol":"MSTR.US","total_holdings":640031},
+            {"name":"Strive, Inc.","symbol":"ASST.US","total_holdings":27461},
+            {"name":"Other","symbol":"OTHR","total_holdings":5}]}"""
+        val t = ApiParsers.treasury(json)
+        assertEquals(640031.0, t.mstr!!, 0.0)
+        assertEquals(27461.0, t.asst!!, 0.0)
+    }
+
+    @Test
+    fun treasury_striveByNameAndMissingCompanies() {
+        val byName = ApiParsers.treasury("""{"companies":[{"name":"Strive","symbol":"XYZ","total_holdings":100}]}""")
+        assertEquals(100.0, byName.asst!!, 0.0)
+        assertEquals(null, byName.mstr)
+        val empty = ApiParsers.treasury("""{"companies":[{"name":"Strategy","symbol":"MSTR","total_holdings":0}]}""")
+        assertEquals(null, empty.mstr)
+        assertEquals(null, empty.asst)
+    }
 }

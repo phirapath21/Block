@@ -20,7 +20,8 @@ enum class MetricCategory(val title: String) {
     MARKET("Market"),
     NETWORK("Network"),
     SUPPLY("Supply & Lightning"),
-    STRATEGY("Strategy (MSTR)")
+    STRATEGY("Strategy (MSTR)"),
+    STRIVE("Strive (ASST)")
 }
 
 object BlockclockMetrics {
@@ -29,7 +30,7 @@ object BlockclockMetrics {
         "PRICE", "SATS", "BLOCK", "MSCW", "MSTR_HELD", "MSTR_RATIO", "MSTR_PRICE",
         "CIRCULATION", "HALVING", "FEES", "HASHRATE", "DIFF_ADJ", "LN_CAP",
         // Appended so saved widget mode indices stay valid.
-        "STACK"
+        "STACK", "ASST_HELD", "ASST_RATIO", "ASST_PRICE"
     )
 
     val MODE_NAMES = listOf(
@@ -46,7 +47,10 @@ object BlockclockMetrics {
         "Network Hash Rate",
         "Difficulty Adjustment",
         "Lightning Network Capacity",
-        "Your Stack Value"
+        "Your Stack Value",
+        "ASST BTC Holdings",
+        "ASST Share-to-BTC Ratio",
+        "ASST Share Price"
     )
 
     val MODE_COUNT = MODE_KEYS.size
@@ -65,7 +69,10 @@ object BlockclockMetrics {
         "MSTR_HELD" to MetricCategory.STRATEGY,
         "MSTR_RATIO" to MetricCategory.STRATEGY,
         "MSTR_PRICE" to MetricCategory.STRATEGY,
-        "STACK" to MetricCategory.PORTFOLIO
+        "STACK" to MetricCategory.PORTFOLIO,
+        "ASST_HELD" to MetricCategory.STRIVE,
+        "ASST_RATIO" to MetricCategory.STRIVE,
+        "ASST_PRICE" to MetricCategory.STRIVE
     )
 
     fun categoryOf(key: String): MetricCategory = CATEGORY[key] ?: MetricCategory.MARKET
@@ -218,6 +225,9 @@ object BlockclockMetrics {
             )
             12 -> BlockclockDisplay("LN", "CAP", "%.0f".f(data.lightningCapacity), "BTC", caption = "Lightning capacity")
             MODE_STACK -> stackDisplay(stackSats, data, currency)
+            14 -> BlockclockDisplay("ASST", "BTC", "%.0f".f(data.asstBtcHeld), caption = "Strive BTC holdings")
+            15 -> BlockclockDisplay("ASST", "BTC", "%.6f".f(data.asstBtc), caption = "Strive BTC per share")
+            16 -> BlockclockDisplay("ASST", "USD", "$%.2f".f(data.asstUsd), caption = "Strive share price")
             else -> if (isThb) {
                 BlockclockDisplay(
                     "BTC", "THB", "%.2f".f(data.btcThb / 1_000_000.0), "MIL",

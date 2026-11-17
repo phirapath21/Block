@@ -1,7 +1,6 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -11,65 +10,24 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.example.btcwidget.PriceData
-import com.example.btcwidget.PriceRepository
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Article
-import com.example.btcwidget.nostr.core.Event
-import com.example.btcwidget.nostr.core.Nip19
-import com.example.btcwidget.nostr.core.Profile
-import com.example.btcwidget.ui.main.EInk
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
@@ -79,10 +37,8 @@ import java.io.File
 import java.util.Locale
 
 /**
- * Feature #2: Nostr Share Card Studio.
- *
- * Provides a studio-grade image renderer and interactive bottom sheet for sharing Nostr notes
- * and Long-Form Articles as high-resolution branded cards on Instagram/X/TikTok stories or feeds.
+ * Share cards: a note or article drawn as a picture (author, words, link QR code), offered
+ * next to the plain link by [NoteShareSheet].
  */
 enum class ShareCardRatio(val label: String, val width: Int, val height: Int, val aspect: Float) {
     SQUARE("1:1 Square", 1080, 1080, 1f),
@@ -332,213 +288,46 @@ object NostrShareCardRenderer {
 }
 
 /**
- * Interactive Share Studio Bottom Sheet.
+ * Share, for notes and articles: one sheet with the link (what Share always sent), or the
+ * same as a picture card with the link attached, drawn on the phone.
  */
 @Composable
-fun NostrShareStudioSheet(
-    data: ShareStudioData,
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    var ratio by remember { mutableStateOf(ShareCardRatio.SQUARE) }
-    var cardTheme by remember { mutableStateOf(ShareCardTheme.CARBON) }
-    var showBlockStamp by remember { mutableStateOf(data.blockStamp != null) }
-    var showStats by remember { mutableStateOf(data.stats != null) }
-    var showQr by remember { mutableStateOf(true) }
-
-    var previewBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var isRendering by remember { mutableStateOf(true) }
-
-    // Re-render preview on parameter changes
-    LaunchedEffect(ratio, cardTheme, showBlockStamp, showStats, showQr) {
-        isRendering = true
-        withContext(Dispatchers.Default) {
-            val bmp = NostrShareCardRenderer.render(data, ratio, cardTheme, showBlockStamp, showStats, showQr)
-            previewBitmap = bmp
-        }
-        isRendering = false
-    }
-
-    fun shareImageFile() {
-        val bmp = previewBitmap ?: return
-        scope.launch(Dispatchers.IO) {
-            val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-            val file = File(dir, "nostr_card.png")
-            file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.share", file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/png"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_TEXT, data.shareUrl)
-                clipData = ClipData.newRawUri(null, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            val chooser = Intent.createChooser(intent, tr("Share Note Card"))
-            if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(chooser)
-        }
-    }
-
-    fun saveToGallery() {
-        val bmp = previewBitmap ?: return
-        scope.launch(Dispatchers.IO) {
-            runCatching {
-                val filename = "Block_Nostr_${System.currentTimeMillis()}.png"
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val values = ContentValues().apply {
-                        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Block")
+fun NoteShareSheet(data: ShareStudioData, onDismiss: () -> Unit) {
+    // The sheet is gone by the time an action runs, so the work can't hang off its scope.
+    val app = LocalContext.current.applicationContext
+    ActionSheet(
+        onDismiss = onDismiss,
+        actions = listOf(
+            SheetAction(Glyphs.Link, tr("Share link")) { shareCardLink(app, data.shareUrl) },
+            SheetAction(Glyphs.PhotoLine, tr("Share as image")) {
+                kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+                    val file = withContext(Dispatchers.Default) {
+                        runCatching {
+                            val bmp = NostrShareCardRenderer.render(
+                                data, ShareCardRatio.SQUARE, ShareCardTheme.CARBON,
+                                showBlockStamp = data.blockStamp != null, showStats = data.stats != null, showQr = true
+                            )
+                            val dir = File(app.cacheDir, "shared").apply { mkdirs() }
+                            File(dir, "nostr_card.png").also { f -> f.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+                        }.getOrNull()
                     }
-                    val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                    if (uri != null) {
-                        context.contentResolver.openOutputStream(uri)?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    if (file == null) { Toast.makeText(app, tr("Couldn't make the image"), Toast.LENGTH_SHORT).show(); return@launch }
+                    val uri = FileProvider.getUriForFile(app, "${app.packageName}.share", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/png"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_TEXT, data.shareUrl)
+                        clipData = ClipData.newRawUri(null, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                } else {
-                    val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Block").apply { mkdirs() }
-                    val file = File(dir, filename)
-                    file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, tr("Saved to Gallery"), Toast.LENGTH_SHORT).show()
-                }
-            }.onFailure {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, tr("Couldn't save image"), Toast.LENGTH_SHORT).show()
+                    app.startActivity(Intent.createChooser(intent, tr("Share as image")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
-        }
-    }
+        )
+    )
+}
 
-    fun shareLinkOnly() {
-        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, data.shareUrl)
-        val chooser = Intent.createChooser(send, tr("Share Link"))
-        if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(chooser)
-    }
-
-    BlockSheet(onDismiss = onDismiss) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp)
-        ) {
-            // Header
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(tr("Share Card Studio"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Box(
-                    Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Glyphs.Close, contentDescription = tr("Close"), tint = EInk.Caption, modifier = Modifier.size(18.dp))
-                }
-            }
-
-            // Interactive Preview Box
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(EInk.Body)
-                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                previewBitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = tr("Preview"),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-                if (isRendering) {
-                    CircularProgressIndicator(color = Color(0xFFF7931A), modifier = Modifier.size(32.dp))
-                }
-            }
-
-            // Controls Section 1: Aspect Ratio
-            Text(tr("Aspect Ratio"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ShareCardRatio.values().forEach { r ->
-                    ChoicePill(tr(r.label), selected = ratio == r) { ratio = r }
-                }
-            }
-
-            // Controls Section 2: Card Style
-            Text(tr("Card Style"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ShareCardTheme.values().forEach { t ->
-                    ChoicePill(tr(t.label), selected = cardTheme == t) { cardTheme = t }
-                }
-            }
-
-            // Controls Section 3: Toggles
-            Text(tr("Elements"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (data.blockStamp != null) {
-                    ChoicePill(tr("Block Stamp"), selected = showBlockStamp) { showBlockStamp = !showBlockStamp }
-                }
-                if (data.stats != null) {
-                    ChoicePill(tr("Stats"), selected = showStats) { showStats = !showStats }
-                }
-                ChoicePill(tr("QR Code"), selected = showQr) { showQr = !showQr }
-            }
-
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 16.dp))
-
-            // Action Buttons
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFFF7931A))
-                        .clickable(onClick = ::shareImageFile)
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(tr("Share Image Card"), color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(EInk.Body)
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable(onClick = ::saveToGallery)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(tr("Save"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(EInk.Body)
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable(onClick = ::shareLinkOnly)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(tr("Link"), color = EInk.Caption, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
+private fun shareCardLink(context: Context, url: String) {
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
+    context.startActivity(Intent.createChooser(send, tr("Share link")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

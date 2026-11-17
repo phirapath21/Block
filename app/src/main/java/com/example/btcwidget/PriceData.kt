@@ -34,8 +34,15 @@ data class PriceData(
     /** BTC/USD change over the last 24 hours in percent; NaN when unknown. */
     val change24hUsd: Double = Double.NaN,
     /** BTC/THB change over the last 24 hours in percent; NaN when unknown. */
-    val change24hThb: Double = Double.NaN
-)
+    val change24hThb: Double = Double.NaN,
+    /** Strive (ASST) share price in USD; 0 when not fetched yet. */
+    val asstUsd: Double = 0.0,
+    /** Strive (ASST) bitcoin holdings. */
+    val asstBtcHeld: Double = 0.0
+) {
+    /** Strive share price in BTC. */
+    val asstBtc: Double get() = if (btcUsd > 0) asstUsd / btcUsd else 0.0
+}
 
 object PriceRepository {
     private const val TAG = "PriceRepository"
@@ -60,12 +67,16 @@ object PriceRepository {
     private const val KEY_LIGHTNING_CAPACITY = "lightning_capacity"
     private const val KEY_CHANGE_24H_USD = "change_24h_usd"
     private const val KEY_CHANGE_24H_THB = "change_24h_thb"
+    private const val KEY_ASST_USD = "asst_usd"
+    private const val KEY_ASST_BTC_HELD = "asst_btc_held"
 
     private const val TIMEOUT_MS = 8000
     private const val SATS_PER_BTC = 100_000_000.0
     private const val FALLBACK_BTC_CIRCULATION = 19_850_000.0
     /** Last known Strategy (MSTR) holdings, used only until the first successful fetch. */
     private const val FALLBACK_MSTR_BTC_HELD = 843_738.0
+    /** Last known Strive (ASST) holdings, used only until the first successful fetch. */
+    private const val FALLBACK_ASST_BTC_HELD = 27_461.0
 
     /**
      * Fetches every data source in parallel. Each source fails independently:
@@ -86,14 +97,16 @@ object PriceRepository {
                 if (sources.thb == ThbSource.BITKUB) fetchSafely("Bitkub ticker") { fetchBitkub() } else null
             }
             val dayStats = async { fetchSafely("24h stats") { fetchDayStats() } }
-            val mstr = async { fetchSafely("MSTR price") { fetchMstrPrice() } }
+            val mstr = async { fetchSafely("MSTR price") { fetchSharePrice("MSTR") } }
             val height = async { fetchSafely("block height") { fetchBlockHeight(mempool) } }
             val circulation = async { fetchSafely("circulating supply") { fetchCirculation() } }
             val fees = async { fetchSafely("recommended fees") { fetchFees(mempool) } }
             val difficulty = async { fetchSafely("difficulty adjustment") { fetchDifficulty(mempool) } }
             val hashRate = async { fetchSafely("hashrate") { fetchHashRate(mempool) } }
             val lightning = async { fetchSafely("lightning capacity") { fetchLightningCapacity(mempool) } }
-            val mstrHeld = async { fetchSafely("MSTR holdings") { fetchMstrHoldings() } }
+            // One treasury list answers for both companies.
+            val treasury = async { fetchSafely("treasury holdings") { fetchTreasuryHoldings() } }
+            val asst = async { fetchSafely("ASST price") { fetchSharePrice("ASST") } }
             FetchResults(
                 rates = rates.await(),
                 mstrUsd = mstr.await(),
@@ -103,7 +116,9 @@ object PriceRepository {
                 difficulty = difficulty.await(),
                 hashRate = hashRate.await(),
                 lightningCapacity = lightning.await(),
-                mstrBtcHeld = mstrHeld.await(),
+                mstrBtcHeld = treasury.await()?.mstr,
+                asstUsd = asst.await(),
+                asstBtcHeld = treasury.await()?.asst,
                 krakenUsd = krakenUsd.await(),
                 bitkub = bitkub.await(),
                 dayStats = dayStats.await()
@@ -127,6 +142,8 @@ object PriceRepository {
         val hashRate: Double? = null,
         val lightningCapacity: Double? = null,
         val mstrBtcHeld: Double? = null,
+        val asstUsd: Double? = null,
+        val asstBtcHeld: Double? = null,
         /** Spot price from Kraken when that source is selected. */
         val krakenUsd: Double? = null,
         /** Bitkub THB ticker when that source is selected. */
@@ -178,7 +195,11 @@ object PriceRepository {
             hashRate = fresh.hashRate ?: cached?.hashRate ?: 0.0,
             lightningCapacity = fresh.lightningCapacity ?: cached?.lightningCapacity ?: 0.0,
             change24hUsd = changeUsd,
-            change24hThb = changeThb
+            change24hThb = changeThb,
+            asstUsd = fresh.asstUsd ?: cached?.asstUsd ?: 0.0,
+            asstBtcHeld = fresh.asstBtcHeld
+                ?: cached?.asstBtcHeld?.takeIf { it > 0 }
+                ?: FALLBACK_ASST_BTC_HELD
         )
     }
 
@@ -250,9 +271,10 @@ object PriceRepository {
     /** Coinbase Exchange rejects requests without a User-Agent. */
     private const val USER_AGENT = "Block-Android"
 
-    private fun fetchMstrPrice(): Double {
+    /** A US share's last price from Yahoo Finance ([symbol]: MSTR or ASST). */
+    private fun fetchSharePrice(symbol: String): Double {
         val response = httpGet(
-            "https://query1.finance.yahoo.com/v8/finance/chart/MSTR",
+            "https://query1.finance.yahoo.com/v8/finance/chart/$symbol",
             userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         return JSONObject(response).getJSONObject("chart").getJSONArray("result")
@@ -280,18 +302,12 @@ object PriceRepository {
         JSONObject(httpGet("$base/api/v1/mining/hashrate/3d"))
             .getDouble("currentHashrate") / 1e18
 
-    /** Strategy (MSTR) bitcoin holdings from CoinGecko's public treasury list. */
-    private fun fetchMstrHoldings(): Double {
-        val companies = JSONObject(httpGet("https://api.coingecko.com/api/v3/companies/public_treasury/bitcoin"))
-            .getJSONArray("companies")
-        for (i in 0 until companies.length()) {
-            val company = companies.getJSONObject(i)
-            if (company.optString("symbol").startsWith("MSTR")) {
-                return company.getDouble("total_holdings").also { require(it > 0) }
-            }
-        }
-        throw IOException("MSTR not found in treasury list")
-    }
+    /** Bitcoin held by Strategy and Strive; null for one that isn't in the list. */
+    data class Treasury(val mstr: Double?, val asst: Double?)
+
+    /** Strategy (MSTR) and Strive (ASST) bitcoin holdings from CoinGecko's public treasury list. */
+    private fun fetchTreasuryHoldings(): Treasury =
+        ApiParsers.treasury(httpGet("https://api.coingecko.com/api/v3/companies/public_treasury/bitcoin"))
 
     /** Public Lightning capacity, converted from sats to BTC. */
     private fun fetchLightningCapacity(base: String): Double =
@@ -332,6 +348,8 @@ object PriceRepository {
             putDouble(KEY_LIGHTNING_CAPACITY, data.lightningCapacity)
             putDouble(KEY_CHANGE_24H_USD, data.change24hUsd)
             putDouble(KEY_CHANGE_24H_THB, data.change24hThb)
+            putDouble(KEY_ASST_USD, data.asstUsd)
+            putDouble(KEY_ASST_BTC_HELD, data.asstBtcHeld)
             apply()
         }
     }
@@ -360,7 +378,9 @@ object PriceRepository {
             hashRate = prefs.getDouble(KEY_HASH_RATE, 0.0),
             lightningCapacity = prefs.getDouble(KEY_LIGHTNING_CAPACITY, 0.0),
             change24hUsd = prefs.getDouble(KEY_CHANGE_24H_USD, Double.NaN),
-            change24hThb = prefs.getDouble(KEY_CHANGE_24H_THB, Double.NaN)
+            change24hThb = prefs.getDouble(KEY_CHANGE_24H_THB, Double.NaN),
+            asstUsd = prefs.getDouble(KEY_ASST_USD, 0.0),
+            asstBtcHeld = prefs.getDouble(KEY_ASST_BTC_HELD, 0.0)
         )
     }
 }

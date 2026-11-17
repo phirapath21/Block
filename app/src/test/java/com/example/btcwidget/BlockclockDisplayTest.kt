@@ -101,6 +101,7 @@ class BlockclockDisplayTest {
         assertEquals(categories.sortedBy { it.ordinal }, categories)
         assertEquals(listOf("STACK", "PRICE", "SATS", "MSCW"), default.take(4))
         assertEquals(MetricCategory.STRATEGY, BlockclockMetrics.categoryOf("MSTR_PRICE"))
+        assertEquals(MetricCategory.STRIVE, BlockclockMetrics.categoryOf("ASST_PRICE"))
     }
 
     @Test

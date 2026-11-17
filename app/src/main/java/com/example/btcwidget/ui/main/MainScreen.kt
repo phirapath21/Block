@@ -770,11 +770,12 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
 
 // Getters, not stored values: a top-level val that touches MainTab would initialize the
 // enum while this file's other top-level vals are still null (that crashed the app once).
-private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.DASHBOARD, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
+private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.COMMUNITIES, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
 
 /** Pages with sideways drags of their own, where a swipe must not open the side bar. */
 private val DRAG_PAGES get() = setOf(MainTab.DASHBOARD, MainTab.WIDGETS)
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.COMMUNITIES, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
+// The Bitcoin page sits with the other Bitcoin pages (widgets, price alerts) in the side panel.
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
 private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.STORE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)

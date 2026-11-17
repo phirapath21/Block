@@ -231,13 +231,11 @@ object AppPrefs {
     fun stackHidden(context: Context): Boolean = prefs(context).getBoolean(STACK_HIDDEN, false)
     fun setStackHidden(context: Context, hidden: Boolean) = edit(context) { putBoolean(STACK_HIDDEN, hidden) }
 
-    /** Total cost basis of the user's stack in [currency] (0.0 if not set). */
-    fun stackCostBasis(context: Context, currency: String): Double =
-        prefs(context).getString("stack_cost_${currency.uppercase()}", null)?.toDoubleOrNull() ?: 0.0
-
-    fun setStackCostBasis(context: Context, currency: String, amount: Double) = edit(context) {
-        val key = "stack_cost_${currency.uppercase()}"
-        if (amount <= 0.0) remove(key) else putString(key, amount.toString())
+    /** Forgets settings from features that were removed (the stack's cost basis, for P/L). */
+    fun dropRetiredSettings(context: Context) {
+        val p = prefs(context)
+        val retired = listOf("stack_cost_USD", "stack_cost_THB").filter { p.contains(it) }
+        if (retired.isNotEmpty()) edit(context) { retired.forEach { remove(it) } }
     }
 
     // ---- Price history cache (for charts, works offline) ----

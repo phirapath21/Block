@@ -43,13 +43,13 @@ Four resizable home-screen widgets (2×1 by default):
 
 **Metrics** (pick and order them in the app's Widgets page):
 
-| Market | Network | Supply & Lightning | Strategy (MSTR) | You |
-|---|---|---|---|---|
-| BTC price (USD or THB) | Block height | Circulating supply | MSTR share price | Your stack's value |
-| Sats per dollar / baht | Mempool fees (fast / mid / low) | Lightning capacity | MSTR BTC holdings | |
-| Moscow time (clean) | Hashrate (3-day) | | MSTR / BTC ratio | |
-| | Difficulty adjustment | | | |
-| | Halving countdown | | | |
+| Market | Network | Supply & Lightning | Strategy (MSTR) | Strive (ASST) | You |
+|---|---|---|---|---|---|
+| BTC price (USD or THB) | Block height | Circulating supply | MSTR share price | ASST share price | Your stack's value |
+| Sats per dollar / baht | Mempool fees (fast / mid / low) | Lightning capacity | MSTR BTC holdings | ASST BTC holdings | |
+| Moscow time (clean) | Hashrate (3-day) | | MSTR / BTC ratio | ASST / BTC ratio | |
+| | Difficulty adjustment | | | | |
+| | Halving countdown | | | | |
 
 **Look:** a dark grained panel with tall condensed type, a stacked label beside the value and a monospace caption, painted as one image so it stays sharp at any size. Three themes, for the widgets only (the app itself keeps one dark look):
 
@@ -64,7 +64,7 @@ Four resizable home-screen widgets (2×1 by default):
 The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees) and a BTC price chart (24H / 7D / 30D / 1Y; drag to read a sample). Pull down to refresh.
 
 - **Share:** sends the hero panel as an image plus a one-line post (`Bitcoin: $74,455 (+1.2% in 24h) · block 925,000 #bitcoin`) through Android's share sheet. Your stack is never offered for sharing.
-- **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change. Tap the Stack hero panel to hide or reveal holdings and Stack/DCA details.
+- **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change. Tap the Stack hero panel to hide or reveal it.
 - **Price alerts:** BTC above or below a price, and fees at or below a sat/vB level. Network events too: the day before a halving, and before each difficulty adjustment with the estimated change. Each alert fires once per crossing and is never triggered by stale data.
 - **Data sources:** BTC price from Coinbase or Kraken; THB converted or from Bitkub.
 - **Mempool:** use a custom mempool.space-compatible HTTPS URL in Bitcoin settings, or leave it blank for mempool.space.
@@ -72,8 +72,8 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
 ## Nostr social
 
 **Layout:**
-- **Bottom bar:** Home · Search · Bitcoin · Notifications · Messages.
-- **Side bar** (swipe from the left or tap your avatar): Profile · Lists · Bookmarks · Communities · Widgets · Price alerts · Settings.
+- **Bottom bar:** Home · Search · Communities · Notifications · Messages.
+- **Side bar** (swipe from the left or tap your avatar): Profile · Shorts · Store · Lists · Bookmarks · Bitcoin · Widgets · Price alerts · Settings.
 
 **Getting started:**
 - **New here:** a welcome page offers three ways in: create an account, log in with a signer app, or paste an nsec.
@@ -243,7 +243,7 @@ app/src/main/java/com/example/btcwidget/
 - **QR codes:** ZXing core draws and decodes QR codes. CameraX provides the in-app camera preview and frame analysis; scanning runs locally without Google Code Scanner or Google Play services.
 
 **Data sources:**
-- **Market:** Coinbase, Kraken, Bitkub, Yahoo Finance (MSTR).
+- **Market:** Coinbase, Kraken, Bitkub, Yahoo Finance (MSTR, ASST).
 - **Network:** mempool.space, with blockchain.info as a fallback for supply.
 
 ## Documentation

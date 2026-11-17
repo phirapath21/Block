@@ -25,19 +25,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import com.example.btcwidget.BlockclockMetrics
 import com.example.btcwidget.PriceData
 import com.example.btcwidget.PricePoint
@@ -172,10 +168,6 @@ fun DashboardContent(
             )
         }
 
-        item(key = "tx_tracker") {
-            MempoolTxTrackerCard(currentBlockHeight = data.blockHeight)
-        }
-
         item(key = "updated") {
             val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             Text(
@@ -192,8 +184,8 @@ fun DashboardContent(
 }
 
 /**
- * Stack & DCA / Portfolio P&L card directly on the Bitcoin page:
- * edit total holdings (BTC or sats), set total cost basis, or log a new DCA purchase to add to both.
+ * Your stack on the Bitcoin page: what it's worth now, and the amount to edit (BTC or sats).
+ * Kept on the phone only.
  */
 @Composable
 private fun PortfolioStackCard(
@@ -206,7 +198,7 @@ private fun PortfolioStackCard(
     onStackChange: (Long, com.example.btcwidget.StackUnit) -> Unit
 ) {
     if (stackHidden) {
-        EInkPanel(tr("Your stack & DCA")) {
+        EInkPanel(tr("Your stack")) {
             Text(
                 tr("Stack amounts are hidden. Tap to reveal."),
                 color = EInk.Caption,
@@ -219,25 +211,13 @@ private fun PortfolioStackCard(
         }
         return
     }
-    val context = androidx.compose.ui.platform.LocalContext.current
     var unit by remember(stackUnit) { mutableStateOf(stackUnit) }
     var stackText by remember(stackSats, unit) { mutableStateOf(com.example.btcwidget.Stack.toInput(stackSats, unit)) }
-    var costBasis by remember(currencySetting) { mutableStateOf(com.example.btcwidget.AppPrefs.stackCostBasis(context, currencySetting)) }
-    var costText by remember(currencySetting) {
-        val saved = com.example.btcwidget.AppPrefs.stackCostBasis(context, currencySetting)
-        mutableStateOf(if (saved > 0.0) saved.toBigDecimal().stripTrailingZeros().toPlainString() else "")
-    }
-    var showDcaAdd by rememberSaveable { mutableStateOf(false) }
-    var dcaAmountText by rememberSaveable { mutableStateOf("") }
-    var dcaCostText by rememberSaveable { mutableStateOf("") }
 
     val btcPrice = com.example.btcwidget.alerts.PriceAlerts.price(data, currencySetting)
-    val fmt = { v: Double -> com.example.btcwidget.alerts.PriceAlerts.formatPrice(kotlin.math.abs(v), currencySetting) }
-    val currencySymbol = if (currencySetting == "THB") "฿" else "$"
     val stackWorth = if (stackSats > 0 && btcPrice > 0) {
-        fmt((stackSats.toDouble() / com.example.btcwidget.Stack.SATS_PER_BTC) * btcPrice)
+        com.example.btcwidget.alerts.PriceAlerts.formatPrice((stackSats.toDouble() / com.example.btcwidget.Stack.SATS_PER_BTC) * btcPrice, currencySetting)
     } else null
-    val pnl = com.example.btcwidget.Stack.profitLoss(stackSats, btcPrice, costBasis)
     val invalidStack = stackText.isNotBlank() && com.example.btcwidget.Stack.parse(stackText, unit) == null
 
     Column(
@@ -248,64 +228,15 @@ private fun PortfolioStackCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionLabel(tr("Your stack & DCA"))
-            EInkChip(
-                text = if (showDcaAdd) tr("Close DCA") else tr("+ DCA lot"),
-                selected = showDcaAdd,
-                onClick = { showDcaAdd = !showDcaAdd }
-            )
-        }
+        SectionLabel(tr("Your stack"))
 
         if (stackWorth != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stackWorth,
-                        color = EInk.Value,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (pnl != null) {
-                            tr("Avg buy {0} · Cost {1}", fmt(pnl.avgBuyPrice), fmt(pnl.costBasis))
-                        } else {
-                            tr("Enter total cost below to track P/L")
-                        },
-                        color = EInk.Caption,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                if (pnl != null) {
-                    val sign = if (pnl.profitAmount >= 0) "+" else "-"
-                    val pnlColor = if (pnl.profitAmount >= 0) EInk.Accent else EInk.Alert
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(
-                            text = "$sign${"%.2f".format(kotlin.math.abs(pnl.profitPercent))}%",
-                            color = pnlColor,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "$sign${fmt(pnl.profitAmount)}",
-                            color = pnlColor,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-            }
+            Text(
+                text = stackWorth,
+                color = EInk.Value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Row(
@@ -346,134 +277,6 @@ private fun PortfolioStackCard(
                 text = if (unit == com.example.btcwidget.StackUnit.BTC) tr("Up to 8 decimals, max 21,000,000") else tr("Whole sats only"),
                 color = EInk.Alert,
                 fontSize = 12.sp
-            )
-        }
-
-        EInkOutlinedField(
-            value = costText,
-            onValueChange = { input ->
-                costText = input.filter { it.isDigit() || it == '.' }.take(18)
-                val v = costText.toDoubleOrNull() ?: 0.0
-                costBasis = v
-                com.example.btcwidget.AppPrefs.setStackCostBasis(context, currencySetting, v)
-            },
-            placeholder = "0",
-            prefix = tr("Cost ({0})", currencySymbol),
-            suffix = currencySetting,
-            keyboardType = KeyboardType.Decimal,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (showDcaAdd) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(EInk.Background, RoundedCornerShape(12.dp))
-                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = tr("Add DCA purchase (adds to your stack and total cost)"),
-                    color = EInk.Caption,
-                    fontSize = 12.sp
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    EInkOutlinedField(
-                        value = dcaAmountText,
-                        onValueChange = { dcaAmountText = it.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(18) },
-                        placeholder = "0",
-                        prefix = "+",
-                        suffix = if (unit == com.example.btcwidget.StackUnit.BTC) "BTC" else "sats",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    EInkOutlinedField(
-                        value = dcaCostText,
-                        onValueChange = { dcaCostText = it.filter { c -> c.isDigit() || c == '.' }.take(18) },
-                        placeholder = "0",
-                        prefix = "+$currencySymbol",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    val addedSats = com.example.btcwidget.Stack.parse(dcaAmountText, unit) ?: 0L
-                    val addedCost = dcaCostText.toDoubleOrNull() ?: 0.0
-                    EInkChip(
-                        text = tr("Add"),
-                        selected = addedSats > 0 && addedCost > 0.0,
-                        onClick = {
-                            if (addedSats <= 0 || addedCost <= 0.0) return@EInkChip
-                            val newSats = (stackSats + addedSats).coerceAtMost(21_000_000L * com.example.btcwidget.Stack.SATS_PER_BTC)
-                            val newCost = costBasis + addedCost
-                            onStackChange(newSats, unit)
-                            stackText = com.example.btcwidget.Stack.toInput(newSats, unit)
-                            costBasis = newCost
-                            costText = newCost.toBigDecimal().stripTrailingZeros().toPlainString()
-                            com.example.btcwidget.AppPrefs.setStackCostBasis(context, currencySetting, newCost)
-                            dcaAmountText = ""
-                            dcaCostText = ""
-                            showDcaAdd = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** Tracks a Bitcoin transaction (TXID) on mempool.space: confirmation status, block height, and fee rate. */
-@Composable
-private fun MempoolTxTrackerCard(currentBlockHeight: Int) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    var txid by rememberSaveable { mutableStateOf("") }
-    var statusText by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(EInk.Body, EInk.BodyShape)
-            .border(0.5.dp, EInk.BodyStroke, EInk.BodyShape)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        SectionLabel(tr("Mempool TX tracker"))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            EInkOutlinedField(
-                value = txid,
-                onValueChange = { txid = it.trim().lowercase().filter { c -> c in '0'..'9' || c in 'a'..'f' }.take(64) },
-                placeholder = tr("Paste 64-char TXID…"),
-                modifier = Modifier.weight(1f)
-            )
-            EInkChip(
-                text = if (loading) "…" else tr("Check"),
-                selected = txid.length == 64 && !loading,
-                onClick = {
-                    if (txid.length != 64 || loading) return@EInkChip
-                    loading = true
-                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val baseUrl = com.example.btcwidget.AppPrefs.mempoolUrl(context).ifBlank { "https://mempool.space" }
-                        val summary = fetchTxStatus(txid, currentBlockHeight, baseUrl)
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            statusText = summary
-                            loading = false
-                        }
-                    }
-                }
-            )
-        }
-        statusText?.let { msg ->
-            Text(
-                text = msg,
-                color = EInk.Value,
-                fontSize = 13.sp
             )
         }
     }
@@ -520,27 +323,3 @@ private fun EInkOutlinedField(
         modifier = modifier
     )
 }
-
-private fun fetchTxStatus(txid: String, currentBlockHeight: Int, baseUrl: String): String = runCatching {
-    val req = okhttp3.Request.Builder()
-        .url("${baseUrl.trimEnd('/')}/api/tx/$txid")
-        .header("Accept", "application/json")
-        .build()
-    com.example.btcwidget.nostr.RelayPool.defaultClient.newCall(req).execute().use { r ->
-        if (r.code == 404) return@runCatching "Not found in mempool or blockchain"
-        if (!r.isSuccessful) return@runCatching "HTTP ${r.code}"
-        val json = org.json.JSONObject(r.body.string())
-        val fee = json.optLong("fee", 0L)
-        val weight = json.optLong("weight", 0L)
-        val feeRate = if (weight > 0) "%.1f sat/vB".format(fee.toDouble() / (weight / 4.0)) else "? sat/vB"
-        val status = json.optJSONObject("status")
-        val confirmed = status?.optBoolean("confirmed", false) ?: false
-        if (confirmed) {
-            val bh = status.optInt("block_height", 0)
-            val confs = if (currentBlockHeight >= bh && bh > 0) (currentBlockHeight - bh + 1) else 1
-            "CONFIRMED · Block #$bh ($confs conf) · $feeRate"
-        } else {
-            "UNCONFIRMED (in mempool) · $feeRate"
-        }
-    }
-}.getOrElse { "Lookup failed: ${it.message ?: "network error"}" }

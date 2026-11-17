@@ -965,7 +965,7 @@ private fun AboutPage(appVersion: String?, navigate: (NavKey) -> Unit) {
     SettingsLinkRow(tr("Community rules")) { navigate(com.example.btcwidget.RulesKey) }
     SettingsDivider()
     SettingsHeader(tr("Data and credits"))
-    SettingsNote(tr("Prices: Coinbase, Kraken, Bitkub · Network: mempool.space · Supply: blockchain.info · MSTR: Yahoo Finance, CoinGecko"))
+    SettingsNote(tr("Prices: Coinbase, Kraken, Bitkub · Network: mempool.space · Supply: blockchain.info · MSTR, ASST: Yahoo Finance, CoinGecko"))
     SettingsNote(tr("Type: Inter, Noto Sans Thai, Oswald, VT323 (SIL Open Font License)"))
 }
 

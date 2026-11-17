@@ -156,5 +156,19 @@ class PriceMergeTest {
         assertEquals(3_000_000.0, result.btcThb, 0.0) // no fx: keeps cached THB
         assertTrue(result.lastFetchSuccessful)
     }
-}
 
+    @Test
+    fun striveUsesFreshThenCacheThenFallback() {
+        val withAsst = allFresh.copy(asstUsd = 1.5, asstBtcHeld = 28_000.0)
+        val fresh = PriceRepository.mergeWithCache(withAsst, cached, 2_000L)!!
+        assertEquals(1.5, fresh.asstUsd, 0.0)
+        assertEquals(28_000.0, fresh.asstBtcHeld, 0.0)
+        assertEquals(1.5 / 100_000.0, fresh.asstBtc, 1e-12)
+        // Failed this round: last cached values stay.
+        val kept = PriceRepository.mergeWithCache(allFresh, fresh, 3_000L)!!
+        assertEquals(1.5, kept.asstUsd, 0.0)
+        assertEquals(28_000.0, kept.asstBtcHeld, 0.0)
+        // Never fetched (older cache): holdings fall back to the last known figure.
+        assertEquals(27_461.0, PriceRepository.mergeWithCache(allFresh, cached, 2_000L)!!.asstBtcHeld, 0.0)
+    }
+}

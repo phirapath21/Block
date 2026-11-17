@@ -9,7 +9,7 @@ Block ("the app") is a client for Nostr, an open social network, with Bitcoin ma
 The app keeps the following only on your device, in its private app storage:
 
 - **Your settings** — theme, display currency, refresh interval, data sources, which metrics the widget shows and their order, collapsed sections.
-- **Your stack** — the amount of bitcoin you choose to enter (and its cost basis, if you add one), to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
+- **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
 - **App lock** — if you set a PIN, the app stores a salted PBKDF2 hash of it (never the PIN itself), its length, and how many wrong PINs were entered in a row, so the wait after repeated wrong PINs survives a restart. If you turn on fingerprint or face unlock, only that choice is stored: Android checks your fingerprint or face and Block never sees it.
 - **Your own mempool server**, if you set one in Settings, used instead of mempool.space (see Network requests).
 - **Alerts** — the price, fee and network-event alerts you set.
@@ -107,10 +107,10 @@ To show market and network data, the app requests public data directly from thes
 | api.exchange.coinbase.com | 24-hour change and hourly price history | Always |
 | api.kraken.com | BTC price | Only if you choose Kraken as the price source |
 | api.bitkub.com | BTC/THB price and change | Only if you choose Bitkub for THB |
-| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity, the blocks and transactions behind Bitcoin links in notes, and transactions you look up on the dashboard (the transaction id is sent) | Always, unless you set your own mempool server in Settings, which is then asked instead |
+| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity, the blocks and transactions behind Bitcoin links in notes | Always, unless you set your own mempool server in Settings, which is then asked instead |
 | blockchain.info | Bitcoin in circulation | Always |
-| query1.finance.yahoo.com | Strategy (MSTR) share price | Always |
-| api.coingecko.com | Strategy (MSTR) bitcoin holdings | Always |
+| query1.finance.yahoo.com | Strategy (MSTR) and Strive (ASST) share prices | Always |
+| api.coingecko.com | Strategy (MSTR) and Strive (ASST) bitcoin holdings | Always |
 
 The table covers market data. Nostr relays, Lightning address providers and image hosts are described above; they are chosen by you or by the people you follow.
 
