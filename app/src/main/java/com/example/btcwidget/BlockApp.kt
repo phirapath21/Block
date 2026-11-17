@@ -32,6 +32,8 @@ class BlockApp : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         registerActivityLifecycleCallbacks(RelaySleeper)
         com.example.btcwidget.ui.social.Lang.load(this)
+        // Decrypted message files are only needed while a chat is open: drop any left from before.
+        Thread { com.example.btcwidget.nostr.DmMediaCache.clear(this) }.start()
     }
 
     /**

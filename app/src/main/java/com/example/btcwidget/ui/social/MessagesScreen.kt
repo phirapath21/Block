@@ -1722,29 +1722,21 @@ private fun ChatTopBar(
     }
 }
 
+/**
+ * The name shown for an attachment and suggested when saving it: the sender's name made safe
+ * (no folders), else one made up from its kind and hash. Never used as a path on the phone:
+ * decrypted copies live in [com.example.btcwidget.nostr.DmMediaCache], named by their own hash.
+ */
 private fun defaultAttachmentName(info: DmFile.Info): String {
-    if (!info.fileName.isNullOrBlank()) return info.fileName
-    val ext = when (info.mime.lowercase()) {
-        "image/jpeg", "image/jpg" -> "jpg"
-        "image/png" -> "png"
-        "image/webp" -> "webp"
-        "image/gif" -> "gif"
-        "video/mp4" -> "mp4"
-        "video/webm" -> "webm"
-        "audio/mpeg", "audio/mp3" -> "mp3"
-        "audio/mp4", "audio/m4a", "audio/aac" -> "m4a"
-        "audio/ogg" -> "ogg"
-        "application/pdf" -> "pdf"
-        "application/zip" -> "zip"
-        else -> info.mime.substringAfter('/', "bin").take(6).filter { it.isLetterOrDigit() }.ifEmpty { "bin" }
-    }
+    com.example.btcwidget.nostr.DmMediaCache.safeDisplayName(info.fileName)?.let { return it }
+    val ext = com.example.btcwidget.nostr.DmMediaCache.extensionFor(info.mime)
     val prefix = when {
         info.isImage -> "photo"
         info.isVideo -> "video"
         info.isAudio -> "audio"
         else -> "file"
     }
-    val shortHash = info.sha256?.take(8) ?: "nip17"
+    val shortHash = info.sha256?.filter { it.isLetterOrDigit() }?.take(8)?.ifEmpty { null } ?: "nip17"
     return "${prefix}_$shortHash.$ext"
 }
 
@@ -1889,11 +1881,7 @@ private fun EncryptedAttachment(
                 val b = decryptedBytes ?: return@produceState
                 value = withContext(Dispatchers.IO) {
                     runCatching {
-                        val dir = File(context.cacheDir, "dm_media").apply { mkdirs() }
-                        val file = File(dir, defaultAttachmentName(info))
-                        if (!file.exists() || file.length() != b.size.toLong()) {
-                            file.writeBytes(b)
-                        }
+                        val file = com.example.btcwidget.nostr.DmMediaCache.fileFor(context, info, b)
                         val thumb = runCatching {
                             val retriever = android.media.MediaMetadataRetriever()
                             try {
@@ -1983,12 +1971,13 @@ private fun EncryptedAttachment(
         else -> {
             // Encrypted Audio or Document/File Card (PDF, ZIP, MP3, APK, etc.)
             var isPlayingAudio by remember { mutableStateOf(false) }
-            val mediaPlayer = remember { android.media.MediaPlayer() }
-            DisposableEffect(info.url) {
+            // Only audio needs a player; documents get none.
+            val mediaPlayer = remember(info.isAudio) { if (info.isAudio) android.media.MediaPlayer() else null }
+            DisposableEffect(mediaPlayer) {
                 onDispose {
                     runCatching {
-                        if (mediaPlayer.isPlaying) mediaPlayer.stop()
-                        mediaPlayer.release()
+                        if (mediaPlayer?.isPlaying == true) mediaPlayer?.stop()
+                        mediaPlayer?.release()
                     }
                 }
             }
@@ -2017,20 +2006,19 @@ private fun EncryptedAttachment(
                             val raw = decryptedBytes ?: return@clickable
                             if (info.isAudio) {
                                 if (isPlayingAudio) {
-                                    runCatching { mediaPlayer.pause() }
+                                    runCatching { mediaPlayer?.pause() }
                                     isPlayingAudio = false
                                 } else {
                                     scope.launch(Dispatchers.IO) {
                                         runCatching {
-                                            val dir = File(context.cacheDir, "dm_media").apply { mkdirs() }
-                                            val f = File(dir, displayName)
-                                            if (!f.exists() || f.length() != raw.size.toLong()) f.writeBytes(raw)
+                                            val f = com.example.btcwidget.nostr.DmMediaCache.fileFor(context, info, raw)
+                                            val player = mediaPlayer ?: return@runCatching
                                             withContext(Dispatchers.Main) {
-                                                mediaPlayer.reset()
-                                                mediaPlayer.setDataSource(f.path)
-                                                mediaPlayer.setOnCompletionListener { isPlayingAudio = false }
-                                                mediaPlayer.prepare()
-                                                mediaPlayer.start()
+                                                player.reset()
+                                                player.setDataSource(f.path)
+                                                player.setOnCompletionListener { isPlayingAudio = false }
+                                                player.prepare()
+                                                player.start()
                                                 isPlayingAudio = true
                                             }
                                         }
