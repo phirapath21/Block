@@ -51,7 +51,7 @@ class BlockclockPainterTest {
         mstrBtc = 0.005574, blockHeight = 925_000, mstrBtcHeld = 640_031.0,
         btcCirculation = 19_912_345.0, timestamp = 0L, feeFastest = 127, feeHalfHour = 5,
         feeHour = 3, difficultyChange = -12.54, difficultyProgress = 40.0, hashRate = 1812.3,
-        lightningCapacity = 4_900.0
+        lightningCapacity = 4_900.0, asstUsd = 1.25, asstBtcHeld = 27_461.0
     )
 
     private fun allScenes(): List<BlockclockScene> {
@@ -87,7 +87,9 @@ class BlockclockPainterTest {
                     )
                 }
                 val d = scene.display
-                val value = s.texts.first { it.first == d.value }.second
+                // The retro theme rains faint hex digits behind everything: a one-digit value
+                // ("0", "1") also matches one of those, so take the tallest match, the value.
+                val value = s.texts.filter { it.first == d.value }.maxBy { it.second.b - it.second.t }.second
                 val label = s.texts.first { it.first == d.labelTop }.second
                 assertTrue("value overlaps label: $where", value.l >= label.r)
 
