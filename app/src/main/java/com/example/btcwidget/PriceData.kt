@@ -75,6 +75,7 @@ object PriceRepository {
      */
     suspend fun fetchPriceData(context: Context): PriceData? = withContext(Dispatchers.IO) {
         val sources = AppPrefs.dataSources(context)
+        val mempool = AppPrefs.mempoolUrl(context).ifBlank { "https://mempool.space" }.trimEnd('/')
         val fresh = coroutineScope {
             // Coinbase rates also supply the USD->THB conversion, so they are always fetched.
             val rates = async { fetchSafely("exchange rates") { fetchRates() } }
@@ -86,12 +87,12 @@ object PriceRepository {
             }
             val dayStats = async { fetchSafely("24h stats") { fetchDayStats() } }
             val mstr = async { fetchSafely("MSTR price") { fetchMstrPrice() } }
-            val height = async { fetchSafely("block height") { fetchBlockHeight() } }
+            val height = async { fetchSafely("block height") { fetchBlockHeight(mempool) } }
             val circulation = async { fetchSafely("circulating supply") { fetchCirculation() } }
-            val fees = async { fetchSafely("recommended fees") { fetchFees() } }
-            val difficulty = async { fetchSafely("difficulty adjustment") { fetchDifficulty() } }
-            val hashRate = async { fetchSafely("hashrate") { fetchHashRate() } }
-            val lightning = async { fetchSafely("lightning capacity") { fetchLightningCapacity() } }
+            val fees = async { fetchSafely("recommended fees") { fetchFees(mempool) } }
+            val difficulty = async { fetchSafely("difficulty adjustment") { fetchDifficulty(mempool) } }
+            val hashRate = async { fetchSafely("hashrate") { fetchHashRate(mempool) } }
+            val lightning = async { fetchSafely("lightning capacity") { fetchLightningCapacity(mempool) } }
             val mstrHeld = async { fetchSafely("MSTR holdings") { fetchMstrHoldings() } }
             FetchResults(
                 rates = rates.await(),
@@ -221,10 +222,29 @@ object PriceRepository {
      * covers the 7-day view; filtering here avoids date formatting below API 26.
      */
     fun fetchHistory(hours: Int): List<PricePoint> {
-        val since = System.currentTimeMillis() / 1000 - hours * 3600L
-        return ApiParsers.coinbaseCandles(
+        val now = System.currentTimeMillis() / 1000
+        val since = if (hours == Int.MAX_VALUE) 1_420_070_400L else now - hours * 3600L
+        val hourlySince = System.currentTimeMillis() / 1000 - ChartRange.WEEK.hours * 3600L
+        val hourly = ApiParsers.coinbaseCandles(
             httpGet("https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=3600", userAgent = USER_AGENT)
-        ).filter { it.time >= since }
+        ).filter { it.time >= maxOf(since, hourlySince) }
+        if (hours <= ChartRange.WEEK.hours) return hourly
+        // Coinbase returns at most 300 candles per call; page daily candles so 4Y/ALL
+        // ranges really reach back instead of silently showing Kraken's capped history.
+        val daily = mutableListOf<PricePoint>()
+        var cursor = since
+        while (cursor < now) {
+            val end = minOf(cursor + 299L * 86_400L, now)
+            val startIso = java.net.URLEncoder.encode(java.time.Instant.ofEpochSecond(cursor).toString(), "UTF-8")
+            val endIso = java.net.URLEncoder.encode(java.time.Instant.ofEpochSecond(end).toString(), "UTF-8")
+            val response = httpGet(
+                "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400&start=$startIso&end=$endIso",
+                userAgent = USER_AGENT
+            )
+            daily += ApiParsers.coinbaseCandles(response, 86_400L)
+            cursor = end + 1
+        }
+        return (daily + hourly).distinctBy { it.time to it.resolutionSeconds }.sortedBy { it.time }
     }
 
     /** Coinbase Exchange rejects requests without a User-Agent. */
@@ -239,25 +259,25 @@ object PriceRepository {
             .getJSONObject(0).getJSONObject("meta").getDouble("regularMarketPrice")
     }
 
-    private fun fetchBlockHeight(): Int =
-        httpGet("https://mempool.space/api/blocks/tip/height").toInt()
+    private fun fetchBlockHeight(base: String): Int =
+        httpGet("$base/api/blocks/tip/height").toInt()
 
     private fun fetchCirculation(): Double =
         httpGet("https://blockchain.info/q/totalbc").toDouble() / SATS_PER_BTC
 
-    private fun fetchFees(): Fees {
-        val obj = JSONObject(httpGet("https://mempool.space/api/v1/fees/recommended"))
+    private fun fetchFees(base: String): Fees {
+        val obj = JSONObject(httpGet("$base/api/v1/fees/recommended"))
         return Fees(obj.getInt("fastestFee"), obj.getInt("halfHourFee"), obj.getInt("hourFee"))
     }
 
-    private fun fetchDifficulty(): Difficulty {
-        val obj = JSONObject(httpGet("https://mempool.space/api/v1/difficulty-adjustment"))
+    private fun fetchDifficulty(base: String): Difficulty {
+        val obj = JSONObject(httpGet("$base/api/v1/difficulty-adjustment"))
         return Difficulty(obj.getDouble("difficultyChange"), obj.getDouble("progressPercent"))
     }
 
     /** Network hashrate estimate (3d), converted from H/s to EH/s. */
-    private fun fetchHashRate(): Double =
-        JSONObject(httpGet("https://mempool.space/api/v1/mining/hashrate/3d"))
+    private fun fetchHashRate(base: String): Double =
+        JSONObject(httpGet("$base/api/v1/mining/hashrate/3d"))
             .getDouble("currentHashrate") / 1e18
 
     /** Strategy (MSTR) bitcoin holdings from CoinGecko's public treasury list. */
@@ -274,8 +294,8 @@ object PriceRepository {
     }
 
     /** Public Lightning capacity, converted from sats to BTC. */
-    private fun fetchLightningCapacity(): Double =
-        JSONObject(httpGet("https://mempool.space/api/v1/lightning/statistics/latest"))
+    private fun fetchLightningCapacity(base: String): Double =
+        JSONObject(httpGet("$base/api/v1/lightning/statistics/latest"))
             .getJSONObject("latest").getDouble("total_capacity") / SATS_PER_BTC
 
     // Prices are stored as doubles (raw long bits under "<key>_d"); a Float loses

@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,7 +53,7 @@ import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 import com.example.btcwidget.ui.main.EInkChip
 
-private val Orange = Color(0xFFF7931A)
+private val Orange get() = EInk.Accent
 
 /**
  * The first screen for someone not logged in: what Block is, and the ways in: create an
@@ -116,10 +117,11 @@ private fun Point(text: String) {
 
 @Composable
 private fun BigButton(text: String, filled: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
     Box(
-        Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(50))
-            .background(if (filled) Orange else Color.Transparent)
-            .then(if (filled) Modifier else Modifier.background(EInk.Body))
+        Modifier.fillMaxWidth().height(52.dp).clip(shape)
+            .background(if (filled) Orange else EInk.Body, shape)
+            .then(if (filled) Modifier else Modifier.border(1.dp, EInk.BodyStroke, shape))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -318,7 +320,7 @@ private fun PeopleSection(title: String, people: List<Profile>?, loading: String
     }
 }
 
-private val OnboardOrange = androidx.compose.ui.graphics.Color(0xFFF7931A)
+private val OnboardOrange get() = EInk.Accent
 
 @Composable
 private fun InboxStep(vm: SocialViewModel, onFinish: () -> Unit) {
@@ -339,9 +341,9 @@ private fun InboxStep(vm: SocialViewModel, onFinish: () -> Unit) {
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = EInk.Value, unfocusedBorderColor = EInk.BodyStroke,
-    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Value,
-    focusedLabelColor = EInk.Label, unfocusedLabelColor = EInk.Caption
+    focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke,
+    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent,
+    focusedLabelColor = EInk.Accent, unfocusedLabelColor = EInk.Caption
 )
 
 /**

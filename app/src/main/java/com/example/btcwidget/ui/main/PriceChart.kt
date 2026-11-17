@@ -3,6 +3,7 @@ package com.example.btcwidget.ui.main
 import com.example.btcwidget.ui.social.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +33,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,11 +61,16 @@ fun PriceChartPanel(
     history: List<PricePoint>,
     currency: String,
     usdToCurrency: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRangeSelected: (ChartRange) -> Unit = {},
+    historyLoading: Boolean = false
 ) {
     var range by rememberSaveable { mutableStateOf(ChartRange.DAY) }
     val points = remember(history, range, usdToCurrency) { ChartMath.slice(history, range, usdToCurrency) }
-    val summary = remember(points) { ChartMath.summary(points) }
+    val requiredSeconds = if (range == ChartRange.ALL) 0L else range.hours * 3600L
+    val coverageSeconds = (points.lastOrNull()?.time ?: 0L) - (points.firstOrNull()?.time ?: 0L)
+    val hasCoverage = points.isNotEmpty() && (range == ChartRange.ALL || coverageSeconds >= requiredSeconds * 0.8)
+    val summary = remember(points, hasCoverage) { if (hasCoverage) ChartMath.summary(points) else null }
     var selected by remember(points) { mutableStateOf<Int?>(null) }
     val timeFormat = remember { SimpleDateFormat("EEE d MMM, HH:mm", Locale.getDefault()) }
     fun price(value: Double) = PriceAlerts.formatPrice(value, currency)
@@ -72,7 +79,8 @@ fun PriceChartPanel(
         modifier = modifier
             .fillMaxWidth()
             .background(EInk.Body, EInk.BodyShape)
-            .padding(14.dp)
+            .border(0.5.dp, EInk.BodyStroke, EInk.BodyShape)
+            .padding(16.dp)
     ) {
         // Header: value leads, context follows. While scrubbing it shows the picked hour.
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -82,35 +90,39 @@ fun PriceChartPanel(
                     text = when {
                         pick != null -> price(pick.price)
                         summary != null -> price(summary.last)
-                        else -> tr("BTC PRICE")
+                        else -> tr("BTC price")
                     },
                     color = EInk.Value,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = when {
                         pick != null -> timeFormat.format(Date(pick.time * 1000))
                         summary != null -> listOfNotNull(
                             BlockclockMetrics.formatChange(summary.changePct),
-                            "past ${if (range == ChartRange.DAY) "24 hours" else "7 days"}"
+                            tr("Past {0}", range.label)
                         ).joinToString(" · ")
                         else -> tr("History appears after the first refresh")
                     },
                     color = EInk.Caption,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
+                    fontSize = 13.sp,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ChartRange.entries.forEach { option ->
-                    EInkChip(text = option.label, selected = range == option, onClick = { range = option })
-                }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            ChartRange.entries.forEach { option ->
+                EInkChip(text = option.label, selected = range == option, onClick = { range = option; onRangeSelected(option) })
             }
         }
 
+        if (historyLoading) Text(tr("Loading price history…"), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+        else if (!hasCoverage) Text(tr("Price history for this range is unavailable"), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
         if (summary == null) return@Column
 
         val description = tr("BTC price, past {0}: from {1} to {2}, ", range.label, price(summary.first), price(summary.last)) +
@@ -118,9 +130,9 @@ fun PriceChartPanel(
 
         Canvas(
             modifier = Modifier
-                .padding(top = 12.dp)
+                .padding(top = 14.dp)
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(124.dp)
                 .semantics { contentDescription = description }
                 .pointerInput(points) {
                     fun pick(x: Float) {
@@ -159,33 +171,33 @@ fun PriceChartPanel(
                 lineTo(0f, h)
                 close()
             }
-            drawPath(area, color = EInk.Value.copy(alpha = 0.10f))
+            drawPath(area, color = EInk.Accent.copy(alpha = 0.14f))
             drawPath(
                 line,
-                color = EInk.Value,
+                color = EInk.Accent,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
 
             // Latest price: end dot with a surface ring so it stands off the line.
             val end = at(points.lastIndex)
             drawCircle(EInk.Body, radius = 6.dp.toPx(), center = end)
-            drawCircle(EInk.Value, radius = 4.dp.toPx(), center = end)
+            drawCircle(EInk.Accent, radius = 4.dp.toPx(), center = end)
 
             selected?.let { i ->
                 val p = at(i)
-                drawLine(EInk.Label, Offset(p.x, 0f), Offset(p.x, h), strokeWidth = 1.dp.toPx())
+                drawLine(EInk.Caption, Offset(p.x, 0f), Offset(p.x, h), strokeWidth = 1.dp.toPx())
                 drawCircle(EInk.Body, radius = 6.dp.toPx(), center = p)
-                drawCircle(EInk.Value, radius = 4.dp.toPx(), center = p)
+                drawCircle(EInk.Accent, radius = 4.dp.toPx(), center = p)
             }
         }
 
-        Row(modifier = Modifier.padding(top = 8.dp)) {
+        Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             ChartStat("H", price(summary.high))
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             ChartStat("L", price(summary.low))
             Spacer(modifier = Modifier.weight(1f))
             if (currency != "USD") {
-                Text(tr("Converted from USD"), color = EInk.Caption, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(tr("Converted from USD"), color = EInk.Caption, fontSize = 12.sp)
             }
         }
     }
@@ -194,12 +206,11 @@ fun PriceChartPanel(
 @Composable
 private fun ChartStat(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = EInk.Caption, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        Text(label, color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text(
             text = " $value",
-            color = EInk.Label,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace
+            color = EInk.Value,
+            fontSize = 12.sp
         )
     }
 }

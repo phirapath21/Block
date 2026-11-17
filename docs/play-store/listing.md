@@ -44,8 +44,8 @@ Block shows information only. It is not a wallet or an exchange and does not giv
 - **App category:** Finance
 - **Tags (suggested):** Cryptocurrency, Widgets, Finance
 - **Email:** your support address (required by Play; shown publicly)
-- **Website (optional):** https://github.com/phirapath21/btcwidget
-- **Privacy policy:** https://github.com/phirapath21/btcwidget/blob/main/docs/privacy-policy.md
+- **Website (optional):** https://github.com/phirapath21/Block
+- **Privacy policy:** https://github.com/phirapath21/Block/blob/main/docs/privacy-policy.md
 
 ## Graphics (in `graphics/`)
 

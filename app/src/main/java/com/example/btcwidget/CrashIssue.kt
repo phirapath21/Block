@@ -8,7 +8,7 @@ import java.net.URLEncoder
  * remove anything, and submits it themselves with their GitHub account (issues are public).
  */
 object CrashIssue {
-    const val REPO = "https://github.com/phirapath21/btcwidget"
+    const val REPO = "https://github.com/phirapath21/Block"
     /** Browsers and GitHub turn away very long links; the report is cut to fit. */
     private const val MAX_URL = 7_500
 

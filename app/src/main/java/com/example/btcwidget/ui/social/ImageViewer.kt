@@ -69,7 +69,7 @@ import com.example.btcwidget.nostr.core.Profile
 import kotlinx.coroutines.launch
 
 private val Scrim = Color(0xCC000000)
-private val Accent = Color(0xFFF7931A)
+private val Accent get() = EInk.Accent
 /** The panel under the picture: the app's own background, nearly opaque, rounded at the top. */
 /** Behind the panel: clear at the top, darker toward the bottom. */
 private val PanelShade = listOf(Color.Transparent, Color(0x99000000), Color(0xD9000000))

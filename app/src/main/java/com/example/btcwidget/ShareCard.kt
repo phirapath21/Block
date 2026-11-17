@@ -41,6 +41,10 @@ object ShareCard {
         context.startActivity(chooser)
     }
 
+    /** Renders the dashboard card and returns a content URI for Block's own composer. */
+    fun imageUri(context: Context, key: String, data: PriceData, currency: String, palette: Palette): android.net.Uri =
+        FileProvider.getUriForFile(context, "${context.packageName}.share", writeImage(context, key, data, currency, palette))
+
     /** Paints the metric's panel, as on the dashboard, into cache/shared/block.png. */
     private fun writeImage(context: Context, key: String, data: PriceData, currency: String, palette: Palette): File {
         val scene = BlockclockScene(

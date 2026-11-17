@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.btcwidget.ui.main.EInk
 
-private val Accent = Color(0xFFF7931A)
+private val Accent get() = EInk.Accent
 private val Green = Color(0xFF3FB950)
 
 /**

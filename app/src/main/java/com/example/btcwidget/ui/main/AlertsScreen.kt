@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
@@ -23,7 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +51,7 @@ fun AlertsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 12.dp)
     ) {
-        HeaderSection(title = tr("ALERTS"), subtitle = tr("Get notified on a crossing"))
+        HeaderSection(title = tr("Price alerts"), subtitle = tr("Get notified on a crossing"))
 
         if (data != null) {
             EInkPanel(title = tr("Now")) {
@@ -91,9 +92,9 @@ fun AlertsScreen(
                     tr("One notification each time a line is crossed.")
             },
             color = if (blocked) EInk.Alert else EInk.Caption,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 20.dp)
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 24.dp)
         )
     }
 }
@@ -103,11 +104,11 @@ private fun NowLine(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = EInk.Label, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
-        Text(value, color = EInk.Value, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+        Text(label, color = EInk.Caption, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text(value, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -139,11 +140,11 @@ private fun AlertRow(rule: AlertRule, currency: String, onChange: (AlertRule) ->
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, color = EInk.Value, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+            Text(text = tr(label), color = EInk.Value, fontSize = 15.sp)
             OutlinedTextField(
                 value = text,
                 onValueChange = { input ->
@@ -152,26 +153,27 @@ private fun AlertRow(rule: AlertRule, currency: String, onChange: (AlertRule) ->
                     if (rule.enabled) onChange(updated(enabled = cleaned.isNotEmpty(), input = cleaned))
                 },
                 singleLine = true,
-                placeholder = { Text(if (isFee) "e.g. 5" else "e.g. 100000", fontFamily = FontFamily.Monospace) },
-                prefix = if (isFee) null else ({ Text(if (ruleCurrency == "THB") "฿" else "$", fontFamily = FontFamily.Monospace) }),
-                suffix = if (isFee) ({ Text(tr("sat/vB"), fontFamily = FontFamily.Monospace) }) else null,
+                placeholder = { Text(if (isFee) "e.g. 5" else "e.g. 100000") },
+                prefix = if (isFee) null else ({ Text(if (ruleCurrency == "THB") "฿" else "$") }),
+                suffix = if (isFee) ({ Text(tr("sat/vB")) }) else null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, color = EInk.Value),
+                textStyle = TextStyle(fontSize = 15.sp, color = EInk.Value),
+                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = EInk.Value,
+                    focusedBorderColor = EInk.Accent,
                     unfocusedBorderColor = EInk.BodyStroke,
                     focusedTextColor = EInk.Value,
                     unfocusedTextColor = EInk.Value,
-                    cursorColor = EInk.Value,
-                    focusedPrefixColor = EInk.Label,
-                    unfocusedPrefixColor = EInk.Label,
-                    focusedSuffixColor = EInk.Label,
-                    unfocusedSuffixColor = EInk.Label,
+                    cursorColor = EInk.Accent,
+                    focusedPrefixColor = EInk.Caption,
+                    unfocusedPrefixColor = EInk.Caption,
+                    focusedSuffixColor = EInk.Caption,
+                    unfocusedSuffixColor = EInk.Caption,
                     focusedPlaceholderColor = EInk.Caption,
                     unfocusedPlaceholderColor = EInk.Caption
                 ),
                 modifier = Modifier
-                    .padding(top = 4.dp, end = 12.dp)
+                    .padding(top = 6.dp, end = 12.dp)
                     .fillMaxWidth()
             )
         }

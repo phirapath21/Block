@@ -91,6 +91,13 @@ object NavIcons {
         icon("Shorts", Part.Stroke(PHONE, 1.9f), Part.Fill(PLAY)),
         icon("ShortsFilled", Part.EvenOdd(PHONE + PLAY), Part.Stroke(PHONE, 1.9f))
     )
+    // A shopping bag with a rounded handle (drawn for Block).
+    private const val BAG = "M6,8h12a1.5,1.5 0,0 1,1.5 1.6l-1,9.5a2,2 0,0 1,-2 1.9H7.5a2,2 0,0 1,-2 -1.9l-1,-9.5A1.5,1.5 0,0 1,6 8z"
+    private const val BAG_HANDLE = "M9,8V6.5a3,3 0,0 1,6 0V8"
+    val Store = NavIcon(
+        icon("Store", Part.Stroke(BAG, 1.9f), Part.Stroke(BAG_HANDLE, 1.9f)),
+        icon("StoreFilled", Part.Fill(BAG), Part.Stroke(BAG, 1.9f), Part.Stroke(BAG_HANDLE, 2.1f))
+    )
     val Profile = NavIcon(
         icon("Profile", Part.Fill("M12,6c1.1,0 2,0.9 2,2s-0.9,2 -2,2 -2,-0.9 -2,-2 0.9,-2 2,-2m0,10c2.7,0 5.8,1.29 6,2H6c0.23,-0.72 3.31,-2 6,-2m0,-12C9.79,4 8,5.79 8,8s1.79,4 4,4 4,-1.79 4,-4 -1.79,-4 -4,-4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z")),
         icon("ProfileFilled", Part.Fill("M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"))

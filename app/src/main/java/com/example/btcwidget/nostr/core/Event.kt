@@ -69,6 +69,7 @@ data class UnsignedEvent(
 }
 
 /** A signed Nostr event (NIP-01). */
+@androidx.compose.runtime.Immutable
 data class Event(
     val id: String,
     val pubkey: String,

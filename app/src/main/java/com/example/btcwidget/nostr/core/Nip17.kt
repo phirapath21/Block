@@ -14,9 +14,11 @@ import java.security.SecureRandom
  */
 object Nip17 {
     const val CHAT = 14
-    /** An encrypted file (photo) message: content is its URL, tags carry the key. */
+    /** An encrypted file (photo, video, audio, or document) message: content is its URL, tags carry the key. */
     const val FILE = 15
     const val REACTION = 7
+    /** Deletion / Unsend rumor (NIP-09 kind 5 wrapped inside NIP-17). */
+    const val DELETE = 5
     /** Legacy NIP-04 direct message: readable here, never sent. */
     const val LEGACY_DM = 4
     const val SEAL = 13
@@ -37,12 +39,12 @@ object Nip17 {
         val replyTo: String?,
         /** The gift wrap it arrived in. */
         val wrapId: String,
-        /** [CHAT], [FILE], [REACTION] (to [replyTo]) or [LEGACY_DM]. */
+        /** [CHAT], [FILE], [REACTION], [DELETE] (to [replyTo]) or [LEGACY_DM]. */
         val kind: Int = CHAT,
         val tags: List<List<String>> = emptyList()
     ) {
-        /** Shown as a bubble (reactions attach to the message they react to). */
-        val isBubble get() = kind != REACTION
+        /** Shown as a bubble (reactions and unsend events attach to the message they reference). */
+        val isBubble get() = kind != REACTION && kind != DELETE
         /** Less private: relays can see who talked to whom, and when. */
         val isLegacy get() = kind == LEGACY_DM
         val file: DmFile.Info? get() = if (kind == FILE) DmFile.parse(content, tags) else null
@@ -113,7 +115,7 @@ object Nip17 {
             )
         }.getOrNull() ?: return null
         // The seal's signer must be the rumor's author, or anyone could put words in someone's mouth.
-        if (rumor.kind !in setOf(CHAT, FILE, REACTION) || rumor.pubkey != seal.pubkey) return null
+        if (rumor.kind !in setOf(CHAT, FILE, REACTION, DELETE) || rumor.pubkey != seal.pubkey) return null
         return Message(
             id = rumor.id,
             sender = rumor.pubkey,
@@ -151,7 +153,21 @@ object Nip17 {
  * with a fresh AES-GCM key, uploaded, and the key travels only inside the encrypted message.
  */
 object DmFile {
-    data class Info(val url: String, val mime: String, val key: ByteArray, val nonce: ByteArray, val sha256: String?, val width: Int?, val height: Int?)
+    data class Info(
+        val url: String,
+        val mime: String,
+        val key: ByteArray,
+        val nonce: ByteArray,
+        val sha256: String?,
+        val width: Int?,
+        val height: Int?,
+        val size: Long? = null,
+        val fileName: String? = null
+    ) {
+        val isImage: Boolean get() = mime.startsWith("image/")
+        val isVideo: Boolean get() = mime.startsWith("video/")
+        val isAudio: Boolean get() = mime.startsWith("audio/")
+    }
 
     data class Sealed(val bytes: ByteArray, val key: ByteArray, val nonce: ByteArray)
 
@@ -171,16 +187,25 @@ object DmFile {
     }
 
     /** Tags for a kind-15 message about an uploaded encrypted file. */
-    fun tags(mime: String, sealed: Sealed, encryptedSha256: String, originalSha256: String, width: Int, height: Int): List<List<String>> = listOf(
-        listOf("file-type", mime),
-        listOf("encryption-algorithm", "aes-gcm"),
-        listOf("decryption-key", Hex.encode(sealed.key)),
-        listOf("decryption-nonce", Hex.encode(sealed.nonce)),
-        listOf("x", encryptedSha256),
-        listOf("ox", originalSha256),
-        listOf("size", sealed.bytes.size.toString()),
-        listOf("dim", "${width}x$height")
-    )
+    fun tags(
+        mime: String,
+        sealed: Sealed,
+        encryptedSha256: String,
+        originalSha256: String,
+        width: Int = 0,
+        height: Int = 0,
+        fileName: String? = null
+    ): List<List<String>> = buildList {
+        add(listOf("file-type", mime))
+        add(listOf("encryption-algorithm", "aes-gcm"))
+        add(listOf("decryption-key", Hex.encode(sealed.key)))
+        add(listOf("decryption-nonce", Hex.encode(sealed.nonce)))
+        add(listOf("x", encryptedSha256))
+        add(listOf("ox", originalSha256))
+        add(listOf("size", sealed.bytes.size.toString()))
+        if (width > 0 && height > 0) add(listOf("dim", "${width}x$height"))
+        if (!fileName.isNullOrBlank()) add(listOf("name", fileName))
+    }
 
     fun parse(url: String, tags: List<List<String>>): Info? {
         fun tag(name: String) = tags.firstOrNull { it.size >= 2 && it[0] == name }?.get(1)
@@ -188,6 +213,16 @@ object DmFile {
         val key = tag("decryption-key")?.let { runCatching { Hex.decode(it) }.getOrNull() }?.takeIf { it.size == 32 } ?: return null
         val nonce = tag("decryption-nonce")?.let { runCatching { Hex.decode(it) }.getOrNull() }?.takeIf { it.size in 12..16 } ?: return null
         val dim = tag("dim")?.split('x')
-        return Info(url, tag("file-type") ?: "application/octet-stream", key, nonce, tag("x"), dim?.getOrNull(0)?.toIntOrNull(), dim?.getOrNull(1)?.toIntOrNull())
+        return Info(
+            url = url,
+            mime = tag("file-type") ?: "application/octet-stream",
+            key = key,
+            nonce = nonce,
+            sha256 = tag("x"),
+            width = dim?.getOrNull(0)?.toIntOrNull(),
+            height = dim?.getOrNull(1)?.toIntOrNull(),
+            size = tag("size")?.toLongOrNull(),
+            fileName = tag("name") ?: tag("alt")
+        )
     }
 }

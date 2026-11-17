@@ -150,7 +150,49 @@ object Glyphs {
     val Forward = stroked("Forward", "M12,4a8,8 0,1 1,-8 8M9.5,1.5L12,4l-2.5,2.5", 1.8f)
     /** A paper plane: send a chat message (drawn for Block). */
     val Send = stroked("Send", "M4.5,11.5L20,4.5l-4.5,15.5 -3.5,-6.5zM12,13.5L20,4.5", 1.9f)
+    /** A speech bubble with a plus sign: start a new direct message. */
+    val NewChat = stroked(
+        "NewChat",
+        "M14,4.5H6.5A3,3 0,0 0,3.5 7.5v6.5a3,3 0,0 0,3 3H8v3.5l4,-3.5h5.5a3,3 0,0 0,3 -3V11M18.5,3.5v6M15.5,6.5h6",
+        1.9f
+    )
+    /** A padlock: end-to-end encrypted messages. */
+    val Lock = stroked(
+        "Lock",
+        "M6.5,11h11a1.5,1.5 0,0 1,1.5 1.5v6a1.5,1.5 0,0 1,-1.5 1.5h-11A1.5,1.5 0,0 1,5 18.5v-6A1.5,1.5 0,0 1,6.5 11zM8.5,11V8a3.5,3.5 0,0 1,7 0v3",
+        1.8f
+    )
+    /** Two people: group chat. */
+    val Group = stroked(
+        "Group",
+        "M9,5a3,3 0,1 0,0.001 0zM3.5,18.5c0.6,-2.8 2.8,-4.3 5.5,-4.3s4.9,1.5 5.5,4.3M16,5.5a2.6,2.6 0,1 0,0.001 0zM15.5,14.5c2.2,0.3 3.9,1.6 4.5,4",
+        1.8f
+    )
     /** Corners pointing out / in: full screen and back (drawn for Block). */
     val Fullscreen = stroked("Fullscreen", "M4,9V4h5M15,4h5v5M20,15v5h-5M9,20H4v-5", 2f)
     val ExitFullscreen = stroked("ExitFullscreen", "M9,4v5H4M20,9h-5V4M15,20v-5h5M4,15h5v5", 2f)
+    /** A paperclip: attach photo, video, or file in chat. */
+    val Attach = stroked(
+        "Attach",
+        "M16.5,6.5l-7.8,7.8a2.1,2.1 0,0 0,3 3l7.8,-7.8a4.2,4.2 0,0 0,-6 -6l-8.2,8.2a6.3,6.3 0,0 0,8.9 8.9l6.8,-6.8",
+        1.85f
+    )
+    /** A document page with folded corner: general file attachment. */
+    val File = stroked(
+        "File",
+        "M14,3.5H7A1.5,1.5 0,0 0,5.5 5v14A1.5,1.5 0,0 0,7 20.5h10A1.5,1.5 0,0 0,18.5 19V8zM14,3.5V8h4.5M8.5,12.5h7M8.5,16h5",
+        1.8f
+    )
+    /** Undo / Unsend message arrow. */
+    val Undo = stroked(
+        "Undo",
+        "M9,14L4,9l5,-5M4,9h10.5a5.5,5.5 0,0 1,0 11H11",
+        1.9f
+    )
+    /** A 3D Bitcoin block cube: Proof-of-Blockheight stamp & mempool explorer. */
+    val BlockCube = stroked(
+        "BlockCube",
+        "M12,3l8,4.5v9L12,21l-8,-4.5v-9L12,3zM12,12l8,-4.5M12,12v9M12,12L4,7.5",
+        1.85f
+    )
 }

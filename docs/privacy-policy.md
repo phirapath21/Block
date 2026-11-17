@@ -139,4 +139,4 @@ If this policy changes, the updated version will be published at the same addres
 
 ## Contact
 
-Questions or requests: open an issue at <https://github.com/phirapath21/btcwidget/issues>.
+Questions or requests: open an issue at <https://github.com/phirapath21/Block/issues>.

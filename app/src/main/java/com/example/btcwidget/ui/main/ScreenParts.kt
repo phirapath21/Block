@@ -2,6 +2,7 @@ package com.example.btcwidget.ui.main
 
 import com.example.btcwidget.ui.social.tr
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -26,41 +27,35 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 
 /** Shared building blocks for the dashboard and widgets screens. */
 
-internal val CardShape = RoundedCornerShape(10.dp)
+internal val CardShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun HeaderSection(title: String, subtitle: String) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 14.dp)
+            .padding(horizontal = 4.dp, vertical = 10.dp)
     ) {
         Text(
             text = title,
             color = EInk.Value,
-            // The terminal face is light and small for its size; set it larger, unbolded.
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = EInk.TitleFont,
-            letterSpacing = 4.sp
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = subtitle.uppercase(Locale.US),
-            color = EInk.Caption,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
-            letterSpacing = 2.sp
-        )
+        if (subtitle.isNotBlank()) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                color = EInk.Caption,
+                fontSize = 13.sp
+            )
+        }
     }
 }
 
@@ -70,22 +65,27 @@ internal fun StackSetupCard(onSetUp: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp)
-            .border(1.dp, EInk.BodyStroke, CardShape)
-            .padding(14.dp),
+            .padding(top = 8.dp)
+            .background(EInk.Body, EInk.BodyShape)
+            .border(0.5.dp, EInk.BodyStroke, EInk.BodyShape)
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
-            SectionLabel(tr("Your stack"))
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = tr("Your stack"),
+                color = EInk.Value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 text = tr("See what your bitcoin is worth here and on the widget."),
-                color = EInk.Label,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.padding(top = 4.dp)
+                color = EInk.Caption,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
-        EInkChip(text = tr("SET UP"), selected = true, onClick = onSetUp)
+        EInkChip(text = tr("Set up"), selected = true, onClick = onSetUp)
     }
 }
 
@@ -96,25 +96,29 @@ internal fun CategoryHeader(title: String, count: Int, collapsed: Boolean, onCli
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp)
-            .clip(EInk.ChipShape)
+            .padding(top = 10.dp)
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClickLabel = if (collapsed) tr("Expand") else tr("Collapse"), onClick = onClick)
             .semantics { stateDescription = if (collapsed) "Collapsed" else "Expanded" }
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(horizontal = 6.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SectionLabel(title)
         Text(
-            text = "  $count",
+            text = title,
+            color = EInk.Value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = " · $count",
             color = EInk.Caption,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace
+            fontSize = 14.sp
         )
         Spacer(modifier = Modifier.weight(1f))
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = null,
-            tint = EInk.Label,
+            tint = EInk.Caption,
             modifier = Modifier.rotate(rotation)
         )
     }

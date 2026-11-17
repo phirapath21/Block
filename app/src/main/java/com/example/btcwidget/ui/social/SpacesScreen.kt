@@ -68,7 +68,10 @@ import com.example.btcwidget.ui.main.EInkChip
 fun SpacesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
     Column(Modifier.fillMaxSize().background(EInk.Background)) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             listOf("COMMUNITIES", "CHANNELS", "GROUPS", "● LIVE").forEachIndexed { i, t -> EInkChip(text = t, selected = tab == i, onClick = { tab = i }) }
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -208,7 +211,7 @@ fun CommunityScreen(vm: SocialViewModel, coordinate: String, navigate: (NavKey) 
                         if (account != null) Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                             OutlinedTextField(
                                 value = text, onValueChange = { text = it }, placeholder = { Text(tr("Post to {0}", c.name)) }, maxLines = 4,
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = EInk.Value, unfocusedBorderColor = EInk.BodyStroke, focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Value),
+                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke, focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent),
                                 modifier = Modifier.weight(1f)
                             )
                             Spacer(Modifier.width(8.dp))

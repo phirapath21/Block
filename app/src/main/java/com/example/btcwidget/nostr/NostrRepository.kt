@@ -33,6 +33,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.ConcurrentHashMap
 
 /** Likes, reposts, replies and zaps on a note, and whether the user did each. */
+@androidx.compose.runtime.Immutable
 data class NoteStats(
     val replies: Int = 0,
     val reposts: Int = 0,
@@ -45,8 +46,9 @@ data class NoteStats(
 )
 
 /** One row of a timeline: a note, or a repost of one. */
+@androidx.compose.runtime.Immutable
 data class FeedItem(val note: Event, val repostedBy: String? = null, val sortTime: Long = note.createdAt) {
-    val key get() = (repostedBy ?: "") + note.id
+    val key: String = (repostedBy ?: "") + note.id
 }
 
 /** A notification about the user's notes or account. */
@@ -228,7 +230,11 @@ class NostrRepository private constructor(private val context: Context) {
                 readRelays[e.pubkey] = com.example.btcwidget.nostr.core.Outbox.readRelays(e)
             }
             pubkey?.let { me -> applyAccountEvents(cache.loadEvents(ACCOUNT_CACHE).filter { it.pubkey == me }, fromRelays = false) }
-            events.prune(keep = 50_000, me = pubkey)
+            events.prune(keep = 50_000, myPubkeys = ownedPubkeys(), protectedIds = _bookmarks.value.toSet())
+            val retentionDays = com.example.btcwidget.AppPrefs.eventRetentionDays(context)
+            if (retentionDays > 0) {
+                events.pruneBefore(System.currentTimeMillis() / 1000 - retentionDays * 86_400L, ownedPubkeys(), _bookmarks.value.toSet())
+            }
         }
     }
 
@@ -575,6 +581,13 @@ class NostrRepository private constructor(private val context: Context) {
             .mapNotNull { (_, versions) -> com.example.btcwidget.nostr.core.Article.of(versions.maxBy { it.createdAt }) }
             .sortedByDescending { it.publishedAt }
 
+    /** Publishes a long-form article (NIP-23 kind 30023) and stores it locally. */
+    suspend fun publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent): com.example.btcwidget.nostr.core.Article? {
+        val signed = publish(unsigned)
+        store(signed)
+        return com.example.btcwidget.nostr.core.Article.of(signed)
+    }
+
     /**
      * Recent notes from everyone, for discovering people: from all our relays, or only from
      * [relay] (which needn't be one of ours).
@@ -896,6 +909,57 @@ class NostrRepository private constructor(private val context: Context) {
             .sortedByDescending { it.publishedAt }
         loadProfiles(list.map { it.pubkey })
         return list
+    }
+
+    // ---- Marketplace (NIP-99 listings, NIP-15 products read-only) ----
+
+    /**
+     * Listings for sale, newest first: by [sellers] when given, else from everyone on your relays
+     * and the indexers. Muted and untrusted sellers are left out; what's already stored on the
+     * phone shows too, so the store fills in before the relays answer.
+     */
+    suspend fun listings(sellers: List<String>? = null, until: Long? = null): List<com.example.btcwidget.nostr.core.Listing> {
+        val kinds = com.example.btcwidget.nostr.core.Marketplace.KINDS
+        val local = withContext(Dispatchers.IO) {
+            runCatching { events.query(listOf(Filter(authors = sellers, kinds = kinds, until = until, limit = 300))) }.getOrDefault(emptyList())
+        }
+        val remote = runCatching {
+            if (sellers != null) authoredEvents(sellers) { Filter(authors = it, kinds = kinds, until = until, limit = 200) }
+            else queryEverywhere(listOf(Filter(kinds = kinds, until = until, limit = 200)), timeoutMs = 6_000)
+        }.getOrDefault(emptyList())
+        remote.forEach { remember(it) }
+        val list = com.example.btcwidget.nostr.core.Marketplace.latest(local + remote)
+            .filter { !hidden(it.event) && (sellers != null || trusted(it.pubkey)) }
+            .sortedByDescending { it.publishedAt }
+        loadProfiles(list.map { it.pubkey }.distinct())
+        return list
+    }
+
+    /** The newest version of the listing at [address] ("kind:pubkey:d"). */
+    suspend fun listing(address: String): com.example.btcwidget.nostr.core.Listing? {
+        val parts = address.split(':', limit = 3)
+        val kind = parts.getOrNull(0)?.toIntOrNull() ?: return null
+        val pubkey = parts.getOrNull(1) ?: return null
+        val d = parts.getOrNull(2).orEmpty()
+        val filter = { authors: List<String> -> Filter(authors = authors, kinds = listOf(kind), tags = mapOf("d" to listOf(d)), limit = 5) }
+        val local = withContext(Dispatchers.IO) { runCatching { events.query(listOf(filter(listOf(pubkey)))) }.getOrDefault(emptyList()) }
+        val remote = runCatching { authoredEvents(listOf(pubkey)) { filter(it) } }.getOrDefault(emptyList())
+        remote.forEach { remember(it) }
+        val latest = (local + remote).filter { it.pubkey == pubkey && it.kind == kind && it.firstTag("d")?.get(1).orEmpty() == d }
+            .maxByOrNull { it.createdAt } ?: return null
+        loadProfiles(listOf(pubkey))
+        return com.example.btcwidget.nostr.core.Marketplace.parse(latest)
+    }
+
+    /** Signs and publishes a NIP-99 listing (new or edited, by its d tag). */
+    suspend fun publishListing(unsigned: UnsignedEvent): com.example.btcwidget.nostr.core.Listing? =
+        com.example.btcwidget.nostr.core.Marketplace.parse(publish(unsigned))
+
+    /** Asks relays to delete the listing (NIP-09 by address and id). */
+    suspend fun deleteListing(listing: com.example.btcwidget.nostr.core.Listing) {
+        val me = pubkey ?: throw IllegalStateException("Log in to Nostr first")
+        publish(UnsignedEvent(me, System.currentTimeMillis() / 1000, Kind.DELETION,
+            listOf(listOf("e", listing.event.id), listOf("a", listing.address), listOf("k", listing.kind.toString())), ""))
     }
 
     // ---- Nostr Wallet Connect (NIP-47) ----
@@ -1261,6 +1325,28 @@ class NostrRepository private constructor(private val context: Context) {
     /** The user's media servers, or empty when they use the default. */
     fun mediaServerUrls(): List<String> = mediaServers
 
+    fun storageStats(): StorageStats {
+        val dbStats = events.stats()
+        fun bytes(file: java.io.File): Long = if (file.isFile) file.length() else file.listFiles()?.sumOf(::bytes) ?: 0L
+        val mediaBytes = listOf("image_cache", "video_cache").sumOf { bytes(java.io.File(context.cacheDir, it)) }
+        return dbStats.copy(mediaCacheBytes = mediaBytes)
+    }
+
+    fun eventRetentionDays(): Int = com.example.btcwidget.AppPrefs.eventRetentionDays(context)
+
+    fun setEventRetentionDays(days: Int) {
+        com.example.btcwidget.AppPrefs.setEventRetentionDays(context, days)
+        if (days > 0) pruneOldEvents(days)
+    }
+
+    fun pruneOldEvents(days: Int) {
+        if (days <= 0) return
+        events.pruneBefore(System.currentTimeMillis() / 1000 - days * 86_400L, ownedPubkeys(), _bookmarks.value.toSet())
+    }
+
+    private fun ownedPubkeys(): Set<String> =
+        (NostrAccountStore.savedAccounts(context).map { it.pubkey } + listOfNotNull(pubkey)).toSet()
+
     /** Publishes the media server list; empty goes back to the default server. */
     suspend fun setMediaServers(urls: List<String>) {
         val me = requireMe()
@@ -1309,7 +1395,7 @@ class NostrRepository private constructor(private val context: Context) {
         publish(com.example.btcwidget.nostr.core.Poll.create(requireMe(), question, options, multipleChoice, endsAt, pool.urls.take(4).toList()))
 
     /**
-     * Uploads [image] to the user's Blossom servers (or the default), trying up to three.
+     * Uploads [image] to the user's Blossom servers in order, with the public default as fallback.
      * Signing the upload permission goes through the user's signer.
      */
     suspend fun uploadImage(image: PreparedImage): com.example.btcwidget.nostr.core.Blossom.Blob {
@@ -1331,7 +1417,7 @@ class NostrRepository private constructor(private val context: Context) {
     }
 
     /**
-     * Uploads a file to the user's Blossom servers (or the default), trying up to three.
+     * Uploads a file to the user's Blossom servers in order, with the public default as fallback.
      * Signing the upload permission goes through the user's signer.
      */
     private suspend fun uploadBlob(sha: String, size: Long, body: () -> okhttp3.RequestBody): com.example.btcwidget.nostr.core.Blossom.Blob {
@@ -1339,7 +1425,7 @@ class NostrRepository private constructor(private val context: Context) {
         val blossom = com.example.btcwidget.nostr.core.Blossom
         val auth = requireSigner().sign(blossom.uploadAuth(me, sha, size))
         val header = blossom.authHeader(auth)
-        val servers = mediaServers.ifEmpty { listOf(blossom.DEFAULT_SERVER) }.take(3)
+        val servers = (mediaServers + blossom.DEFAULT_SERVER).distinct()
         var failure: Exception? = null
         for (server in servers) {
             try {

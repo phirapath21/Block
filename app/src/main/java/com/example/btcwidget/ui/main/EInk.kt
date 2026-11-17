@@ -60,9 +60,10 @@ object EInk {
     val Caption get() = Color(ui.caption)
     val Track get() = Color(ui.track)
     val Alert get() = Color(ui.alert)
+    val Accent get() = Color(0xFFF7931A)
 
-    /** Face for screen titles (the app's own look, whatever the widget theme). */
-    val TitleFont: FontFamily get() = FontFamily.Monospace
+    /** Face for screen titles (unified X-style sans-serif across the app). */
+    val TitleFont: FontFamily get() = FontFamily.Default
 
     val BodyShape = RoundedCornerShape(16.dp)
     val ChipShape = RoundedCornerShape(50)
@@ -101,7 +102,7 @@ fun EInkDevice(
     }
 }
 
-/** Black device body used as a section container. */
+/** Dark card container in the app's unified X-style theme. */
 @Composable
 fun EInkPanel(
     title: String,
@@ -112,6 +113,7 @@ fun EInkPanel(
         modifier = modifier
             .fillMaxWidth()
             .background(EInk.Body, EInk.BodyShape)
+            .border(0.5.dp, EInk.BodyStroke, EInk.BodyShape)
             .padding(16.dp)
     ) {
         SectionLabel(title)
@@ -123,17 +125,15 @@ fun EInkPanel(
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(Locale.US),
+        text = text,
         color = EInk.Caption,
-        fontSize = 10.sp,
-        fontFamily = FontFamily.Monospace,
+        fontSize = 13.sp,
         fontWeight = FontWeight.Bold,
-        letterSpacing = 2.sp,
         modifier = modifier
     )
 }
 
-/** Selectable chip: white outline and type when selected, dim otherwise. */
+/** Selectable pill chip in X style: orange fill when selected, subtle dark pill otherwise. */
 @Composable
 fun EInkChip(
     text: String,
@@ -143,18 +143,20 @@ fun EInkChip(
 ) {
     Box(
         modifier = modifier
-            .border(1.dp, if (selected) EInk.Value else EInk.BodyStroke, EInk.ChipShape)
             .clip(EInk.ChipShape)
+            .background(if (selected) EInk.Accent else EInk.Body, EInk.ChipShape)
+            .then(if (!selected) Modifier.border(1.dp, EInk.BodyStroke, EInk.ChipShape) else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = if (selected) EInk.Value else EInk.Caption,
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold
+            color = if (selected) Color.Black else EInk.Value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -172,14 +174,14 @@ fun EInkSwitch(
         enabled = enabled,
         modifier = modifier,
         colors = SwitchDefaults.colors(
-            checkedThumbColor = EInk.Body,
-            checkedTrackColor = EInk.Value,
-            checkedBorderColor = EInk.Value,
+            checkedThumbColor = Color.White,
+            checkedTrackColor = EInk.Accent,
+            checkedBorderColor = EInk.Accent,
             uncheckedThumbColor = EInk.Caption,
-            uncheckedTrackColor = EInk.Body,
+            uncheckedTrackColor = EInk.Background,
             uncheckedBorderColor = EInk.BodyStroke,
             disabledUncheckedThumbColor = EInk.BodyStroke,
-            disabledUncheckedTrackColor = EInk.Body,
+            disabledUncheckedTrackColor = EInk.Background,
             disabledUncheckedBorderColor = EInk.BodyStroke
         )
     )

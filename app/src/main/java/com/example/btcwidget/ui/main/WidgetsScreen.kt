@@ -93,7 +93,7 @@ fun WidgetsScreen(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        fullWidth("header") { HeaderSection(title = tr("WIDGETS"), subtitle = tr("On your home screen")) }
+        fullWidth("header") { HeaderSection(title = tr("Widgets"), subtitle = tr("On your home screen")) }
 
         fullWidth("how_to") {
             EInkPanel(title = tr("Add a widget")) {
@@ -116,14 +116,13 @@ fun WidgetsScreen(
                     Text(
                         text = tr("Switch metrics on or off. Hold and drag to set the order taps cycle through."),
                         color = EInk.Caption,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
                 if (!BlockclockMetrics.isDefaultOrder(workingOrder)) {
                     EInkChip(
-                        text = "RESET",
+                        text = tr("Reset"),
                         selected = false,
                         onClick = {
                             workingOrder = BlockclockMetrics.DEFAULT_ORDER
@@ -142,9 +141,8 @@ fun WidgetsScreen(
             fullWidth("no_data") {
                 Text(
                     text = tr("Metrics appear after the first refresh."),
-                    color = EInk.Label,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
+                    color = EInk.Caption,
+                    fontSize = 14.sp,
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp)
                 )
             }
@@ -237,14 +235,12 @@ private fun WidgetToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = if (on) tr("ON WIDGET") else tr("OFF WIDGET"),
-            color = if (on) EInk.Label else EInk.Caption,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
-            letterSpacing = 0.5.sp,
+            text = if (on) tr("On widget") else tr("Off widget"),
+            color = if (on) EInk.Value else EInk.Caption,
+            fontSize = 12.sp,
             modifier = Modifier.weight(1f)
         )
-        EInkSwitch(checked = on, onCheckedChange = null, modifier = Modifier.scale(0.7f))
+        EInkSwitch(checked = on, onCheckedChange = null, modifier = Modifier.scale(0.75f))
     }
 }
 
@@ -252,17 +248,17 @@ private fun WidgetToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
 private fun Step(number: Int, text: String) {
     Row(modifier = Modifier.padding(vertical = 4.dp)) {
         Text(
-            text = "$number",
-            color = EInk.Value,
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.width(20.dp)
+            text = "$number.",
+            color = EInk.Accent,
+            fontSize = 14.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            modifier = Modifier.width(22.dp)
         )
         Text(
-            text = text,
-            color = EInk.Label,
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace
+            text = tr(text),
+            color = EInk.Value,
+            fontSize = 14.sp,
+            lineHeight = 20.sp
         )
     }
 }

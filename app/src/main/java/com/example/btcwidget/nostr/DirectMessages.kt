@@ -47,13 +47,35 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
     private val _inbox = MutableStateFlow<List<String>?>(null)
     val inbox: StateFlow<List<String>?> = _inbox.asStateFlow()
 
+    /** Message IDs that have been unsent via a NIP-17 kind-5 rumor by their original author. */
+    private val _unsentIds = MutableStateFlow<Set<String>>(emptySet())
+    val unsentIds: StateFlow<Set<String>> = _unsentIds.asStateFlow()
+
     private val byId = ConcurrentHashMap<String, Nip17.Message>()
     private val wraps = ConcurrentHashMap<String, Event>()
     private val lockedWraps = ConcurrentHashMap<String, Event>()
+    private val localUnsent = ConcurrentHashMap.newKeySet<String>()
+    private val deletedForMe = ConcurrentHashMap.newKeySet<String>()
     private val mutex = Mutex()
     private var inboxPool: RelayPool? = null
     private var stopLive: (() -> Unit)? = null
     private var started = false
+
+    private fun loadLocalModeration(me: String) {
+        val prefs = repo.appContext.getSharedPreferences(MOD_PREFS, android.content.Context.MODE_PRIVATE)
+        deletedForMe.clear()
+        deletedForMe.addAll(prefs.getStringSet("del_$me", emptySet()).orEmpty())
+        localUnsent.clear()
+        localUnsent.addAll(prefs.getStringSet("unsent_$me", emptySet()).orEmpty())
+    }
+
+    private fun saveLocalModeration(me: String) {
+        val prefs = repo.appContext.getSharedPreferences(MOD_PREFS, android.content.Context.MODE_PRIVATE)
+        prefs.edit()
+            .putStringSet("del_$me", deletedForMe.toSet())
+            .putStringSet("unsent_$me", localUnsent.toSet())
+            .apply()
+    }
 
     /** Loads cached and new messages and keeps listening while the app runs. */
     suspend fun start() = mutex.withLock {
@@ -61,6 +83,7 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
         if (started) return@withLock
         started = true
         _loading.value = true
+        loadLocalModeration(me)
         try {
             // Stored wraps (still encrypted), plus the file earlier versions wrote.
             val legacyFile = repo.cache.loadEvents(WRAP_CACHE)
@@ -94,7 +117,7 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
                     Filter(kinds = listOf(Nip17.GIFT_WRAP), tags = mapOf("p" to listOf(me)), since = now - 2 * 24 * 3600 - 60),
                     Filter(kinds = listOf(Nip17.LEGACY_DM), tags = mapOf("p" to listOf(me)), since = now - 60)
                 ),
-                { wrap, _ -> repo.scope.launch { open(listOf(wrap)) } }
+                { wrap, _ -> repo.scope.launch { open(listOf(wrap), notifyLive = true) } }
             )
         } finally {
             _loading.value = false
@@ -102,7 +125,7 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
     }
 
     /** Decrypts new wraps and publishes the result. */
-    private suspend fun open(newWraps: List<Event>) {
+    private suspend fun open(newWraps: List<Event>, notifyLive: Boolean = false) {
         val signer = runCatching { repo.requireSigner() }.getOrNull() ?: return
         val fresh = newWraps.filter { wraps.putIfAbsent(it.id, it) == null }
         if (fresh.isEmpty()) return
@@ -128,6 +151,12 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
         publishState()
         repo.loadProfiles(opened.flatMap { it.recipients + it.sender })
         fresh.forEach { repo.store(it) }
+        if (notifyLive) opened.filter { it.sender != repo.pubkey && it.isBubble }.forEach { message ->
+            repo.scope.launch {
+                kotlinx.coroutines.delay(500)
+                NostrBackground.notifyLiveMessage(repo.appContext, message)
+            }
+        }
     }
 
     private class Locked : Exception()
@@ -148,11 +177,53 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
 
     private fun publishState() {
         val me = repo.pubkey ?: return
-        val all = byId.values.sortedBy { it.createdAt }
+        val remoteUnsent = byId.values
+            .filter { it.kind == Nip17.DELETE }
+            .flatMap { del ->
+                val eIds = del.tags.filter { it.size >= 2 && it[0] == "e" }.map { it[1] }
+                eIds.filter { targetId -> byId[targetId]?.sender == del.sender }
+            }
+            .toSet()
+        _unsentIds.value = localUnsent + remoteUnsent
+
+        val all = byId.values
+            .filter { it.id !in deletedForMe }
+            .sortedBy { it.createdAt }
         _messages.value = all
         _conversations.value = all.filter { it.isBubble }.groupBy { it.peers(me) }
             .map { (peers, msgs) -> Conversation(peers, msgs.last()) }
             .sortedByDescending { it.last.createdAt }
+    }
+
+    /** Hides [messageId] locally on this device ("Delete for me"). */
+    fun deleteForMe(messageId: String) {
+        val me = repo.pubkey ?: return
+        deletedForMe.add(messageId)
+        saveLocalModeration(me)
+        publishState()
+    }
+
+    /**
+     * Unsends [target] for everyone in [peers] by wrapping and delivering a NIP-17 kind-5
+     * deletion rumor, and immediately marking it unsent locally.
+     */
+    suspend fun unsend(peers: List<String>, target: Nip17.Message) {
+        val me = repo.pubkey ?: error("Log in to Nostr first")
+        require(target.sender == me) { "You can only unsend your own messages" }
+        localUnsent.add(target.id)
+        saveLocalModeration(me)
+        publishState()
+        deliver(
+            peers,
+            Nip17.rumor(
+                sender = me,
+                recipients = peers,
+                content = "",
+                replyTo = target.id,
+                kind = Nip17.DELETE,
+                extraTags = listOf(listOf("k", target.kind.toString()))
+            )
+        )
     }
 
     /** Messages with exactly these [peers], oldest first. */
@@ -181,22 +252,53 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
      * Sends a photo: encrypted on the phone with a new key, uploaded, and the key sent only
      * inside the encrypted message (kind 15).
      */
-    suspend fun sendImage(peers: List<String>, image: PreparedImage) {
-        val me = repo.pubkey ?: error("Log in to Nostr first")
-        val sealed = com.example.btcwidget.nostr.core.DmFile.encrypt(image.bytes)
-        val blob = repo.uploadEncrypted(sealed.bytes)
-        val tags = com.example.btcwidget.nostr.core.DmFile.tags(
-            image.mime, sealed, blob.sha256, com.example.btcwidget.nostr.core.Blossom.sha256Hex(image.bytes), image.width, image.height
+    suspend fun sendImage(peers: List<String>, image: PreparedImage, replyTo: String? = null) {
+        sendFile(
+            peers = peers,
+            bytes = image.bytes,
+            mime = image.mime,
+            fileName = null,
+            width = image.width,
+            height = image.height,
+            replyTo = replyTo
         )
-        deliver(peers, Nip17.rumor(me, peers, blob.url, kind = Nip17.FILE, extraTags = tags))
     }
 
-    /** Downloads and decrypts a photo sent in a message. */
+    /**
+     * Sends any file (photo, video, audio, or document): encrypted on the phone with a fresh
+     * AES-GCM key, uploaded as ciphertext, and delivered as a NIP-17 kind-15 rumor.
+     */
+    suspend fun sendFile(
+        peers: List<String>,
+        bytes: ByteArray,
+        mime: String,
+        fileName: String? = null,
+        width: Int = 0,
+        height: Int = 0,
+        replyTo: String? = null
+    ) {
+        val me = repo.pubkey ?: error("Log in to Nostr first")
+        if (bytes.size > MAX_FILE) error("Files in encrypted chats can be up to 25 MB")
+        val sealed = com.example.btcwidget.nostr.core.DmFile.encrypt(bytes)
+        val blob = repo.uploadEncrypted(sealed.bytes)
+        val tags = com.example.btcwidget.nostr.core.DmFile.tags(
+            mime = mime,
+            sealed = sealed,
+            encryptedSha256 = blob.sha256,
+            originalSha256 = com.example.btcwidget.nostr.core.Blossom.sha256Hex(bytes),
+            width = width,
+            height = height,
+            fileName = fileName
+        )
+        deliver(peers, Nip17.rumor(me, peers, blob.url, replyTo = replyTo, kind = Nip17.FILE, extraTags = tags))
+    }
+
+    /** Downloads and decrypts a file sent in a message. */
     suspend fun openFile(info: com.example.btcwidget.nostr.core.DmFile.Info): ByteArray =
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val request = okhttp3.Request.Builder().url(info.url).build()
             val bytes = RelayPool.uploadClient.newCall(request).execute().use { r ->
-                if (!r.isSuccessful) error("Couldn't download the photo (HTTP ${r.code})")
+                if (!r.isSuccessful) error("Couldn't download the file (HTTP ${r.code})")
                 val len = r.body.contentLength()
                 if (len > MAX_FILE) error("The file is too large")
                 r.body.bytes().also { if (it.size > MAX_FILE) error("The file is too large") }
@@ -250,13 +352,14 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
         inboxPool?.closeAll()
         inboxPool = null
         started = false
-        byId.clear(); wraps.clear(); lockedWraps.clear()
-        _messages.value = emptyList(); _conversations.value = emptyList(); _locked.value = 0; _inbox.value = null
+        byId.clear(); wraps.clear(); lockedWraps.clear(); localUnsent.clear(); deletedForMe.clear()
+        _messages.value = emptyList(); _conversations.value = emptyList(); _locked.value = 0; _inbox.value = null; _unsentIds.value = emptySet()
     }
 
     companion object {
         private const val WRAP_CACHE = "dm_wraps"
-        private const val MAX_FILE = 25L * 1024 * 1024
+        private const val MOD_PREFS = "dm_moderation_prefs"
+        const val MAX_FILE = 25L * 1024 * 1024
 
         /** Inbox relays suggested when setting up DMs. */
         val DEFAULT_INBOX = listOf("wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net")

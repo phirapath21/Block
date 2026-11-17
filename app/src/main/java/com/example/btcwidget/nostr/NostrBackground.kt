@@ -40,6 +40,27 @@ object NostrBackground {
     fun wanted(context: Context): Boolean =
         NostrAccountStore.account(context) != null && NostrAccountStore.pushEnabled(context)
 
+    /** Posts a live relay event while the app is foregrounded; no push server is involved. */
+    fun notifyLiveActivity(context: Context, event: Event) {
+        if (!wanted(context) || !AlertNotifier.canNotify(context)) return
+        val me = NostrAccountStore.account(context)?.pubkey ?: return
+        if (event.pubkey == me || typeOf(event) in NostrAccountStore.notificationsOff(context)) return
+        val line = describe(event, cachedNames(context)) ?: return
+        post(context, CHANNEL_SOCIAL, ID_SOCIAL, "Block", line, listOf(line), "NOTIFICATIONS", private = false)
+    }
+
+    /** Announces a newly decrypted NIP-17 DM, except when that conversation is already read. */
+    fun notifyLiveMessage(context: Context, message: Nip17.Message) {
+        if (!wanted(context) || !AlertNotifier.canNotify(context) || "dm" in NostrAccountStore.notificationsOff(context)) return
+        val me = NostrAccountStore.account(context)?.pubkey ?: return
+        if (message.sender == me || !message.isBubble) return
+        val peers = message.peers(me)
+        val key = peers.joinToString(",")
+        if (message.createdAt <= (NostrAccountStore.dmRead(context)[key] ?: 0L)) return
+        val id = ID_DM_BASE + Math.floorMod(key.hashCode(), 1000)
+        post(context, CHANNEL_DM, id, "New message", preview(message).take(200), listOf(preview(message).take(100)), "MESSAGES", private = true)
+    }
+
     suspend fun check(context: Context) {
         if (!wanted(context) || !AlertNotifier.canNotify(context)) return
         val me = NostrAccountStore.account(context)?.pubkey ?: return

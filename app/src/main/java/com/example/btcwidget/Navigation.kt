@@ -6,6 +6,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -65,7 +66,7 @@ fun MainNavigation() {
         entry<NoteKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { ThreadScreen(social, key.id, navigate, back) } }
         entry<ProfileKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { ProfileScreen(social, key.pubkey, navigate, back) } }
         entry<HashtagKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { HashtagScreen(social, key.tag, navigate, back) } }
-        entry<ComposeKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { ComposeScreen(social, key.replyTo, key.quote, back) } }
+        entry<ComposeKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { ComposeScreen(social, key.replyTo, key.quote, back, key.initialText, key.initialImageUri) } }
         entry<LoginKey> { com.example.btcwidget.ui.social.ReadableColumn { LoginScreen(social, onBack = back, onDone = back, onOpenRules = { navigate(RulesKey) }, onCreated = { back(); navigate(OnboardingKey) }) } }
         // Leaving the welcome flow: drop the welcome page and the login screen under it.
         val leaveLanding: () -> Unit = {
@@ -106,6 +107,9 @@ fun MainNavigation() {
         entry<PackKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.FollowPackScreen(social, key.address, navigate, back) } }
         entry<ShortsKey> { key -> com.example.btcwidget.ui.social.ShortsScreen(social, key.everyone, navigate, back) }
         entry<LiveKey> { key -> com.example.btcwidget.ui.social.LiveScreen(social, key.address, navigate, back) }
+        entry<ListingKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { MarketplaceListingEntry(social, key.address, navigate, back) } }
+        entry<ShopKey> { key -> MarketplaceShopEntry(social, key.pubkey, navigate, back) }
+        entry<EditListingKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.EditListingScreen(social, key.address, navigate, back) } }
         entry<RelaysKey> { com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.RelaysScreen(social, back) } }
         entry<SearchKey> { com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.SearchScreen(social, navigate, back) } }
       },
@@ -124,6 +128,7 @@ fun MainNavigation() {
   reopened.value?.let { v -> com.example.btcwidget.ui.social.ReopenedVideo(social, v, navigate, onDismiss = { reopened.value = null }) }
   // While a repost, reply or post is being sent: what it's waiting for, over every screen.
   com.example.btcwidget.ui.social.PublishStatusBar(social, androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopCenter))
+  com.example.btcwidget.ui.social.AppLockGate(activity as? androidx.fragment.app.FragmentActivity)
   }
   }
 }
@@ -142,5 +147,27 @@ private fun SettingsEntry(social: SocialViewModel, page: String, navigate: (andr
     social, com.example.btcwidget.ui.social.SettingsPage.of(page), navigate, back,
     appVersion = main.appVersion,
     bitcoin = { com.example.btcwidget.ui.main.BitcoinSettingsRoute(main) }
+  )
+}
+
+@Composable
+private fun MarketplaceListingEntry(social: SocialViewModel, address: String, navigate: (androidx.navigation3.runtime.NavKey) -> Unit, back: () -> Unit) {
+  val main: com.example.btcwidget.ui.main.MainScreenViewModel = viewModel()
+  val state = main.uiState.collectAsState().value
+  val settings = main.settings.collectAsState().value
+  com.example.btcwidget.ui.social.ListingDetailScreen(
+    social, address, data = (state as? com.example.btcwidget.ui.main.MainScreenUiState.Success)?.data,
+    currency = settings.currency, navigate = navigate, onBack = back
+  )
+}
+
+@Composable
+private fun MarketplaceShopEntry(social: SocialViewModel, pubkey: String, navigate: (androidx.navigation3.runtime.NavKey) -> Unit, back: () -> Unit) {
+  val main: com.example.btcwidget.ui.main.MainScreenViewModel = viewModel()
+  val state = main.uiState.collectAsState().value
+  val settings = main.settings.collectAsState().value
+  com.example.btcwidget.ui.social.ShopScreen(
+    social, pubkey, data = (state as? com.example.btcwidget.ui.main.MainScreenUiState.Success)?.data,
+    currency = settings.currency, navigate = navigate, onBack = back
   )
 }

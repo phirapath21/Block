@@ -2,7 +2,7 @@
 
 *Bitcoin at a glance, and the people who talk about it.*
 
-[![Android CI](https://github.com/phirapath21/btcwidget/actions/workflows/android.yml/badge.svg)](https://github.com/phirapath21/btcwidget/actions/workflows/android.yml)
+[![Android CI](https://github.com/phirapath21/Block/actions/workflows/android.yml/badge.svg)](https://github.com/phirapath21/Block/actions/workflows/android.yml)
 ![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.3-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
@@ -37,7 +37,7 @@ Four resizable home-screen widgets (2×1 by default):
 | Widget | What it shows |
 |---|---|
 | **Bitcoin metrics** | One metric at a time; tap to cycle through the ones you switched on. |
-| **Price chart** | BTC price, 24h change and a 24H / 7D sparkline; tap to switch range. |
+| **Price chart** | BTC price, 24h change and a 24H / 7D / 30D / 1Y sparkline; tap to switch range. |
 | **Halving countdown** | A block-filled progress bar with percent done, blocks or days left. |
 | **Quotes** | Cypherpunk and Bitcoin quotes (Satoshi Nakamoto, Hal Finney, Eric Hughes…); tap for the next. |
 
@@ -61,12 +61,13 @@ Four resizable home-screen widgets (2×1 by default):
 
 ## Dashboard and alerts
 
-The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees) and a BTC price chart (24H / 7D; drag to read any hour). Pull down to refresh.
+The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees) and a BTC price chart (24H / 7D / 30D / 1Y; drag to read a sample). Pull down to refresh.
 
 - **Share:** sends the hero panel as an image plus a one-line post (`Bitcoin: $74,455 (+1.2% in 24h) · block 925,000 #bitcoin`) through Android's share sheet. Your stack is never offered for sharing.
-- **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change.
+- **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change. Tap the Stack hero panel to hide or reveal holdings and Stack/DCA details.
 - **Price alerts:** BTC above or below a price, and fees at or below a sat/vB level. Network events too: the day before a halving, and before each difficulty adjustment with the estimated change. Each alert fires once per crossing and is never triggered by stale data.
 - **Data sources:** BTC price from Coinbase or Kraken; THB converted or from Bitkub.
+- **Mempool:** use a custom mempool.space-compatible HTTPS URL in Bitcoin settings, or leave it blank for mempool.space.
 
 ## Nostr social
 
@@ -105,7 +106,7 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
 - **Picture-in-Picture:** a full-screen video keeps playing in a small window when you leave the app.
 
 **Writing:**
-- Notes with up to 4 photos or a video, uploaded to Blossom servers with EXIF/GPS stripped from photos.
+- Notes with up to 4 photos or a video, uploaded to Blossom servers with automatic failover to blossom.primal.net and EXIF/GPS stripped from photos.
 - `@` mentions and hashtag autocomplete.
 - Drafts and scheduled posts.
 - Quotes, reposts and emoji reactions.
@@ -147,6 +148,7 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
 
 **Speed:**
 - Events are kept in a local SQLite database, so the app opens instantly.
+- **Storage and cache:** choose 30- or 90-day event retention (your posts and bookmarks stay), inspect database/cache sizes, and clear image/video caches.
 - Queries return once the first relay answers instead of waiting for the slowest.
 - Names, avatars and counts fill in after the notes appear.
 
@@ -164,16 +166,18 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
 - A phone or emulator on Android 7.0 (API 24) or newer.
 
 ```bash
-git clone https://github.com/phirapath21/btcwidget.git
+git clone https://github.com/phirapath21/Block.git
 ```
 ```bash
-cd btcwidget
+cd Block
 ```
 ```bash
 ./gradlew installDebug
 ```
 
 On Windows use `gradlew.bat` instead of `./gradlew`. Or open the folder in Android Studio and press Run; Gradle downloads every library on the first sync.
+
+**Build variants:** Block uses one application variant, with no distribution product flavors. QR scanning runs in the app using CameraX and ZXing core; it does not use Google Code Scanner or Google Play services.
 
 **Adding a widget:** long-press the home screen, tap **Widgets**, find **Block**, and drag one out.
 
@@ -236,7 +240,7 @@ app/src/main/java/com/example/btcwidget/
 - **Background and network:** WorkManager, OkHttp and Kotlin coroutines.
 - **Signatures:** ACINQ secp256k1.
 - **Media:** Coil 3 for images and GIFs; Media3 ExoPlayer for video, including HLS (controls drawn in Compose).
-- **QR codes:** ZXing to draw them, and the Google code scanner to scan them.
+- **QR codes:** ZXing core draws and decodes QR codes. CameraX provides the in-app camera preview and frame analysis; scanning runs locally without Google Code Scanner or Google Play services.
 
 **Data sources:**
 - **Market:** Coinbase, Kraken, Bitkub, Yahoo Finance (MSTR).

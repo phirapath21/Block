@@ -3,6 +3,7 @@ package com.example.btcwidget.nostr
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.EventSql
 import com.example.btcwidget.nostr.core.Filter
@@ -14,6 +15,7 @@ import com.example.btcwidget.nostr.core.Filter
  * or still-encrypted messages. Deleted on logout. SQL lives in [EventSql] (tested on the JVM).
  */
 class EventStore(context: Context) : SQLiteOpenHelper(context.applicationContext, NAME, null, EventSql.VERSION) {
+    private val appContext = context.applicationContext
 
     override fun onCreate(db: SQLiteDatabase) {
         EventSql.SCHEMA.forEach { db.execSQL(it) }
@@ -107,9 +109,51 @@ class EventStore(context: Context) : SQLiteOpenHelper(context.applicationContext
         runCatching { EventSql.prune(keep, me).forEach { exec(db, it.sql, it.args) } }
     }
 
+    fun prune(keep: Int, myPubkeys: Set<String>, protectedIds: Set<String>) {
+        val db = runCatching { writableDatabase }.getOrNull() ?: return
+        runCatching { EventSql.prune(keep, myPubkeys, protectedIds).forEach { exec(db, it.sql, it.args) } }
+    }
+
     fun clear() {
         val db = runCatching { writableDatabase }.getOrNull() ?: return
         runCatching { db.execSQL("DELETE FROM events"); db.execSQL("DELETE FROM tags") }
+    }
+
+    /** Removes events older than [cutoff] while retaining the active user's posts and bookmarks. */
+    fun pruneBefore(cutoff: Long, myPubkeys: Set<String>, protectedIds: Set<String>) {
+        val db = runCatching { writableDatabase }.getOrNull() ?: return
+        runCatching {
+            val authorsClause = if (myPubkeys.isEmpty()) "" else " AND pubkey NOT IN (${myPubkeys.joinToString(",") { "?" }})"
+            val ids = db.rawQuery(
+                "SELECT id FROM events WHERE created_at < ?$authorsClause",
+                (listOf(cutoff.toString()) + myPubkeys).toTypedArray()
+                ).use { c -> buildList { while (c.moveToNext()) c.getString(0)?.let { if (it !in protectedIds) add(it) } } }
+            db.beginTransaction()
+            try {
+                db.compileStatement(EventSql.DELETE_EVENT).use { eventDelete ->
+                    db.compileStatement(EventSql.DELETE_TAGS).use { tagDelete ->
+                        ids.forEach { id ->
+                            tagDelete.clearBindings(); tagDelete.bindString(1, id); tagDelete.execute()
+                            eventDelete.clearBindings(); eventDelete.bindString(1, id); eventDelete.execute()
+                        }
+                    }
+                }
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+            if (ids.isNotEmpty()) {
+                db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { }
+                db.execSQL("VACUUM")
+            }
+        }
+    }
+
+    fun stats(): StorageStats {
+        val count = runCatching {
+            readableDatabase.rawQuery("SELECT COUNT(*) FROM events", null).use { if (it.moveToFirst()) it.getLong(0) else 0L }
+        }.getOrDefault(0L)
+        val dbFile = appContext.getDatabasePath(NAME)
+        val dbBytes = listOf(dbFile, File(dbFile.path + "-wal"), File(dbFile.path + "-shm")).sumOf { it.length() }
+        return StorageStats(count, dbBytes)
     }
 
     private fun exists(db: SQLiteDatabase, st: EventSql.Statement): Boolean =
@@ -136,3 +180,5 @@ class EventStore(context: Context) : SQLiteOpenHelper(context.applicationContext
         const val NAME = "nostr_events.db"
     }
 }
+
+data class StorageStats(val eventCount: Long, val databaseBytes: Long, val mediaCacheBytes: Long = 0)

@@ -159,7 +159,7 @@ fun ReplyBar(
                         .padding(end = 4.dp)
                         .clip(RoundedCornerShape(50))
                         // Block's accent where X uses its blue.
-                        .background(if (canSend) Color(0xFFF7931A) else hint.copy(alpha = 0.25f))
+                        .background(if (canSend) EInk.Accent else hint.copy(alpha = 0.25f))
                         .clickable(enabled = canSend, onClickLabel = tr("Send reply")) {
                             sending = true
                             sendHaptics.confirm()

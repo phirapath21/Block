@@ -114,11 +114,10 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
                                 Text(p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 p?.about?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                             }
-                            if (pk != account?.pubkey) Text(
-                                if (on) tr("Following") else tr("Follow"), color = if (on) EInk.Value else androidx.compose.ui.graphics.Color.Black,
-                                fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clip(RoundedCornerShape(50)).background(if (on) EInk.Track else EInk.Value)
-                                    .clickable { actions.follow(pk, !on) }.padding(horizontal = 14.dp, vertical = 6.dp)
+                            if (pk != account?.pubkey) PillButton(
+                                text = if (on) tr("Following") else tr("Follow"),
+                                filled = !on,
+                                onClick = { actions.follow(pk, !on) }
                             )
                         }
                         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)

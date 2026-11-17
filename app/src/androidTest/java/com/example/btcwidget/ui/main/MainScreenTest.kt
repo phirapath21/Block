@@ -75,10 +75,12 @@ class MainScreenTest {
     @Test
     fun bottomBar_hasFiveTabsAndTheMenuIsTopLeft() {
         setContent()
-        listOf("Home", "Shorts", "Bitcoin", "Notifications", "Messages", "Open menu", "Search").forEach {
+        listOf("Home", "Search", "Bitcoin", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
-        // Profile and Settings are in the side panel.
+        // Profile, Shorts, Store and Settings are in the side panel.
+        composeTestRule.onNodeWithContentDescription("Shorts").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Store").assertDoesNotExist()
         composeTestRule.onNodeWithContentDescription("Settings").assertDoesNotExist()
     }
 
@@ -99,7 +101,7 @@ class MainScreenTest {
             }
         }
         composeTestRule.onNodeWithTag("side_rail").assertExists()
-        listOf("Home", "Shorts", "Bitcoin", "Notifications", "Messages", "Open menu", "Search").forEach {
+        listOf("Home", "Search", "Bitcoin", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
     }
@@ -177,9 +179,9 @@ class MainScreenTest {
         // The switched-off SATS panel is still shown, with its switch off.
         scrollWidgetsTo(hasContentDescription(sats))
         composeTestRule.onNodeWithContentDescription(sats).assertExists()
-        scrollWidgetsTo(hasText("OFF WIDGET"))
-        composeTestRule.onNodeWithText("OFF WIDGET").assertExists().performClick()
-        composeTestRule.onNodeWithText("OFF WIDGET").assertDoesNotExist()
+        scrollWidgetsTo(hasText("Off widget"))
+        composeTestRule.onNodeWithText("Off widget").assertExists().performClick()
+        composeTestRule.onNodeWithText("Off widget").assertDoesNotExist()
     }
 
     @Test
@@ -187,7 +189,7 @@ class MainScreenTest {
         setContent()
         openFromSideBar("Widgets")
         // STACK needs holdings, so 13 of the 14 modes are available.
-        composeTestRule.onNodeWithText("13 OF 13", substring = true).assertExists()
+        composeTestRule.onNodeWithText("13 of 13", substring = true).assertExists()
     }
 
     @Test
@@ -214,8 +216,8 @@ class MainScreenTest {
         }
         scrollWidgetsTo(hasContentDescription(sats))
         composeTestRule.onNodeWithContentDescription(sats).assertExists()
-        scrollWidgetsTo(hasText("MARKET"))
-        composeTestRule.onNodeWithText("MARKET").performClick()
+        scrollWidgetsTo(hasText("Market"))
+        composeTestRule.onNodeWithText("Market").performClick()
         composeTestRule.onNodeWithContentDescription(sats).assertDoesNotExist()
     }
 

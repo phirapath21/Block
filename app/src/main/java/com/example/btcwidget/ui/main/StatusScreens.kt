@@ -28,13 +28,13 @@ fun LoadingScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator(
-            color = EInk.Value,
+            color = EInk.Accent,
             trackColor = EInk.Track,
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(32.dp)
+            strokeWidth = 2.5.dp,
+            modifier = Modifier.size(30.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionLabel(tr("Syncing blocks…"))
+        Spacer(modifier = Modifier.height(14.dp))
+        Text(tr("Syncing blocks…"), color = EInk.Caption, fontSize = 14.sp)
     }
 }
 
@@ -48,16 +48,15 @@ fun ErrorScreen(error: Throwable, onRefresh: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         SectionLabel(tr("No signal"))
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = error.message ?: tr("An unexpected error occurred"),
             color = EInk.Value,
-            fontSize = 13.sp,
-            fontFamily = FontFamily.Monospace,
+            fontSize = 14.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        EInkChip(text = "RETRY", selected = true, onClick = onRefresh)
+        Spacer(modifier = Modifier.height(20.dp))
+        EInkChip(text = tr("Retry"), selected = true, onClick = onRefresh)
     }
 }

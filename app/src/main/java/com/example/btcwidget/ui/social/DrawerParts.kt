@@ -101,7 +101,7 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
                         DisplayName(profiles[pk], pk, EInk.Value, 16.sp)
                         Text(handleText(profiles[pk], pk), color = EInk.Caption, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (current) Text("✓", color = androidx.compose.ui.graphics.Color(0xFFF7931A), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    if (current) Text("✓", color = EInk.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
             androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 6.dp))

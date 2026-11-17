@@ -8,9 +8,21 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
+import coil3.disk.DiskCache
+import java.io.File
+import okio.Path.Companion.toOkioPath
 
 /** Installs the crash log before anything else runs, and sets up image loading. */
 class BlockApp : Application(), SingletonImageLoader.Factory {
+    companion object {
+        fun clearImageCache(context: Context): Boolean = runCatching {
+            val loader = SingletonImageLoader.get(context.applicationContext)
+            loader.memoryCache?.clear()
+            loader.diskCache?.clear()
+            true
+        }.getOrDefault(false)
+    }
+
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
         CrashLog.install(this)
@@ -52,6 +64,12 @@ class BlockApp : Application(), SingletonImageLoader.Factory {
     /** Coil with animated GIF/WebP support (the network fetcher is added automatically). */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(File(context.cacheDir, "image_cache").toOkioPath())
+                    .maxSizeBytes(100L * 1024 * 1024)
+                    .build()
+            }
             .components {
                 if (Build.VERSION.SDK_INT >= 28) add(AnimatedImageDecoder.Factory()) else add(GifDecoder.Factory())
             }

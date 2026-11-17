@@ -96,6 +96,13 @@ internal object VideoCache {
             .setCache(get(context))
             .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context.applicationContext))
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+    fun clear(context: Context): Boolean = synchronized(this) {
+        runCatching { cache?.release() }.onFailure { return@synchronized false }
+        cache = null
+        val dir = File(context.applicationContext.cacheDir, "video_cache")
+        runCatching { dir.deleteRecursively(); dir.mkdirs() }.getOrDefault(false)
+    }
 }
 
 /**
@@ -367,7 +374,7 @@ internal fun VideoControls(player: ExoPlayer, url: String, landscape: Boolean, o
     }
 }
 
-internal val VideoAccent = Color(0xFFF7931A)
+internal val VideoAccent get() = EInk.Accent
 
 /** "1:05" or "1:02:05". */
 internal fun clockLabel(ms: Long): String {

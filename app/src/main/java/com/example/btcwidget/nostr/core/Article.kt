@@ -11,6 +11,7 @@ data class Article(
 ) {
     val pubkey get() = event.pubkey
     val content get() = event.content
+    val address get() = "${Kind.ARTICLE}:$pubkey:$identifier"
 
     /** Link to this article (njump.me opens it in any browser or Nostr app). */
     fun naddr(relays: List<String> = emptyList()) = Nip19.naddr(Kind.ARTICLE, pubkey, identifier, relays)
@@ -28,6 +29,41 @@ data class Article(
                 image = tag("image")?.takeIf { it.startsWith("https://") },
                 publishedAt = tag("published_at")?.toLongOrNull() ?: event.createdAt
             )
+        }
+
+        /** Builds an unsigned NIP-23 long-form article (kind 30023). */
+        fun create(
+            pubkey: String,
+            title: String,
+            content: String,
+            summary: String? = null,
+            image: String? = null,
+            tags: List<String> = emptyList(),
+            identifier: String? = null,
+            now: Long = Events.now()
+        ): UnsignedEvent {
+            val d = identifier?.takeIf { it.isNotBlank() } ?: slugOf(title)
+            val eventTags = buildList {
+                add(listOf("d", d))
+                add(listOf("title", title.trim()))
+                add(listOf("published_at", now.toString()))
+                summary?.trim()?.takeIf { it.isNotEmpty() }?.let { add(listOf("summary", it)) }
+                image?.trim()?.takeIf { it.startsWith("https://") }?.let { add(listOf("image", it)) }
+                tags.map { it.trim().removePrefix("#").lowercase() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .forEach { add(listOf("t", it)) }
+            }
+            return UnsignedEvent(pubkey, now, Kind.ARTICLE, eventTags, content.trim())
+        }
+
+        private fun slugOf(title: String): String {
+            val base = title.lowercase()
+                .replace(Regex("[^a-z0-9\\u0E00-\\u0E7F]+"), "-")
+                .trim('-')
+                .take(40)
+                .ifEmpty { "article" }
+            return "$base-${(System.currentTimeMillis() / 1000) % 100_000}"
         }
 
         private fun firstHeading(md: String) =

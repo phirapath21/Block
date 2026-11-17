@@ -15,7 +15,12 @@ import kotlinx.serialization.Serializable
 @Serializable data class HashtagKey(val tag: String) : NavKey
 
 /** Writing a note; at most one of [replyTo] / [quote] (note ids). */
-@Serializable data class ComposeKey(val replyTo: String? = null, val quote: String? = null) : NavKey
+@Serializable data class ComposeKey(
+    val replyTo: String? = null,
+    val quote: String? = null,
+    val initialText: String? = null,
+    val initialImageUri: String? = null
+) : NavKey
 
 /** Logging in or creating a Nostr account. */
 @Serializable data object LoginKey : NavKey
@@ -79,3 +84,13 @@ import kotlinx.serialization.Serializable
 
 /** A follow pack (kind 39089), by its address "39089:<pubkey>:<d>". */
 @Serializable data class PackKey(val address: String) : NavKey
+
+/** A marketplace listing (NIP-99 kind 30402 or NIP-15 kind 30018), by its address "kind:pubkey:d". */
+@Serializable data class ListingKey(val address: String) : NavKey
+
+/** Someone's shop: every listing by [pubkey]. */
+@Serializable data class ShopKey(val pubkey: String) : NavKey
+
+/** Creating a new listing (`address == null`) or editing an existing one. */
+@Serializable data class EditListingKey(val address: String? = null) : NavKey
+

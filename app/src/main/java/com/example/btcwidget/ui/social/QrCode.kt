@@ -108,20 +108,18 @@ private fun SmallPill(label: String, onClick: () -> Unit) {
 fun rememberQrScan(vm: SocialViewModel, navigate: (NavKey) -> Unit, onOpened: () -> Unit = {}): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    return {
-        QrScanner.scan(context) { raw ->
-            val text = raw?.trim()?.removePrefix("nostr:")?.removePrefix("NOSTR:") ?: return@scan
-            scope.launch {
-                val key: NavKey? = when (val target = vm.resolve(text)) {
-                    is NostrRepository.Direct.ProfileTarget -> ProfileKey(target.pubkey)
-                    is NostrRepository.Direct.NoteTarget -> NoteKey(target.id)
-                    is NostrRepository.Direct.HashtagTarget -> HashtagKey(target.tag)
-                    is NostrRepository.Direct.ArticleTarget -> target.address.let { ArticleKey(Nip19.naddr(it.kind, it.pubkey, it.identifier, it.relays)) }
-                    null -> null
-                }
-                if (key == null) Toast.makeText(context, tr("That QR code isn't a Nostr profile or post"), Toast.LENGTH_SHORT).show()
-                else { onOpened(); navigate(key) }
+    return QrScanner.rememberScanner { raw ->
+        val text = raw?.trim()?.removePrefix("nostr:")?.removePrefix("NOSTR:") ?: return@rememberScanner
+        scope.launch {
+            val key: NavKey? = when (val target = vm.resolve(text)) {
+                is NostrRepository.Direct.ProfileTarget -> ProfileKey(target.pubkey)
+                is NostrRepository.Direct.NoteTarget -> NoteKey(target.id)
+                is NostrRepository.Direct.HashtagTarget -> HashtagKey(target.tag)
+                is NostrRepository.Direct.ArticleTarget -> target.address.let { ArticleKey(Nip19.naddr(it.kind, it.pubkey, it.identifier, it.relays)) }
+                null -> null
             }
+            if (key == null) Toast.makeText(context, tr("That QR code isn't a Nostr profile or post"), Toast.LENGTH_SHORT).show()
+            else { onOpened(); navigate(key) }
         }
     }
 }

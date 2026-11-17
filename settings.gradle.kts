@@ -4,7 +4,13 @@ pluginManagement {
             content {
                 includeGroupByRegex("androidx.*")
                 includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.google\\.android.*")
+                includeGroupByRegex("com\\.google\\.firebase.*")
+                includeGroupByRegex("com\\.google\\.mlkit.*")
+                includeGroupByRegex("com\\.google\\.gms.*")
+                includeGroupByRegex("com\\.google\\.play.*")
+                includeGroupByRegex("com\\.google\\.ai.*")
+                includeGroupByRegex("com\\.google\\.ar.*")
             }
         }
         mavenCentral()
@@ -18,7 +24,13 @@ dependencyResolutionManagement {
             content {
                 includeGroupByRegex("androidx.*")
                 includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.google\\.android.*")
+                includeGroupByRegex("com\\.google\\.firebase.*")
+                includeGroupByRegex("com\\.google\\.mlkit.*")
+                includeGroupByRegex("com\\.google\\.gms.*")
+                includeGroupByRegex("com\\.google\\.play.*")
+                includeGroupByRegex("com\\.google\\.ai.*")
+                includeGroupByRegex("com\\.google\\.ar.*")
             }
         }
         mavenCentral()

@@ -36,7 +36,7 @@ object CommunityRules {
     val TOOLS = listOf(
         "Mute" to "Hides an account everywhere in Block. Use ⋯ on a post, or Unmute on their profile to undo.",
         "Report" to "Use ⋯ › Report on a post. The report is published to your relays (NIP-56) so relays and other apps can act on it.",
-        "Contact" to "For anything urgent or illegal, open an issue at github.com/phirapath21/btcwidget, or contact the relay that hosts the post."
+        "Contact" to "For anything urgent or illegal, open an issue at github.com/phirapath21/Block, or contact the relay that hosts the post."
     )
 
     const val OUTRO = "Posts on Nostr are public and permanent: relays may keep copies even after you delete. " +

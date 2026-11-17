@@ -70,9 +70,10 @@ import com.example.btcwidget.nostr.core.Imeta
 import com.example.btcwidget.nostr.core.Profile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.example.btcwidget.ui.main.EInk
 import kotlin.math.roundToInt
 
-private val Accent = Color(0xFFF7931A)
+private val Accent get() = EInk.Accent
 
 /**
  * Video posts one at a time, full screen, like Reels or Shorts: swipe up for the next, down

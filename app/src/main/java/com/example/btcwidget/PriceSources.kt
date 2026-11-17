@@ -32,7 +32,7 @@ data class DayStats(val open: Double, val last: Double) {
 data class BitkubTicker(val last: Double, val percentChange: Double)
 
 /** One point of price history: epoch seconds and closing price. */
-data class PricePoint(val time: Long, val price: Double)
+data class PricePoint(val time: Long, val price: Double, val resolutionSeconds: Long = 3600L)
 
 /** Response parsers for the price APIs. Pure functions, unit tested with sample JSON. */
 object ApiParsers {
@@ -75,14 +75,28 @@ object ApiParsers {
      * Coinbase Exchange `/products/BTC-USD/candles`: arrays of
      * [time, low, high, open, close, volume], newest first. Returned oldest first.
      */
-    fun coinbaseCandles(json: String): List<PricePoint> {
+    fun coinbaseCandles(json: String, resolutionSeconds: Long = 3600L): List<PricePoint> {
         val arr = JSONArray(json)
         return (0 until arr.length())
             .map { i ->
                 val c = arr.getJSONArray(i)
-                PricePoint(time = c.getLong(0), price = c.getDouble(4))
+                PricePoint(time = c.getLong(0), price = c.getDouble(4), resolutionSeconds = resolutionSeconds)
             }
             .sortedBy { it.time }
+    }
+
+    /** Kraken OHLC rows: [time, open, high, low, close, vwap, volume, count]. */
+    fun krakenDailyCandles(json: String): List<PricePoint> {
+        val root = JSONObject(json)
+        val errors = root.optJSONArray("error")
+        if (errors != null && errors.length() > 0) error("Kraken: ${errors.getString(0)}")
+        val result = root.getJSONObject("result")
+        val key = result.keys().asSequence().firstOrNull { it != "last" } ?: error("Kraken returned no candles")
+        val candles = result.getJSONArray(key)
+        return (0 until candles.length()).map { i ->
+            val row = candles.getJSONArray(i)
+            PricePoint(row.getLong(0), row.getString(4).toDouble(), 86_400L)
+        }.sortedBy { it.time }
     }
 }
 

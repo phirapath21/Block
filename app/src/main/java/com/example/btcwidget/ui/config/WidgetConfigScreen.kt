@@ -49,7 +49,7 @@ fun WidgetConfigScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        HeaderSection(title = "CHOOSE A DISPLAY", subtitle = "Tap the widget later to cycle modes")
+        HeaderSection(title = "Choose a display", subtitle = "Tap the widget later to cycle modes")
 
         choices.forEach { choice ->
             val selected = choice.mode == selectedMode
@@ -58,7 +58,7 @@ fun WidgetConfigScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(shape)
-                    .border(2.dp, if (selected) EInk.Value else Color.Transparent, shape)
+                    .border(2.dp, if (selected) EInk.Accent else Color.Transparent, shape)
                     .clickable { onPick(choice.mode) }
                     .padding(4.dp)
             ) {
@@ -74,10 +74,11 @@ fun WidgetConfigScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(EInk.Body, RoundedCornerShape(14.dp))
+                            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
                             .padding(horizontal = 16.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(choice.name, color = EInk.Value, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+                        Text(choice.name, color = EInk.Value, fontSize = 15.sp)
                     }
                 }
             }

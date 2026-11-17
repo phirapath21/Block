@@ -86,9 +86,9 @@ fun SecureScreen() {
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = EInk.Value, unfocusedBorderColor = EInk.BodyStroke,
-    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Value,
-    focusedLabelColor = EInk.Label, unfocusedLabelColor = EInk.Caption
+    focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke,
+    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent,
+    focusedLabelColor = EInk.Accent, unfocusedLabelColor = EInk.Caption
 )
 
 /** Log in with a signer app (recommended), an nsec, or create a new account. */
@@ -266,20 +266,34 @@ private fun copySecret(context: Context, secret: String) {
 
 /** Writing a note, reply or quote. */
 @Composable
-fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack: () -> Unit) {
+fun ComposeScreen(
+    vm: SocialViewModel,
+    replyTo: String?,
+    quote: String?,
+    onBack: () -> Unit,
+    initialText: String? = null,
+    initialImageUri: String? = null
+) {
     val profiles by vm.profiles.collectAsState()
     val account by vm.account.collectAsState()
     val target by produceState<Event?>(null, replyTo, quote) { value = (replyTo ?: quote)?.let { vm.note(it) } }
     val context = androidx.compose.ui.platform.LocalContext.current
-    val draftKey = remember(replyTo, quote, account?.pubkey) { com.example.btcwidget.nostr.Drafts.key(account?.pubkey, replyTo, quote) }
+    val draftKey = remember(replyTo, quote, account?.pubkey, initialImageUri) {
+        com.example.btcwidget.nostr.Drafts.key(account?.pubkey, replyTo, quote) + (initialImageUri?.let { "/bitcoin:${it.hashCode()}" } ?: "")
+    }
     // Picks up where you left off; every change is saved, and posting removes the draft.
-    var text by remember { mutableStateOf(com.example.btcwidget.nostr.Drafts.get(context, draftKey).orEmpty()) }
+    var text by remember(replyTo, quote, account?.pubkey, initialText, initialImageUri) {
+        mutableStateOf(initialText ?: com.example.btcwidget.nostr.Drafts.get(context, draftKey).orEmpty())
+    }
     LaunchedEffect(text) { com.example.btcwidget.nostr.Drafts.put(context, draftKey, text) }
     var sending by remember { mutableStateOf(false) }
     val sendHaptics = rememberHaptics()
     var images by remember { mutableStateOf<List<SocialViewModel.Attachment>>(emptyList()) }
     var uploading by remember { mutableStateOf(0) }
     var sensitive by remember { mutableStateOf(false) }
+    val latestPrice = remember(context) { com.example.btcwidget.PriceRepository.getFromPrefs(context) }
+    var attachBlockStamp by remember { mutableStateOf(false) }
+    val blockStamp = remember(latestPrice) { BlockStamp.fromPriceData(latestPrice) }
     // A poll (NIP-88) instead of a note: only for new posts.
     var poll by remember { mutableStateOf(false) }
     var pollOptions by remember { mutableStateOf(listOf("", "")) }
@@ -316,6 +330,15 @@ fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack:
             // Photos are re-encoded (location removed); videos upload as they are.
             if (context.contentResolver.getType(uri)?.startsWith("video/") == true) vm.uploadVideo(uri, done)
             else vm.uploadImage(uri, done)
+        }
+    }
+    LaunchedEffect(initialImageUri, account?.pubkey) {
+        val uri = initialImageUri?.let { android.net.Uri.parse(it) } ?: return@LaunchedEffect
+        if (account == null) return@LaunchedEffect
+        uploading++
+        vm.uploadImage(uri) { attachment ->
+            uploading--
+            if (attachment != null) images = images + attachment
         }
     }
 
@@ -359,8 +382,9 @@ fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack:
         val body = mentions.entries.fold(text.trim()) { acc, (handle, pk) ->
             acc.replace(Regex("@" + Regex.escape(handle) + "(?![\\p{L}\\p{M}\\p{N}_])"), "nostr:" + com.example.btcwidget.nostr.core.Nip19.npub(pk))
         }
+        val extraTags = if (attachBlockStamp && blockStamp != null) listOf(blockStamp.toTag()) else emptyList()
         scheduleAt?.let { at ->
-            if (vm.schedule(body, images, if (sensitive) "Sensitive content" else null, at)) {
+            if (vm.schedule(body, images, if (sensitive) "Sensitive content" else null, at, extraTags)) {
                 com.example.btcwidget.nostr.Drafts.remove(context, draftKey); onBack()
             } else sending = false
             return
@@ -371,7 +395,7 @@ fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack:
             }
             return
         }
-        vm.send(body, replyTo?.let { target }, quote?.let { target }, images, if (sensitive) "Sensitive content" else null) { ok ->
+        vm.send(body, replyTo?.let { target }, quote?.let { target }, images, if (sensitive) "Sensitive content" else null, extraTags) { ok ->
             // Success closes the screen; a failure re-enables the button.
             if (ok) { com.example.btcwidget.nostr.Drafts.remove(context, draftKey); onBack() } else sending = false
         }
@@ -497,11 +521,18 @@ fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack:
         }
 
         // What this post will do, each with ✕ to undo it.
-        val chips = scheduleAt != null || sensitive || images.any { it.isVideo }
+        val chips = scheduleAt != null || sensitive || images.any { it.isVideo } || (attachBlockStamp && blockStamp != null)
         if (chips) Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            if (attachBlockStamp && blockStamp != null) {
+                ComposeStatusChip(
+                    Glyphs.BlockCube,
+                    blockStamp.composerChipLabel(),
+                    onClear = { attachBlockStamp = false }
+                )
+            }
             scheduleAt?.let { at ->
                 ComposeStatusChip(
                     Glyphs.Calendar,
@@ -520,6 +551,7 @@ fun ComposeScreen(vm: SocialViewModel, replyTo: String?, quote: String?, onBack:
             }
             if (newPost) ComposeToolButton(Glyphs.Poll, if (poll) tr("Remove poll") else tr("Add poll"), enabled = images.isEmpty() && uploading == 0, on = poll) { poll = !poll }
             if (newPost) ComposeToolButton(Glyphs.Calendar, tr("Schedule"), enabled = !poll, on = scheduleAt != null) { schedulePicker = true }
+            if (blockStamp != null) ComposeToolButton(Glyphs.BlockCube, tr("Proof of Blockheight"), on = attachBlockStamp) { attachBlockStamp = !attachBlockStamp }
             ComposeToolButton(Glyphs.Warning, if (sensitive) tr("Unmark sensitive") else tr("Mark as sensitive"), on = sensitive) { sensitive = !sensitive }
             Spacer(Modifier.weight(1f))
             if (text.isNotEmpty()) Text("${text.length}", color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(end = 10.dp))

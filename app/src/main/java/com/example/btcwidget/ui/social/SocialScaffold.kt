@@ -40,6 +40,7 @@ import com.example.btcwidget.NoteKey
 import com.example.btcwidget.ProfileKey
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.Nip19
+import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInkChip
 import androidx.navigation3.runtime.NavKey
 
@@ -54,80 +55,94 @@ fun SocialScaffold(
     content: @Composable (NoteActions) -> Unit
 ) {
     val context = LocalContext.current
-    val profiles by vm.profiles.collectAsState()
+    val profilesState = vm.profiles.collectAsState()
     val account by vm.account.collectAsState()
     var zapTarget by remember { mutableStateOf<Event?>(null) }
     var reportTarget by remember { mutableStateOf<Event?>(null) }
     var deleteTarget by remember { mutableStateOf<Event?>(null) }
+    var shareStudioTarget by remember { mutableStateOf<Event?>(null) }
     var viewImage by rememberKeptState<Pair<String, Event>?> { null }
     var viewVideo by rememberKeptState<Pair<String, Event>?> { null }
     var viewWeb by rememberKeptState<Pair<String, Event?>?> { null }
-    val linksInApp by vm.linksInApp.collectAsState()
+    val linksInAppState = vm.linksInApp.collectAsState()
     val autoplay by vm.videoAutoplay.collectAsState()
-    val bookmarks by vm.bookmarks.collectAsState()
-    val pins by vm.pinned.collectAsState()
-    val following by vm.following.collectAsState()
-    val stats by vm.stats.collectAsState()
+    val bookmarksState = vm.bookmarks.collectAsState()
+    val pinsState = vm.pinned.collectAsState()
+    val followingState = vm.following.collectAsState()
     val nwcWallet by vm.nwc.collectAsState()
     val customEmojis by vm.emojis.collectAsState()
+    val navigateState = androidx.compose.runtime.rememberUpdatedState(navigate)
+    val accountState = androidx.compose.runtime.rememberUpdatedState(account)
 
     LaunchedEffect(vm) {
         vm.messages.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
     // Actions that change something need an account: send logged-out users to log in.
-    fun signedIn(block: () -> Unit) = if (account == null) navigate(LoginKey) else block()
+    fun signedIn(block: () -> Unit) = if (accountState.value == null) navigateState.value(LoginKey) else block()
 
     // A light tap of vibration for likes, reposts and bookmarks, as on X.
     val haptics = rememberHaptics()
-    val actions = NoteActions(
-        openNote = { navigate(NoteKey(it.id)) },
-        openProfile = { navigate(ProfileKey(it)) },
-        openHashtag = { navigate(HashtagKey(it)) },
-        reply = { n -> signedIn { navigate(ComposeKey(replyTo = n.id)) } },
-        repost = { n -> signedIn { haptics.tick(); vm.repost(n) } },
-        quote = { n -> signedIn { navigate(ComposeKey(quote = n.id)) } },
-        like = { n -> signedIn { haptics.tick(); vm.like(n) } },
-        zap = { n -> signedIn { zapTarget = n } },
-        mute = { p -> signedIn { vm.mute(p, true) } },
-        report = { n -> signedIn { reportTarget = n } },
-        delete = { n -> deleteTarget = n },
-        share = { n -> shareNote(context, n) },
-        bookmark = { n -> signedIn { haptics.tick(); vm.toggleBookmark(n) } },
-        isBookmarked = { it in bookmarks },
-        pin = { n -> signedIn { vm.togglePin(n) } },
-        isPinned = { it in pins },
-        openImage = { url, note -> viewImage = url to note },
-        openVideo = { url, note -> viewVideo = url to note },
-        openLink = { url, note ->
-            if (linksInApp && (url.startsWith("https://") || url.startsWith("http://"))) viewWeb = url to note
-            else openExternally(context, url)
-        },
-        autoplayVideos = autoplay.allowedNow(context),
-        openVideoUrl = viewVideo?.first ?: PipVideo.miniVideo?.url,
-        follow = { pk, on -> signedIn { vm.follow(pk, on) } },
-        isFollowing = { it in following },
-        openEngagement = { n, tab -> navigate(com.example.btcwidget.EngagementKey(n.id, tab)) },
-        profileOf = { profiles[it] },
-        resolveNote = { vm.note(it) },
-        react = { n, content, url -> signedIn { vm.react(n, content, url) } },
-        muteThread = { n -> signedIn { vm.muteThread(n) } },
-        customEmojis = customEmojis,
-        pollTally = { vm.pollTally(it) },
-        vote = { poll, ids, done -> if (account == null) { navigate(LoginKey); done(false) } else vm.vote(poll, ids, done) },
-        resolveArticle = { vm.article(it) },
-        openArticle = { a ->
-            // Addresses of live streams open the stream; anything else as an article.
-            if (a.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND) navigate(com.example.btcwidget.LiveKey("${a.kind}:${a.pubkey}:${a.identifier}"))
-            else navigate(com.example.btcwidget.ArticleKey(Nip19.naddr(a.kind, a.pubkey, a.identifier, a.relays)))
-        },
-        linkPreview = { vm.linkPreview(it) },
-        me = account?.pubkey
-    )
+    val autoplayNow = autoplay.allowedNow(context)
+    val openVideoUrlNow = viewVideo?.first ?: PipVideo.miniVideo?.url
+    val mePubkey = account?.pubkey
+    val actions = remember(vm, context, haptics, autoplayNow, openVideoUrlNow, customEmojis, mePubkey) {
+        NoteActions(
+            openNote = { navigateState.value(NoteKey(it.id)) },
+            openProfile = { navigateState.value(ProfileKey(it)) },
+            openHashtag = { navigateState.value(HashtagKey(it)) },
+            reply = { n -> signedIn { navigateState.value(ComposeKey(replyTo = n.id)) } },
+            repost = { n -> signedIn { haptics.tick(); vm.repost(n) } },
+            quote = { n -> signedIn { navigateState.value(ComposeKey(quote = n.id)) } },
+            like = { n -> signedIn { haptics.tick(); vm.like(n) } },
+            zap = { n -> signedIn { zapTarget = n } },
+            mute = { p -> signedIn { vm.mute(p, true) } },
+            report = { n -> signedIn { reportTarget = n } },
+            delete = { n -> deleteTarget = n },
+            share = { n -> shareStudioTarget = n },
+            bookmark = { n -> signedIn { haptics.tick(); vm.toggleBookmark(n) } },
+            isBookmarked = { it in bookmarksState.value },
+            pin = { n -> signedIn { vm.togglePin(n) } },
+            isPinned = { it in pinsState.value },
+            openImage = { url, note -> viewImage = url to note },
+            openVideo = { url, note -> viewVideo = url to note },
+            openLink = { url, note ->
+                if (linksInAppState.value && (url.startsWith("https://") || url.startsWith("http://"))) viewWeb = url to note
+                else openExternally(context, url)
+            },
+            autoplayVideos = autoplayNow,
+            openVideoUrl = openVideoUrlNow,
+            follow = { pk, on -> signedIn { vm.follow(pk, on) } },
+            isFollowing = { it in followingState.value },
+            openEngagement = { n, tab -> navigateState.value(com.example.btcwidget.EngagementKey(n.id, tab)) },
+            profileOf = { profilesState.value[it] },
+            resolveNote = { vm.note(it) },
+            react = { n, content, url -> signedIn { vm.react(n, content, url) } },
+            muteThread = { n -> signedIn { vm.muteThread(n) } },
+            customEmojis = customEmojis,
+            pollTally = { vm.pollTally(it) },
+            vote = { poll, ids, done -> if (accountState.value == null) { navigateState.value(LoginKey); done(false) } else vm.vote(poll, ids, done) },
+            resolveArticle = { vm.article(it) },
+            openArticle = { a ->
+                // Addresses of live streams open the stream, store listings open the product page, else an article.
+                when {
+                    a.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND ->
+                        navigateState.value(com.example.btcwidget.LiveKey("${a.kind}:${a.pubkey}:${a.identifier}"))
+                    a.kind in com.example.btcwidget.nostr.core.Marketplace.KINDS ->
+                        navigateState.value(com.example.btcwidget.ListingKey("${a.kind}:${a.pubkey}:${a.identifier}"))
+                    else -> navigateState.value(com.example.btcwidget.ArticleKey(Nip19.naddr(a.kind, a.pubkey, a.identifier, a.relays)))
+                }
+            },
+            resolveListing = { vm.listing("${it.kind}:${it.pubkey}:${it.identifier}") },
+            linkPreview = { vm.linkPreview(it) },
+            me = mePubkey
+        )
+    }
 
     content(actions)
 
     viewImage?.let { (url, note) ->
+        val stats by vm.stats.collectAsState()
         ImageViewer(
             url, note, stats[note.id] ?: com.example.btcwidget.nostr.NoteStats(), actions,
             onDismiss = { viewImage = null },
@@ -148,6 +163,7 @@ fun SocialScaffold(
     LaunchedEffect(PipVideo.closedInPip) { if (PipVideo.closedInPip) { viewVideo = null; PipVideo.closedInPip = false } }
     // In Picture-in-Picture the activity draws the video itself (see MainActivity); the viewer hides.
     if (!PipVideo.inPip) viewVideo?.let { (url, note) ->
+        val stats by vm.stats.collectAsState()
         ImageViewer(
             url, note, stats[note.id] ?: com.example.btcwidget.nostr.NoteStats(), actions,
             onDismiss = { viewVideo = null },
@@ -165,13 +181,14 @@ fun SocialScaffold(
     }
 
     viewWeb?.let { (url, note) ->
+        val stats by vm.stats.collectAsState()
         WebViewer(url, note, note?.let { stats[it.id] } ?: com.example.btcwidget.nostr.NoteStats(), actions, onDismiss = { viewWeb = null })
     }
 
     zapTarget?.let { note ->
         ZapDialog(
             inApp = nwcWallet != null,
-            recipientName = profiles[note.pubkey]?.bestName ?: "them",
+            recipientName = profilesState.value[note.pubkey]?.bestName ?: "them",
             onDismiss = { zapTarget = null },
             onZap = { sats, comment ->
                 zapTarget = null
@@ -193,6 +210,25 @@ fun SocialScaffold(
             confirmLabel = tr("Delete"),
             onConfirm = { deleteTarget = null; vm.delete(note) },
             onDismiss = { deleteTarget = null }
+        )
+    }
+    shareStudioTarget?.let { note ->
+        val author = profilesState.value[note.pubkey]
+        val stats by vm.stats.collectAsState()
+        val studioData = remember(note.id, author, stats) {
+            ShareStudioData(
+                authorName = author?.bestName ?: Profile.shortNpub(note.pubkey),
+                authorHandle = author?.nip05 ?: Profile.shortNpub(note.pubkey),
+                contentText = note.content.trim(),
+                timestampSeconds = note.createdAt,
+                shareUrl = "https://njump.me/" + Nip19.nevent(note.id, author = note.pubkey),
+                blockStamp = BlockStamp.fromEventOrInline(note),
+                stats = stats[note.id]
+            )
+        }
+        NostrShareStudioSheet(
+            data = studioData,
+            onDismiss = { shareStudioTarget = null }
         )
     }
 }
@@ -221,19 +257,17 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
                 )
             }
         }
-        OutlinedTextField(
+        SettingsTextField(
             value = amount,
             onValueChange = { v -> amount = v.filter { it.isDigit() }.take(9) },
-            label = { Text(tr("Sats")) },
-            singleLine = true,
+            placeholder = tr("Amount (sats)"),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
         )
-        OutlinedTextField(
+        SettingsTextField(
             value = comment,
             onValueChange = { comment = it.take(140) },
-            label = { Text(tr("Comment (optional)")) },
-            singleLine = true,
+            placeholder = tr("Comment (optional)"),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         )
         Text(
@@ -243,7 +277,7 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
     }
 }
 
-private val ZapOrange = Color(0xFFF7931A)
+private val ZapOrange get() = EInk.Accent
 
 @Composable
 private fun ReportDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {

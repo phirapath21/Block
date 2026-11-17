@@ -49,8 +49,8 @@ import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.delay
 
 private val fieldColors @Composable get() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = EInk.Value, unfocusedBorderColor = EInk.BodyStroke,
-    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Value
+    focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke,
+    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent
 )
 
 /**
@@ -270,11 +270,10 @@ private fun AddPeopleSheet(vm: SocialViewModel, list: PeopleList, onClose: () ->
                 results.forEach { p ->
                     val inList = p.pubkey in current.members
                     PersonRow(p, isFollowing = false, onClick = { vm.setInList(current, p.pubkey, !inList) }) {
-                        Text(
-                            if (inList) tr("Added") else tr("Add"), color = if (inList) EInk.Value else androidx.compose.ui.graphics.Color.Black,
-                            fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clip(RoundedCornerShape(50)).background(if (inList) EInk.Track else EInk.Value)
-                                .clickable { vm.setInList(current, p.pubkey, !inList) }.padding(horizontal = 14.dp, vertical = 6.dp)
+                        PillButton(
+                            text = if (inList) tr("Added") else tr("Add"),
+                            filled = !inList,
+                            onClick = { vm.setInList(current, p.pubkey, !inList) }
                         )
                     }
                 }
@@ -308,7 +307,7 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
                                 Text(peopleCount(list.members.size), color = EInk.Caption, fontSize = 13.sp)
                             }
                             Box(
-                                Modifier.size(24.dp).clip(CircleShape).background(if (inList) androidx.compose.ui.graphics.Color(0xFFF7931A) else EInk.Track),
+                                Modifier.size(24.dp).clip(CircleShape).background(if (inList) EInk.Accent else EInk.Track),
                                 contentAlignment = Alignment.Center
                             ) { if (inList) Text("✓", color = androidx.compose.ui.graphics.Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
                         }
