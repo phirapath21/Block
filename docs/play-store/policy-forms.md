@@ -17,7 +17,6 @@ With Nostr, the app sends what the user posts to Nostr relays (third parties the
   - **App activity › Other actions** is not needed beyond the above.
   - **App activity › In-app search history:** search words are sent to NIP-50 search relays when the user searches. App functionality. Optional. Not stored by the developer.
   - **Files and docs › Files and docs:** files (videos, audio files, documents) the user sends in a private message, encrypted on the device before upload to their media server. App functionality. Optional. The server only gets ciphertext.
-  - **App info and performance › Diagnostics:** Google's ML Kit translation (used only when the user translates a note; runs on the device) may send Google API usage and performance information, never the text. Declare per Google's current ML Kit data disclosure (developers.google.com/ml-kit, "Data disclosure"); it is collected by the SDK, not the developer. QR scanning uses the app's own CameraX + ZXing scanner and sends nothing.
 - **Is data processed ephemerally?** No (relays store public notes).
 - **Is all of the user data collected by your app encrypted in transit?** Yes: relays use wss:// (TLS), APIs use HTTPS. (Users can add a plain ws:// relay themselves; mention this if the form asks.)
 - **Can users request deletion?** The app sends NIP-09 deletion requests for the user's own notes, and logging out deletes the key from the phone. Relays are third parties; the developer can't delete data from them. Answer per the form's options and point to the privacy policy.

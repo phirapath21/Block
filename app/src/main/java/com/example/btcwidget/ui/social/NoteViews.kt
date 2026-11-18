@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,9 +53,6 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Content
 import com.example.btcwidget.nostr.core.Event
@@ -356,11 +352,6 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         }
     }
     val shown = remember(text) { text.text.trim() }
-    val translationTarget = OnDeviceTranslation.targetLanguage()
-    var translatedText by remember(note.id, translationTarget) { mutableStateOf<String?>(null) }
-    var translationError by remember(note.id, translationTarget) { mutableStateOf<String?>(null) }
-    var translating by remember(note.id, translationTarget) { mutableStateOf(false) }
-    val translationScope = rememberCoroutineScope()
     // Long notes are cut in timelines, profiles and quotes, with "Show more" under them.
     val maxLines = when {
         !collapse -> Int.MAX_VALUE
@@ -383,38 +374,6 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             modifier = Modifier.padding(top = 2.dp)
         )
         if (cut && !expanded) ShowMore { if (depth > 0) actions.openNote(note) else expanded = true }
-        if (shown.length >= 20) {
-            Text(
-                text = when {
-                    translating -> tr("Translating on this device…")
-                    translatedText != null -> tr("Hide translation")
-                    else -> tr("Translate to {0}", if (translationTarget == "th") tr("Thai") else tr("English"))
-                },
-                color = SettingsAccent,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 6.dp).clickable(enabled = !translating) {
-                    if (translatedText != null) {
-                        translatedText = null
-                        translationError = null
-                    } else {
-                        translating = true
-                        translationError = null
-                        translationScope.launch {
-                            runCatching { withContext(Dispatchers.IO) { OnDeviceTranslation.translate(shown, translationTarget) } }
-                                .onSuccess { translatedText = it }
-                                .onFailure { translationError = it.message ?: tr("Couldn't translate this note") }
-                            translating = false
-                        }
-                    }
-                }
-            )
-            translatedText?.let {
-                Text(it, color = EInk.Label, fontSize = fontSize.sp, lineHeight = (fontSize * 1.35).sp, modifier = Modifier.padding(top = 4.dp))
-                Text(tr("Translated on this device"), color = EInk.Caption, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
-            }
-            translationError?.let { Text(tr(it), color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
-        }
     }
     if (note.kind == com.example.btcwidget.nostr.core.Kind.POLL) {
         com.example.btcwidget.nostr.core.Poll.of(note)?.let { PollView(it, actions) }
