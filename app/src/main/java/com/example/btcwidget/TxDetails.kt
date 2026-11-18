@@ -150,3 +150,76 @@ object TxLinks {
         return Found(emptyList(), null)
     }
 }
+
+/**
+ * A block, from mempool's `/api/v1/block/<hash>` (with [extras]: miner, fees, reward) or plain
+ * Esplora's `/api/block/<hash>` (without).
+ */
+data class BlockDetails(
+    val hash: String,
+    val height: Int,
+    /** Seconds since the epoch. */
+    val timestamp: Long,
+    val txCount: Int,
+    val sizeBytes: Int,
+    val weight: Int,
+    val difficulty: Double,
+    val extras: Extras?
+) {
+    data class Extras(
+        val pool: String?,
+        val medianFee: Double?,
+        /** Lowest and highest fee rate in the block, sat/vB. */
+        val feeRange: Pair<Double, Double>?,
+        val totalFeesSats: Long?,
+        /** Subsidy plus fees. */
+        val rewardSats: Long?
+    )
+
+    /** How full the block is: weight against the 4,000,000 limit. */
+    val fullness: Float get() = (weight / 4_000_000f).coerceIn(0f, 1f)
+
+    fun confirmations(tipHeight: Int?): Int = if (tipHeight == null) 1 else (tipHeight - height + 1).coerceAtLeast(1)
+
+    companion object {
+        fun parse(json: String): BlockDetails = parse(JSONObject(json))
+
+        fun parse(o: JSONObject): BlockDetails {
+            val x = o.optJSONObject("extras")
+            val range = x?.optJSONArray("feeRange")?.let { a -> (0 until a.length()).map { a.optDouble(it) }.filter { !it.isNaN() } }
+            return BlockDetails(
+                hash = o.optString("id"),
+                height = o.optInt("height"),
+                timestamp = o.optLong("timestamp"),
+                txCount = o.optInt("tx_count"),
+                sizeBytes = o.optInt("size"),
+                weight = o.optInt("weight"),
+                difficulty = o.optDouble("difficulty", 0.0).takeIf { !it.isNaN() } ?: 0.0,
+                extras = x?.let {
+                    Extras(
+                        pool = it.optJSONObject("pool")?.optString("name")?.takeIf { n -> n.isNotBlank() && n != "null" },
+                        medianFee = it.optDouble("medianFee").takeIf { v -> !v.isNaN() },
+                        feeRange = range?.takeIf { r -> r.isNotEmpty() }?.let { r -> r.min() to r.max() },
+                        totalFeesSats = if (it.has("totalFees")) it.optLong("totalFees") else null,
+                        rewardSats = if (it.has("reward")) it.optLong("reward") else null
+                    )
+                }
+            )
+        }
+    }
+}
+
+/** "1.62 MB", "998 kB", "285 B". */
+fun formatBytes(bytes: Int): String = when {
+    bytes >= 1_000_000 -> String.format(Locale.US, "%.2f MB", bytes / 1_000_000.0)
+    bytes >= 1_000 -> String.format(Locale.US, "%,d kB", bytes / 1000)
+    else -> "$bytes B"
+}
+
+/** "126.27 T": difficulty in short scale. */
+fun formatDifficulty(d: Double): String = when {
+    d >= 1e12 -> String.format(Locale.US, "%.2f T", d / 1e12)
+    d >= 1e9 -> String.format(Locale.US, "%.2f G", d / 1e9)
+    d >= 1e6 -> String.format(Locale.US, "%.2f M", d / 1e6)
+    else -> String.format(Locale.US, "%,.0f", d)
+}

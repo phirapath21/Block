@@ -42,6 +42,7 @@ class MainActivity : FragmentActivity() {
     intent?.getStringExtra(com.example.btcwidget.nostr.NostrBackground.EXTRA_OPEN_TAB)?.let { OpenTabRequest.tab.value = it }
     EInk.theme = AppPrefs.theme(this)
     EInk.look = AppPrefs.appLook(this)
+    com.example.btcwidget.ui.social.BitcoinCards.load(this)
     // Again here: the phone's language may have changed since the app started.
     com.example.btcwidget.ui.social.Lang.load(this)
     // PiP: the stream's own PiP button, and the PiP window's play/pause and mute buttons.

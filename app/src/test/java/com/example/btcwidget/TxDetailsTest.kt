@@ -135,4 +135,28 @@ class TxDetailsTest {
         assertNull(both.block)
         assertNull(TxLinks.find("block #12").block)
     }
+
+    @Test
+    fun readsBlocksWithAndWithoutMempoolExtras() {
+        val mempool = BlockDetails.parse(
+            """{"id":"0000abc","height":976400,"timestamp":1795000000,"tx_count":3412,"size":1620000,"weight":3993000,
+                "difficulty":126270000000000.5,"extras":{"totalFees":2345678,"medianFee":2.4,"feeRange":[1.0,1.5,3.2,250.7],
+                "reward":314845678,"pool":{"id":1,"name":"Foundry USA","slug":"foundryusa"}}}"""
+        )
+        assertEquals(976400, mempool.height)
+        assertEquals(3412, mempool.txCount)
+        assertEquals("Foundry USA", mempool.extras!!.pool)
+        assertEquals(2.4, mempool.extras!!.medianFee!!, 0.0)
+        assertEquals(1.0 to 250.7, mempool.extras!!.feeRange)
+        assertEquals(314_845_678L, mempool.extras!!.rewardSats)
+        assertEquals(3993000 / 4_000_000f, mempool.fullness, 1e-6f)
+        assertEquals(6, mempool.confirmations(976405))
+        assertEquals("1.62 MB", formatBytes(mempool.sizeBytes))
+        assertEquals("126.27 T", formatDifficulty(mempool.difficulty))
+
+        val esplora = BlockDetails.parse("""{"id":"0000abc","height":10,"timestamp":1,"tx_count":1,"size":285,"weight":1140,"difficulty":1}""")
+        assertNull(esplora.extras)
+        assertEquals("285 B", formatBytes(285))
+        assertEquals("1", formatDifficulty(1.0))
+    }
 }

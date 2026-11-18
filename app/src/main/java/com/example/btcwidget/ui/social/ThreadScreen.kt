@@ -45,7 +45,8 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
     val thread by produceKept<NostrRepository.Thread?>(null, noteId, reload) { value = vm.thread(noteId) }
     Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Post"), onBack)
-        SocialScaffold(vm, navigate) { actions ->
+        // Bitcoin cards here use the "post's page" style.
+        SocialScaffold(vm, navigate) { actions -> androidx.compose.runtime.CompositionLocalProvider(LocalEmbedPlace provides EmbedPlace.POST) {
             val t = thread
             if (t == null) {
                 Spinner(Modifier.padding(top = 40.dp))
@@ -70,7 +71,7 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
                     )
                 }
             }
-        }
+        } }
     }
 }
 

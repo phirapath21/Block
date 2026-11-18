@@ -46,6 +46,10 @@ object AppPrefs {
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
+    private const val BTC_TX_CARDS = "btc_tx_cards"
+    private const val BTC_BLOCK_CARDS = "btc_block_cards"
+    private const val BTC_TX_STYLE_FEED = "btc_tx_style_feed"
+    private const val BTC_TX_STYLE_POST = "btc_tx_style_post"
     private const val POW_MATCH_RELAYS = "pow_match_relays"
     private const val POW_HASH_RATE = "pow_hash_rate"
     private const val LANGUAGE = "language"
@@ -84,6 +88,18 @@ object AppPrefs {
     fun appLook(context: Context): com.example.btcwidget.theme.AppLook =
         com.example.btcwidget.theme.AppLook.of(prefs(context).getString(APP_LOOK, null))
     fun setAppLook(context: Context, look: com.example.btcwidget.theme.AppLook) = edit(context) { putString(APP_LOOK, look.id) }
+
+    /** Cards for Bitcoin transactions and blocks that notes link to (on by default). */
+    fun btcTxCards(context: Context): Boolean = prefs(context).getBoolean(BTC_TX_CARDS, true)
+    fun setBtcTxCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_TX_CARDS, on) }
+    fun btcBlockCards(context: Context): Boolean = prefs(context).getBoolean(BTC_BLOCK_CARDS, true)
+    fun setBtcBlockCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_BLOCK_CARDS, on) }
+
+    /** How transaction cards look in timelines and on a post's page: "row" (the default) or "full". */
+    fun btcTxStyleFeed(context: Context): String = prefs(context).getString(BTC_TX_STYLE_FEED, null) ?: "row"
+    fun setBtcTxStyleFeed(context: Context, style: String) = edit(context) { putString(BTC_TX_STYLE_FEED, style) }
+    fun btcTxStylePost(context: Context): String = prefs(context).getString(BTC_TX_STYLE_POST, null) ?: "row"
+    fun setBtcTxStylePost(context: Context, style: String) = edit(context) { putString(BTC_TX_STYLE_POST, style) }
 
     /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
     fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)

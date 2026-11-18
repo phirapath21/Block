@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,6 +58,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -83,18 +86,65 @@ private const val FLOW_ROWS = 4
 private val RowHeight = 36.dp
 private val CardShape = RoundedCornerShape(16.dp)
 
+/** How a transaction shows under a note: one thin row (details in a sheet) or the full card. */
+enum class TxCardStyle(val id: String, val label: String, val summary: String) {
+    ROW("row", "Single row", "Amount and confirmations; tap for the full details"),
+    FULL("full", "Full card", "Confirmations, inputs flowing to outputs and the fee, right in the post");
+
+    companion object {
+        fun of(id: String?) = entries.firstOrNull { it.id == id } ?: ROW
+    }
+}
+
+/** Where a note is shown, for [BitcoinCards]' per-place style. */
+enum class EmbedPlace { FEED, POST }
+
+/** Thread screens provide [EmbedPlace.POST]; everything else is a timeline. */
+val LocalEmbedPlace = androidx.compose.runtime.staticCompositionLocalOf { EmbedPlace.FEED }
+
 /**
- * The Bitcoin card(s) under a note: one block; one transaction in full (confirmations, inputs
- * flowing to outputs, fee); or, for several, a compact list with "Show all" opening every one
- * in full.
+ * Settings › Display › Bitcoin in posts: whether notes show transaction and block cards, and the
+ * transaction style in timelines and on a post's page. Snapshot state, loaded at start-up.
+ */
+object BitcoinCards {
+    var showTx by mutableStateOf(true)
+        private set
+    var showBlocks by mutableStateOf(true)
+        private set
+    var feedStyle by mutableStateOf(TxCardStyle.ROW)
+        private set
+    var postStyle by mutableStateOf(TxCardStyle.ROW)
+        private set
+
+    fun load(context: android.content.Context) {
+        showTx = com.example.btcwidget.AppPrefs.btcTxCards(context)
+        showBlocks = com.example.btcwidget.AppPrefs.btcBlockCards(context)
+        feedStyle = TxCardStyle.of(com.example.btcwidget.AppPrefs.btcTxStyleFeed(context))
+        postStyle = TxCardStyle.of(com.example.btcwidget.AppPrefs.btcTxStylePost(context))
+    }
+
+    fun setShowTx(context: android.content.Context, on: Boolean) { showTx = on; com.example.btcwidget.AppPrefs.setBtcTxCards(context, on) }
+    fun setShowBlocks(context: android.content.Context, on: Boolean) { showBlocks = on; com.example.btcwidget.AppPrefs.setBtcBlockCards(context, on) }
+    fun setFeedStyle(context: android.content.Context, s: TxCardStyle) { feedStyle = s; com.example.btcwidget.AppPrefs.setBtcTxStyleFeed(context, s.id) }
+    fun setPostStyle(context: android.content.Context, s: TxCardStyle) { postStyle = s; com.example.btcwidget.AppPrefs.setBtcTxStylePost(context, s.id) }
+}
+
+/**
+ * The Bitcoin card(s) under a note, as set in [BitcoinCards]:
+ * - transactions as one thin row (more folded into "+N more"), tapping opens every one in
+ *   full in a sheet; or in full: one card, or a compact list with "Show all" for several;
+ * - a block as a thin row, tapping opens its details in a sheet.
  */
 @Composable
 fun BitcoinEmbeds(refs: List<BitcoinEmbedRef>, note: Event, actions: NoteActions, modifier: Modifier = Modifier) {
     val txs = refs.filterIsInstance<BitcoinEmbedRef.TxRef>()
+    val style = if (LocalEmbedPlace.current == EmbedPlace.POST) BitcoinCards.postStyle else BitcoinCards.feedStyle
     when {
-        txs.size >= 2 -> TxStack(txs, note, actions, modifier)
-        txs.size == 1 -> TxCard(txs[0], note, actions, modifier.padding(top = 8.dp))
-        else -> refs.filterIsInstance<BitcoinEmbedRef.BlockRef>().firstOrNull()?.let { BlockCard(it, note, actions, modifier) }
+        txs.isNotEmpty() -> if (!BitcoinCards.showTx) return
+            else if (style == TxCardStyle.ROW) TxRowCard(txs, note, actions, modifier)
+            else if (txs.size >= 2) TxStack(txs, note, actions, modifier)
+            else TxCard(txs[0], note, actions, modifier.padding(top = 8.dp))
+        BitcoinCards.showBlocks -> refs.filterIsInstance<BitcoinEmbedRef.BlockRef>().firstOrNull()?.let { BlockRowCard(it, note, actions, modifier) }
     }
 }
 
@@ -117,11 +167,11 @@ private fun mempoolBase(): String {
 
 /**
  * [txid]'s state, kept fresh while on screen: asked again every minute until it's [SETTLED]
- * deep, so a card watched from the mempool ticks up to "6 confirmations" by itself.
- * [retry] changing asks again at once.
+ * deep, so a card watched from the mempool ticks up to "6 confirmations" by itself (only when
+ * [live]: rows in a timeline ask once). [retry] changing asks again at once.
  */
 @Composable
-private fun rememberTx(txid: String, base: String, retry: Int): TxState {
+private fun rememberTx(txid: String, base: String, retry: Int, live: Boolean = true): TxState {
     val state by produceState<TxState>(TxState.Loading, txid, base, retry) {
         var first = true
         while (true) {
@@ -130,7 +180,7 @@ private fun rememberTx(txid: String, base: String, retry: Int): TxState {
             value = if (tx != null) TxState.Loaded(tx, tip) else if (value is TxState.Loaded) value else TxState.Failed
             first = false
             val loaded = value as? TxState.Loaded ?: break
-            if (loaded.confirmations >= SETTLED) break
+            if (!live || loaded.confirmations >= SETTLED) break
             delay(REFRESH_MS)
         }
     }
@@ -139,9 +189,12 @@ private fun rememberTx(txid: String, base: String, retry: Int): TxState {
 
 // ---- One transaction, in full ----
 
-/** A transaction in full. [framed] = false for the sheet, where each sits on its own. */
+/**
+ * A transaction in full. In a post, tapping it opens the explorer; [inSheet], it isn't a
+ * button itself (so a scroll can't open the browser) and ends with "View on mempool".
+ */
 @Composable
-private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions, modifier: Modifier = Modifier, framed: Boolean = true) {
+private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions, modifier: Modifier = Modifier, inSheet: Boolean = false) {
     val base = mempoolBase()
     var retry by remember { mutableIntStateOf(0) }
     val state = rememberTx(ref.txid, base, retry)
@@ -150,16 +203,15 @@ private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions
     Column(
         modifier
             .fillMaxWidth()
+            .clip(CardShape)
+            .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.10f), EInk.Body.copy(alpha = 0.55f))))
+            .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
             .then(
-                if (framed) Modifier
-                    .clip(CardShape)
-                    .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.10f), EInk.Body.copy(alpha = 0.55f))))
-                    .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
-                else Modifier
+                if (inSheet && state !is TxState.Failed) Modifier
+                else Modifier.clickable(onClickLabel = if (state is TxState.Failed) tr("Try again") else tr("View on Mempool")) {
+                    if (state is TxState.Failed) retry++ else actions.openLink(ref.explorerUrl(base), note)
+                }
             )
-            .clickable(onClickLabel = tr("View on Mempool")) {
-                if (state is TxState.Failed) retry++ else actions.openLink(ref.explorerUrl(base), note)
-            }
             .semantics { loaded?.let { contentDescription = txDescription(it) } }
             .padding(14.dp)
             .animateContentSize()
@@ -176,7 +228,8 @@ private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions
                 Spacer(Modifier.height(12.dp))
                 TxFlow(state.tx)
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(top = 10.dp, bottom = 9.dp))
-                TxFooter(state.tx)
+                TxFooter(state.tx, showLink = !inSheet)
+                if (inSheet) ExplorerButton { actions.openLink(ref.explorerUrl(base), note) }
             }
         }
     }
@@ -422,7 +475,7 @@ private fun FlowLines(inShares: List<Float>, outShares: List<Float>, rows: Int, 
 }
 
 @Composable
-private fun TxFooter(tx: TxDetails) {
+private fun TxFooter(tx: TxDetails, showLink: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(tr("Total out"), color = EInk.Caption, fontSize = 11.sp)
@@ -436,10 +489,29 @@ private fun TxFooter(tx: TxDetails) {
             )
         }
     }
-    Text(
+    if (showLink) Text(
         tr("View on mempool ›"), color = EInk.Caption, fontSize = 11.sp,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.End
     )
+}
+
+/** The sheet's way out to the explorer: a full-width accent button. */
+@Composable
+private fun ExplorerButton(onClick: () -> Unit) {
+    Row(
+        Modifier
+            .padding(top = 14.dp)
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
+            .clip(RoundedCornerShape(50))
+            .background(EInk.Accent)
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(tr("View on mempool"), color = EInk.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Icon(Glyphs.OpenInBrowser, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.padding(start = 8.dp).size(16.dp))
+    }
 }
 
 // ---- Several transactions ----
@@ -546,60 +618,269 @@ private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: ()
 private fun TxSheet(txs: List<BitcoinEmbedRef.TxRef>, start: Int, note: Event, actions: NoteActions, onDismiss: () -> Unit) {
     BlockSheet(onDismiss = onDismiss) {
         Text(
-            tr("Transactions in this post"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+            if (txs.size == 1) tr("Transaction") else tr("Transactions in this post"),
+            color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Text(
-            tr("{0} transactions · from {1}", txs.size, mempoolBase().removePrefix("https://")),
+            (if (txs.size == 1) "" else tr("{0} transactions", txs.size) + " · ") + tr("from {0}", mempoolBase().removePrefix("https://")),
             color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
         val list = rememberLazyListState(initialFirstVisibleItemIndex = start.coerceIn(0, txs.lastIndex))
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
             itemsIndexed(txs, key = { _, t -> t.txid }) { i, ref ->
-                Text(
+                if (txs.size > 1) Text(
                     tr("{0} of {1}", i + 1, txs.size), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(start = 18.dp, top = 12.dp)
                 )
-                TxCard(ref, note, actions, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                TxCard(ref, note, actions, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), inSheet = true)
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
 
+// ---- One row in a post ----
+
+/**
+ * Transactions as one thin row: the first one's txid, inputs → outputs, amount and
+ * confirmations; for several, a second line "+N more transactions · total". Tapping opens
+ * the sheet with every one in full.
+ */
+@Composable
+private fun TxRowCard(txs: List<BitcoinEmbedRef.TxRef>, note: Event, actions: NoteActions, modifier: Modifier) {
+    val base = mempoolBase()
+    var sheetAt by remember { mutableStateOf<Int?>(null) }
+    val states = txs.map { rememberTx(it.txid, base, 0, live = false) }
+    val loaded = states.filterIsInstance<TxState.Loaded>()
+    Column(modifier.padding(top = 8.dp).fillMaxWidth().embedFrame().animateContentSize()) {
+        CompactTxRow(txs[0], states[0]) { sheetAt = 0 }
+        if (txs.size > 1) {
+            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(horizontal = 14.dp))
+            Row(
+                Modifier.fillMaxWidth().clickable(onClickLabel = tr("Show all")) { sheetAt = 1 }.padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    tr("+{0} more transactions", txs.size - 1), color = EInk.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (loaded.size == txs.size) Text(
+                    tr("Total {0}", TxFormat.amount(loaded.sumOf { it.tx.totalOut })), color = EInk.Caption, fontSize = 11.sp, fontFamily = FontFamily.Monospace
+                )
+                Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(start = 6.dp).size(16.dp))
+            }
+        }
+    }
+    sheetAt?.let { start -> TxSheet(txs, start, note, actions) { sheetAt = null } }
+}
+
+/** The accent-tinted frame every Bitcoin card shares. */
+@Composable
+private fun Modifier.embedFrame(): Modifier {
+    val accent = EInk.Accent
+    return this
+        .clip(CardShape)
+        .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.10f), EInk.Body.copy(alpha = 0.55f))))
+        .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
+}
+
 // ---- A block ----
 
+/** A block as one thin row (height, transactions, size, miner); tapping opens its details. */
 @Composable
-private fun BlockCard(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: NoteActions, modifier: Modifier) {
+private fun BlockRowCard(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: NoteActions, modifier: Modifier) {
     val base = mempoolBase()
-    val summary by produceState<MempoolSummary?>(null, ref.key, base) { value = BitcoinContextDetector.block(ref, base) }
-    val accent = EInk.Accent
-    val s = summary
+    var open by remember { mutableStateOf(false) }
+    val block by produceState<com.example.btcwidget.BlockDetails?>(null, ref.key, base) { value = BitcoinContextDetector.block(ref, base) }
+    val b = block
     Row(
         modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.10f), EInk.Body.copy(alpha = 0.55f))))
-            .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
-            .clickable(onClickLabel = tr("View on Mempool")) { actions.openLink(s?.explorerUrl ?: ref.explorerUrl(base), note) }
-            .padding(14.dp),
+            .embedFrame()
+            .clickable(onClickLabel = tr("Show details")) { open = true }
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(alpha = 0.16f)),
+            Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(EInk.Accent.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center
-        ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(17.dp)) }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(blockTitle(ref, b), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
             Text(
-                s?.title ?: tr("Block #{0}", ref.heightOrHash.toIntOrNull()?.let { "%,d".format(it) } ?: TxFormat.shortTxid(ref.heightOrHash)),
-                color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1
+                if (b == null) tr("Checking the blockchain…")
+                else listOfNotNull(
+                    tr("{0} txs", TxFormat.count(b.txCount)),
+                    com.example.btcwidget.formatBytes(b.sizeBytes),
+                    b.extras?.pool
+                ).joinToString(" · "),
+                color = EInk.Caption, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
-            Text(s?.subtitle ?: tr("Checking the blockchain…"), color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (s != null) Column(horizontalAlignment = Alignment.End) {
-            Text(s.primaryMetric, color = accent, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-            Text(s.secondaryMetric, color = EInk.Label, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        b?.let { Text(relativeTime(it.timestamp), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp)) }
+        Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(start = 4.dp).size(18.dp))
+    }
+    if (open) BlockDetailsSheet(ref, note, actions) { open = false }
+}
+
+private fun blockTitle(ref: BitcoinEmbedRef.BlockRef, b: com.example.btcwidget.BlockDetails?): String =
+    tr("Block #{0}", b?.height?.let { "%,d".format(it) } ?: ref.heightOrHash.toIntOrNull()?.let { "%,d".format(it) } ?: TxFormat.shortTxid(ref.heightOrHash))
+
+/**
+ * A block in full: when it was found and how deep it is now, how full it is, then its numbers
+ * (transactions, size, fees, reward, miner, difficulty; the ones the server gives), its hash to
+ * copy, and "View on mempool".
+ */
+@Composable
+private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: NoteActions, onDismiss: () -> Unit) {
+    val base = mempoolBase()
+    var retry by remember { mutableIntStateOf(0) }
+    val state by produceState<Pair<com.example.btcwidget.BlockDetails?, Int?>?>(null, ref.key, base, retry) {
+        val b = BitcoinContextDetector.block(ref, base)
+        value = b to BitcoinContextDetector.tipHeight(base)
+    }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    BlockSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp).animateContentSize()) {
+            val b = state?.first
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(EInk.Accent.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(22.dp)) }
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text(blockTitle(ref, b), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        b?.let {
+                            java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp * 1000)) +
+                                " · " + relativeTime(it.timestamp)
+                        } ?: if (state == null) tr("Checking the blockchain…") else "",
+                        color = EInk.Caption, fontSize = 13.sp
+                    )
+                }
+                if (b != null) ConfirmationChip(b.confirmations(state?.second))
+            }
+            when {
+                state == null -> TxSkeleton()
+                b == null -> Text(
+                    tr("Couldn't load it from {0}. Tap to try again.", base.removePrefix("https://")),
+                    color = EInk.Caption, fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 16.dp).clickable { retry++ }
+                )
+                else -> {
+                    // How full: weight against the 4 MWU limit.
+                    Row(Modifier.padding(top = 18.dp)) {
+                        Text(tr("Block space"), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        Text(tr("{0}% full", "%.1f".format(b.fullness * 100)), color = EInk.Label, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    }
+                    Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50)).background(EInk.Track)) {
+                        Box(Modifier.fillMaxWidth(b.fullness).height(8.dp).clip(RoundedCornerShape(50)).background(EInk.Accent))
+                    }
+                    val x = b.extras
+                    val stats = listOfNotNull(
+                        tr("Transactions") to TxFormat.count(b.txCount),
+                        tr("Size") to com.example.btcwidget.formatBytes(b.sizeBytes),
+                        x?.medianFee?.let { tr("Median fee") to "%.1f sat/vB".format(it) },
+                        x?.feeRange?.let { (lo, hi) -> tr("Fee range") to "%.0f–%.0f sat/vB".format(lo, hi) },
+                        x?.totalFeesSats?.let { tr("Total fees") to TxFormat.amount(it) },
+                        x?.rewardSats?.let { tr("Reward") to TxFormat.amount(it) },
+                        x?.pool?.let { tr("Miner") to it },
+                        tr("Difficulty") to com.example.btcwidget.formatDifficulty(b.difficulty)
+                    )
+                    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        stats.chunked(2).forEach { pair ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                pair.forEach { (label, value) -> StatTile(label, value, Modifier.weight(1f)) }
+                                if (pair.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                    // The hash, to copy.
+                    Row(
+                        Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(EInk.Body)
+                            .clickable(onClickLabel = tr("Copy")) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(b.hash)) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(tr("Hash"), color = EInk.Caption, fontSize = 11.sp)
+                            Text(b.hash.take(16) + "…" + b.hash.takeLast(12), color = EInk.Value, fontSize = 12.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                        }
+                        Icon(Glyphs.Copy, contentDescription = tr("Copy"), tint = EInk.Caption, modifier = Modifier.size(18.dp))
+                    }
+                    ExplorerButton { actions.openLink(ref.explorerUrl(base), note) }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun StatTile(label: String, value: String, modifier: Modifier) {
+    Column(modifier.clip(RoundedCornerShape(12.dp)).background(EInk.Body).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(label, color = EInk.Caption, fontSize = 11.sp, maxLines = 1)
+        Text(value, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+// ---- Settings ----
+
+/**
+ * Settings › Display › Bitcoin in posts: transaction and block cards on or off, and the
+ * transaction style for timelines and for a post's page.
+ */
+@Composable
+internal fun BitcoinCardsSettings() {
+    val context = LocalContext.current
+    SettingsHeader(tr("Bitcoin in posts"))
+    SettingsNote(tr("Notes that link to a transaction or block get a card with live data from your mempool server."))
+    SettingsSwitchRow(
+        tr("Transaction cards"),
+        summary = tr("Confirmations, amount, inputs and outputs, fee"),
+        checked = BitcoinCards.showTx
+    ) { BitcoinCards.setShowTx(context, it) }
+    AnimatedVisibility(BitcoinCards.showTx) {
+        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
+            StyleChoice(tr("In timelines"), BitcoinCards.feedStyle) { BitcoinCards.setFeedStyle(context, it) }
+            StyleChoice(tr("On a post's page"), BitcoinCards.postStyle) { BitcoinCards.setPostStyle(context, it) }
+        }
+    }
+    SettingsSwitchRow(
+        tr("Block cards"),
+        summary = tr("Height, transactions, size and miner; tap for the details"),
+        checked = BitcoinCards.showBlocks
+    ) { BitcoinCards.setShowBlocks(context, it) }
+}
+
+/** "Single row | Full card" for one place, with what the chosen one means under it. */
+@Composable
+private fun StyleChoice(label: String, selected: TxCardStyle, onPick: (TxCardStyle) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = EInk.Value, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Row(
+                Modifier.clip(RoundedCornerShape(50)).background(EInk.Body).padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                TxCardStyle.entries.forEach { style ->
+                    val on = style == selected
+                    Text(
+                        tr(style.label),
+                        color = if (on) EInk.OnAccent else EInk.Label,
+                        fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(if (on) EInk.Accent else Color.Transparent)
+                            .clickable(role = Role.RadioButton) { onPick(style) }
+                            .semantics { this.selected = on }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+        Text(tr(selected.summary), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
