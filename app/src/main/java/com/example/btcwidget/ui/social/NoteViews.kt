@@ -32,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -95,6 +96,10 @@ class NoteActions(
     val isFollowing: (String) -> Boolean,
     val profileOf: (String) -> Profile?,
     val resolveNote: suspend (String) -> Event?,
+    /** A note from a nostr: link, also asking the relays it names and its author's relays. */
+    val resolveNoteRef: suspend (Content.Segment.NoteRef) -> Event? = { resolveNote(it.id) },
+    /** Fetches profiles not loaded yet (people @mentioned in a note). */
+    val loadProfiles: (Collection<String>) -> Unit = {},
     /** Hides the conversation this note belongs to (NIP-51 mute list, by its root note). */
     val muteThread: (Event) -> Unit,
     /** Reacts with an emoji, or ":code:" plus its image URL for a custom emoji (NIP-30). */
@@ -315,6 +320,11 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         }
         parsed + fromTags
     }
+    // People @mentioned whose profile isn't loaded yet (threads, quotes, profiles): fetch them.
+    LaunchedEffect(note.id) {
+        val missing = segments.mapNotNull { (it as? Content.Segment.ProfileRef)?.pubkey }.distinct().filter { actions.profileOf(it) == null }
+        if (missing.isNotEmpty()) actions.loadProfiles(missing)
+    }
     val mentionedNames by remember(note.id, segments, actions) {
         androidx.compose.runtime.derivedStateOf {
             segments.mapNotNull { (it as? Content.Segment.ProfileRef)?.pubkey }
@@ -391,7 +401,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
     }
     if (depth == 0) {
         segments.filterIsInstance<Content.Segment.NoteRef>().distinctBy { it.id }.take(2).forEach { ref ->
-            QuotedNote(ref.id, actions)
+            QuotedNote(ref, actions)
         }
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.Kind.ARTICLE }
             .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ArticleCard(it.address, actions) }
@@ -626,8 +636,10 @@ private fun ListingInlineCard(address: com.example.btcwidget.nostr.core.Nip19.Ad
 
 /** A quoted note, boxed, as in a quote post. */
 @Composable
-private fun QuotedNote(id: String, actions: NoteActions) {
-    val quoted by produceState<Event?>(null, id) { value = actions.resolveNote(id) }
+private fun QuotedNote(ref: Content.Segment.NoteRef, actions: NoteActions) {
+    // null: still looking; then the note, or nothing when no relay has it.
+    val lookup by produceState<Result<Event?>?>(null, ref.id) { value = runCatching { actions.resolveNoteRef(ref) } }
+    val quoted = lookup?.getOrNull()
     Column(
         modifier = Modifier
             .padding(top = 8.dp)
@@ -639,7 +651,10 @@ private fun QuotedNote(id: String, actions: NoteActions) {
     ) {
         val q = quoted
         if (q == null) {
-            Text(tr("Loading quoted note…"), color = EInk.Caption, fontSize = 13.sp)
+            Text(
+                if (lookup == null) tr("Loading quoted note…") else tr("This note couldn't be found on your relays or its author's."),
+                color = EInk.Caption, fontSize = 13.sp
+            )
         } else {
             val author = actions.profileOf(q.pubkey)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -774,16 +789,22 @@ fun Avatar(profile: Profile?, pubkey: String, size: Int, onClick: (() -> Unit)? 
         .clip(CircleShape)
         .background(EInk.Track)
         .let { if (onClick != null) it.clickable(onClickLabel = tr("Open profile"), onClick = onClick) else it }
-    val picture = profile?.picture
-    if (picture != null) {
-        AsyncImage(model = picture, contentDescription = null, contentScale = ContentScale.Crop, modifier = base)
-    } else {
-        Box(base, contentAlignment = Alignment.Center) {
-            Text(
-                text = (profile?.bestName ?: pubkey).take(1).uppercase(),
-                color = EInk.Value,
-                fontSize = (size * 0.42).sp,
-                fontWeight = FontWeight.Bold
+    // Block only loads over HTTPS: most hosts given as http:// answer on https:// too.
+    val picture = profile?.picture?.let { if (it.startsWith("http://")) "https://" + it.removePrefix("http://") else it }
+        ?.takeIf { it.startsWith("https://") }
+    var failed by remember(picture) { mutableStateOf(false) }
+    Box(base, contentAlignment = Alignment.Center) {
+        // The initial shows until the picture loads, and stays if it can't.
+        Text(
+            text = (profile?.bestName ?: pubkey).take(1).uppercase(),
+            color = EInk.Value,
+            fontSize = (size * 0.42).sp,
+            fontWeight = FontWeight.Bold
+        )
+        if (picture != null && !failed) {
+            AsyncImage(
+                model = picture, contentDescription = null, contentScale = ContentScale.Crop,
+                onError = { failed = true }, modifier = Modifier.matchParentSize()
             )
         }
     }

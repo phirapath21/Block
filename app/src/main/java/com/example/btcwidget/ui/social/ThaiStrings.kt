@@ -5,6 +5,14 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "This note couldn't be found on your relays or its author's." to "ไม่พบโพสต์นี้ทั้งใน relay ของคุณและของผู้เขียน",
+    "Already in your relays" to "มีอยู่ใน relay ของคุณแล้ว",
+    "{0}'s relays" to "Relay ของ {0}",
+    "From their relay list (NIP-65). Add one to your relays to see their posts and profile when your relays don't have them." to "จากรายการ relay ที่เขาประกาศไว้ (NIP-65) เพิ่มเข้า relay ของคุณเพื่อให้เห็นโพสต์และโปรไฟล์ของเขาเมื่อ relay ของคุณไม่มี",
+    "{0} hasn't published a relay list." to "{0} ยังไม่ได้ประกาศรายการ relay",
+    "Posts and reads here" to "โพสต์และอ่านที่นี่",
+    "Posts here" to "โพสต์ที่นี่",
+    "Reads here" to "อ่านที่นี่",
     "Followers of {0}" to "ผู้ติดตามของ {0}",
     "Proof of Blockheight" to "หลักฐานความสูงบล็อก Bitcoin (Proof of Blockheight)",
     "View on Mempool" to "ดูบน Mempool",

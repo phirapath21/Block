@@ -672,9 +672,15 @@ class NostrRepository private constructor(private val context: Context) {
             .distinctBy { it.key }
             .sortedByDescending { it.sortTime }
         items.forEach { remember(it.note) }
-        enrich(items.flatMap { listOfNotNull(it.note.pubkey, it.repostedBy) }, items.map { it.note.id })
+        // Authors, reposters and the people @mentioned in the notes, so names show at once.
+        enrich(items.flatMap { listOfNotNull(it.note.pubkey, it.repostedBy) + mentionedIn(it.note) }, items.map { it.note.id })
         return items
     }
+
+    /** People a note @mentions in its text (nostr:npub / nprofile). */
+    private fun mentionedIn(note: Event): List<String> =
+        runCatching { com.example.btcwidget.nostr.core.Content.parse(note.content) }.getOrDefault(emptyList())
+            .mapNotNull { (it as? com.example.btcwidget.nostr.core.Content.Segment.ProfileRef)?.pubkey }
 
     /** Loads [pubkeys]' profiles and [noteIds]' counts in the background. */
     private fun enrich(pubkeys: List<String>, noteIds: List<String>) {
@@ -683,15 +689,28 @@ class NostrRepository private constructor(private val context: Context) {
     }
 
     /** A note by id, from cache or relays. */
-    suspend fun note(id: String): Event? {
+    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null): Event? {
         notes[id]?.let { return it }
         withContext(Dispatchers.IO) { events.query(listOf(Filter(ids = listOf(id)))) }.firstOrNull()?.let {
             remember(it, save = false)
             return it
         }
-        return pool.query(listOf(Filter(ids = listOf(id))), 4_000, graceMs = 400).firstOrNull()?.also {
+        val found = pool.query(listOf(Filter(ids = listOf(id))), 4_000, graceMs = 400).firstOrNull()
+            // Not on our relays: ask the relays the link names (nevent) and, when the author is
+            // known, the relays they write to (NIP-65), as other clients do.
+            ?: when {
+                author != null -> authoredEvents(listOf(author), relays) { Filter(ids = listOf(id)) }.firstOrNull { it.id == id }
+                else -> {
+                    val urls = relays.filter { it.startsWith("wss://") && it !in pool.urls }.take(3).toSet()
+                    if (urls.isEmpty()) null else runCatching {
+                        outbox.addRelays(urls)
+                        outbox.query(listOf(Filter(ids = listOf(id))), timeoutMs = 5_000, only = urls).firstOrNull { it.id == id }
+                    }.getOrNull()
+                }
+            }
+        return found?.also {
             remember(it)
-            enrich(listOf(it.pubkey), emptyList())
+            enrich(listOf(it.pubkey) + mentionedIn(it), emptyList())
         }
     }
 
@@ -1160,16 +1179,33 @@ class NostrRepository private constructor(private val context: Context) {
                     async { rememberProfiles(queryEverywhere(listOf(Filter(authors = chunk, kinds = listOf(Kind.METADATA))))) }
                 }.awaitAll()
             }
+            // Still unknown: their profile may only be on the relays they write to (NIP-65).
+            val stillMissing = missing.filter { !profileEvents.containsKey(it) }
+            if (stillMissing.isNotEmpty()) runCatching {
+                rememberProfiles(authoredEvents(stillMissing.take(50)) { Filter(authors = it, kinds = listOf(Kind.METADATA)) })
+            }
         } finally {
             profilesInFlight.removeAll(missing.toSet())
         }
     }
 
-    /** Fetches a profile even if cached (for the profile screen). */
+    /** Fetches a profile even if cached (for the profile screen), from their own relays too. */
     suspend fun refreshProfile(pubkey: String): Profile? {
         queryEverywhere(listOf(Filter(authors = listOf(pubkey), kinds = listOf(Kind.METADATA), limit = 1))).forEach { remember(it) }
+        if (_profiles.value[pubkey] == null) runCatching {
+            authoredEvents(listOf(pubkey)) { Filter(authors = it, kinds = listOf(Kind.METADATA), limit = 1) }.forEach { remember(it) }
+        }
         return _profiles.value[pubkey]
     }
+
+    /** [pubkey]'s published relays (NIP-65): where they write (outbox) and read (inbox). */
+    suspend fun relayListOf(pubkey: String): List<com.example.btcwidget.nostr.core.RelayLists.Entry> {
+        loadWriteRelays(listOf(pubkey))
+        return relayListEvents[pubkey]?.let { com.example.btcwidget.nostr.core.RelayLists.entries(it) }.orEmpty()
+    }
+
+    /** The relays Block reads from and writes to now (for adding one to the user's list). */
+    fun currentRelayUrls(): List<String> = pool.urls.toList()
 
     /** Whom [pubkey] follows (their latest contact list). */
     suspend fun followingOf(pubkey: String): Set<String> =

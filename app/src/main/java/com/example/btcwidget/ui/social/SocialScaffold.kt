@@ -117,6 +117,8 @@ fun SocialScaffold(
             openEngagement = { n, tab -> navigateState.value(com.example.btcwidget.EngagementKey(n.id, tab)) },
             profileOf = { profilesState.value[it] },
             resolveNote = { vm.note(it) },
+            resolveNoteRef = { vm.note(it.id, it.relays, it.author) },
+            loadProfiles = { vm.loadProfiles(it) },
             react = { n, content, url -> signedIn { vm.react(n, content, url) } },
             muteThread = { n -> signedIn { vm.muteThread(n) } },
             customEmojis = customEmojis,
