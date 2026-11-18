@@ -10,7 +10,6 @@ The app keeps the following only on your device, in its private app storage:
 
 - **Your settings** — theme, display currency, refresh interval, data sources, which metrics the widget shows and their order, collapsed sections.
 - **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
-- **App lock** — if you set a PIN, the app stores a salted PBKDF2 hash of it (never the PIN itself), its length, and how many wrong PINs were entered in a row, so the wait after repeated wrong PINs survives a restart. If you turn on fingerprint or face unlock, only that choice is stored: Android checks your fingerprint or face and Block never sees it.
 - **Your own mempool server**, if you set one in Settings, used instead of mempool.space (see Network requests).
 - **Alerts** — the price, fee and network-event alerts you set.
 - **Cached market data** — the latest prices, network figures and hourly price history, so widgets and charts work offline.
@@ -31,7 +30,7 @@ Uninstalling the app or clearing its storage deletes all of this.
 
 **Showing your key:** for an account whose key is on the phone, Settings › Nostr › More can show your nsec so you can back it up. It is shown only after a warning, with screenshots blocked, and copying marks it as sensitive so Android hides it from clipboard previews.
 
-**Android backup:** if you have Android backup turned on, Android may include the app's storage (except the Nostr account files, drafts, scheduled posts and the event database) in your device backup to your own Google account, under your control. This includes your settings and, if you set one, the app-lock PIN hash, so a restored phone asks for the same PIN. The developer cannot access these backups.
+**Android backup:** if you have Android backup turned on, Android may include the app's storage (except the Nostr account files, drafts, scheduled posts and the event database) in your device backup to your own Google account, under your control. This includes your settings. The developer cannot access these backups.
 
 ## Nostr: what you publish is public
 
@@ -125,7 +124,6 @@ Requests run when you open or refresh the app and in the background at the inter
 - **Storage (Android 9 and below only)** — asked only when you choose "Save image", to save that picture to Pictures/Block. Android 10 and later need no permission for this.
 - **Notifications** (Android 13 and later) — to show the alerts you switch on. Asked for only when you turn on an alert; you can revoke it in system settings at any time.
 - **Camera** — only to scan QR codes, asked the first time you open the scanner. Frames are read on the phone and never saved or sent. You can revoke it in system settings at any time; everything else works without it.
-- **Fingerprint or face** — only if you turn on biometric unlock for the app lock. Android handles the check; Block only learns whether it succeeded.
 - The background-work library the app uses (Android WorkManager) also declares permissions to check network status, keep scheduled updates after a restart, and run briefly in the background. They are used only to refresh the data above.
 
 ## What the app does not do
