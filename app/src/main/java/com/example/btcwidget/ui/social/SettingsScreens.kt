@@ -949,7 +949,7 @@ private fun WalletPage(vm: SocialViewModel) {
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
-            error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF4212E), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
+            error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
             Spacer(Modifier.height(10.dp))
             SettingsButton(tr("Connect"), primary = true, enabled = uri.isNotBlank()) {
                 val e = vm.connectNwc(uri)

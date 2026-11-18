@@ -8,12 +8,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.positionInRoot
@@ -23,7 +21,11 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
+import com.example.btcwidget.theme.Glow
 import com.example.btcwidget.theme.LookColors
+import com.example.btcwidget.theme.glowPixels
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlin.math.roundToInt
 
 /** How long a new look takes to fade in. */
 const val LOOK_FADE_MS = 420
@@ -88,35 +90,40 @@ private class ScreenBackgroundNode : Modifier.Node(), DrawModifierNode, GlobalPo
  * Fills this draw scope with [colors]' background and glow, as the part of a [window]-sized
  * screen that starts at [offset] (pass this element's own size and zero for a stand-alone
  * preview).
+ *
+ * The glow is a small bitmap made once per look and window shape ([GlowBitmaps]) and drawn
+ * stretched over the window, clipped to this element: no full-screen shader with a large
+ * transform, which some GPUs (and the emulator's software one) handle badly, and much less
+ * work per frame on small phones.
  */
 internal fun DrawScope.drawLookBackground(colors: LookColors, glowAlpha: Float, window: Size, offset: Offset = Offset.Zero) {
     drawRect(Color(colors.background))
     val glow = colors.glow ?: return
-    if (glowAlpha <= 0f || window.width <= 0f || window.height <= 0f) return
+    if (glowAlpha <= 0f || window.width < 1f || window.height < 1f) return
+    val image = GlowBitmaps.of(glow, window.width / window.height)
     clipRect {
-        // The ellipse's centre in this element's coordinates.
-        val c = Offset(glow.cx * window.width, glow.cy * window.height) - offset
-        val sx = glow.rx * window.width / BASE_RADIUS
-        val sy = glow.ry * window.height / BASE_RADIUS
-        // A circle of BASE_RADIUS scaled about its centre gives the ellipse; the rectangle
-        // drawn is this element's bounds in the unscaled space.
-        scale(sx, sy, pivot = c) {
-            val left = c.x - c.x / sx
-            val top = c.y - c.y / sy
-            val right = c.x + (size.width - c.x) / sx
-            val bottom = c.y + (size.height - c.y) / sy
-            drawRect(
-                brush = Brush.radialGradient(
-                    *glow.stops.indices.map { i -> glow.stops[i] to Color(glow.colors[i]) }.toTypedArray(),
-                    center = c,
-                    radius = BASE_RADIUS
-                ),
-                topLeft = Offset(left, top),
-                size = Size(right - left, bottom - top),
-                alpha = glowAlpha
-            )
-        }
+        drawImage(
+            image,
+            dstOffset = androidx.compose.ui.unit.IntOffset(-offset.x.roundToInt(), -offset.y.roundToInt()),
+            dstSize = androidx.compose.ui.unit.IntSize(window.width.roundToInt(), window.height.roundToInt()),
+            alpha = glowAlpha,
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.Low
+        )
     }
 }
 
-private const val BASE_RADIUS = 1000f
+/** Glow bitmaps, one per look and (rounded) window shape; a handful at most. */
+private object GlowBitmaps {
+    private const val WIDTH = 96
+    private val cache = java.util.concurrent.ConcurrentHashMap<Pair<Glow, Int>, androidx.compose.ui.graphics.ImageBitmap>()
+
+    fun of(glow: Glow, aspect: Float): androidx.compose.ui.graphics.ImageBitmap {
+        // Shapes within 5% share a bitmap, so rotating or resizing doesn't keep making new ones.
+        val key = glow to (aspect.coerceIn(0.2f, 5f) * 20).roundToInt()
+        return cache.getOrPut(key) {
+            val height = (WIDTH / (key.second / 20f)).roundToInt().coerceIn(16, 480)
+            val pixels = glowPixels(glow, WIDTH, height)
+            android.graphics.Bitmap.createBitmap(pixels, WIDTH, height, android.graphics.Bitmap.Config.ARGB_8888).asImageBitmap()
+        }
+    }
+}

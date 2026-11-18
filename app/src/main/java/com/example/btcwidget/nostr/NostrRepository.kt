@@ -1463,7 +1463,7 @@ class NostrRepository private constructor(private val context: Context) {
             }
         )
         if (results.none { it.accepted }) {
-            throw IllegalStateException(results.firstOrNull { it.message.isNotBlank() }?.message ?: "No relay accepted the post")
+            throw com.example.btcwidget.nostr.core.PublishRejected(com.example.btcwidget.nostr.core.RelayRejection.mostUseful(results.map { it.message }))
         }
         remember(signed)
         return signed

@@ -432,7 +432,7 @@ fun ComposeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Close"), onClick = onBack),
+                Modifier.size(48.dp).clip(CircleShape).clickable(onClickLabel = tr("Close"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.CloseLine, contentDescription = tr("Close"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
             Spacer(Modifier.weight(1f))
@@ -452,10 +452,10 @@ fun ComposeScreen(
                     .padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (sending) CircularProgressIndicator(color = androidx.compose.ui.graphics.Color.Black, strokeWidth = 2.dp, modifier = Modifier.padding(end = 8.dp).size(14.dp))
+                if (sending) CircularProgressIndicator(color = EInk.OnAccent, strokeWidth = 2.dp, modifier = Modifier.padding(end = 8.dp).size(14.dp))
                 Text(
                     if (sending) tr("Posting…") else if (replyTo != null) tr("Reply") else if (scheduleAt != null) tr("Schedule") else tr("Post"),
-                    color = androidx.compose.ui.graphics.Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold
+                    color = EInk.OnAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold
                 )
             }
         }

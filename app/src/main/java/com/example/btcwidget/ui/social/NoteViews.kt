@@ -248,7 +248,8 @@ private fun AuthorLine(note: Event, author: Profile?, actions: NoteActions, larg
         )
         Box {
             Box(
-                Modifier.padding(start = 2.dp).size(if (small) 28.dp else 32.dp).clip(CircleShape).clickable(onClickLabel = tr("More options")) { menu = true },
+                Modifier.padding(start = 2.dp).size(if (small) 28.dp else 32.dp).clip(CircleShape).clickable(onClickLabel = tr("More options"), role = androidx.compose.ui.semantics.Role.Button) { menu = true }
+                    .semantics { contentDescription = tr("More options") },
                 contentAlignment = Alignment.Center
             ) { Icon(Glyphs.More, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(if (small) 16.dp else 18.dp)) }
             if (menu) NoteMenu(note, actions, onDismiss = { menu = false })
@@ -388,9 +389,11 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             maxLines = if (expanded) Int.MAX_VALUE else maxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { if (!expanded) cut = it.hasVisualOverflow },
-            modifier = Modifier.padding(top = 2.dp)
+            // The rest unfolds smoothly instead of the post jumping taller.
+            modifier = Modifier.padding(top = 2.dp).animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 400f))
         )
         if (cut && !expanded) ShowMore { if (depth > 0) actions.openNote(note) else expanded = true }
+        else if (cut && expanded && depth == 0) ShowMore(tr("Show less")) { expanded = false }
     }
     if (note.kind == com.example.btcwidget.nostr.core.Kind.POLL) {
         com.example.btcwidget.nostr.core.Poll.of(note)?.let { PollView(it, actions) }
@@ -425,7 +428,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
                         .clickable(onClickLabel = tr("Watch the stream")) { actions.openArticle(ref.address) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(tr("● LIVE"), color = androidx.compose.ui.graphics.Color(0xFFE5534B), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("● LIVE"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Text(tr("  Live stream · tap to watch"), color = EInk.Value, fontSize = 14.sp)
                 }
             }
@@ -480,9 +483,9 @@ private const val QUOTE_LINES = 5
 
 /** "Show more" in the accent colour, under text that was cut short. */
 @Composable
-private fun ShowMore(onClick: () -> Unit) {
+private fun ShowMore(label: String = tr("Show more"), onClick: () -> Unit) {
     Text(
-        tr("Show more"), color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+        label, color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(6.dp))
             .clickable(onClickLabel = tr("Read the whole post"), onClick = onClick).padding(vertical = 4.dp)
     )
@@ -580,6 +583,8 @@ private fun NoteAlbum(note: Event, urls: List<String>, actions: NoteActions) {
         Modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
+            // A phone on its side or a tablet: never taller than most of the screen.
+            .heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp)
             .aspectRatio(layout.aspect)
             .clip(shape)
             .border(0.5.dp, EInk.BodyStroke, shape)

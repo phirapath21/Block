@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.delay
 
-private val LiveRedDot = Color(0xFFE5534B)
+private val LiveRedDot get() = com.example.btcwidget.ui.main.EInk.Alert
 
 /** How close to the newest part of a live stream counts as watching it live. */
 private const val LIVE_EDGE_SLACK_MS = 4_500L

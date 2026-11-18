@@ -137,7 +137,8 @@ fun NoteList(
             items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
                 NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
             }
-            if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
+            // One placeholder note at the end while more load: the list doesn't jump when they arrive.
+            if (loadingMore) item(key = "more", contentType = "skeleton") { FeedSkeleton(rows = 1) }
         }
         BackToTopButton(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp))
     }
@@ -166,7 +167,7 @@ internal fun BackToTopButton(state: LazyListState, modifier: Modifier = Modifier
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(44.dp)
+                .size(48.dp)
                 .shadow(10.dp, CircleShape)
                 .clip(CircleShape)
                 .background(SheetColor)
@@ -184,6 +185,9 @@ internal fun BackToTopButton(state: LazyListState, modifier: Modifier = Modifier
         }
     }
 }
+
+/** Following fewer than this, an empty Following timeline offers follow packs. */
+internal const val STARTER_FOLLOWS = 5
 
 /** How many notes down before "Back to top" can show. */
 internal const val BACK_TO_TOP_AFTER = 8
@@ -217,7 +221,7 @@ fun PillButton(text: String, filled: Boolean = true, modifier: Modifier = Modifi
             .padding(horizontal = 18.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (filled) androidx.compose.ui.graphics.Color.Black else EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = if (filled) EInk.OnAccent else EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -231,6 +235,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val stats by vm.stats.collectAsState()
     val newPosts by vm.newPosts.collectAsState()
     val feed by vm.homeFeed.collectAsState()
+    val following by vm.following.collectAsState()
     val listState = vm.listState("home:" + feed.id)
     val scope = rememberCoroutineScope()
     LaunchedEffect(account) { vm.start() }
@@ -256,7 +261,12 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     )
                     PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
                         when {
-                            home.loading && home.items.isEmpty() -> Spinner(Modifier.padding(top = 40.dp))
+                            // The shape of the feed while it loads, not a spinner.
+                            home.loading && home.items.isEmpty() -> LazyColumn(Modifier.fillMaxSize(), userScrollEnabled = false) { item { FeedSkeleton() } }
+                            // A new account: follow packs to fill the timeline, instead of an empty page.
+                            shown.isEmpty() && !home.loading && home.error == null &&
+                                feed is com.example.btcwidget.nostr.core.HomeFeed.Following && following.size < STARTER_FOLLOWS ->
+                                StarterFollows(vm, navigate, Modifier.fillMaxSize())
                             shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
                                 item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
                             }
@@ -271,31 +281,51 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 val newPostsTop by androidx.compose.animation.core.animateDpAsState(
                     if (barsVisible) FEED_TAB_HEIGHT + 12.dp else 12.dp, androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 500f), label = "new_posts_top"
                 )
-                if (newPosts.isNotEmpty()) {
-                    // "↑ N new posts": new notes wait here instead of shifting what you're reading.
+                // "↑ N new posts": new notes wait here instead of shifting what you're reading.
+                // It drops in with a little spring and a tick, and keeps its last count while leaving.
+                val pillHaptics = rememberHaptics()
+                val lastNew = remember { arrayOf(newPosts) }
+                if (newPosts.isNotEmpty()) lastNew[0] = newPosts
+                LaunchedEffect(newPosts.isNotEmpty()) { if (newPosts.isNotEmpty()) pillHaptics.tick() }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = newPosts.isNotEmpty(),
+                    enter = androidx.compose.animation.slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.65f, stiffness = 500f)) { -it * 2 } +
+                        androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.slideOutVertically { -it * 2 } + androidx.compose.animation.fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = newPostsTop)
+                ) {
+                    val pending = lastNew[0]
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = newPostsTop)
+                            .shadow(8.dp, RoundedCornerShape(50))
                             .clip(RoundedCornerShape(50))
                             .background(EInk.Accent)
                             .clickable(onClickLabel = tr("Show new posts")) {
+                                pillHaptics.tick()
                                 vm.showNewPosts()
                                 scope.launch { listState.animateScrollToItem(0) }
                             }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
-                        newPosts.distinctBy { it.note.pubkey }.take(3).forEach { item ->
-                            Box(Modifier.padding(end = 2.dp)) { Avatar(actions.profileOf(item.note.pubkey), item.note.pubkey, size = 20) }
+                        pending.distinctBy { it.note.pubkey }.take(3).forEachIndexed { i, item ->
+                            // Overlapping faces, ringed in the pill's colour.
+                            Box(
+                                // Overlap by pulling each face left (padding can't be negative).
+                                Modifier.offset(x = (-6 * i).dp).clip(CircleShape)
+                                    .border(1.5.dp, EInk.Accent, CircleShape)
+                            ) { Avatar(actions.profileOf(item.note.pubkey), item.note.pubkey, size = 22) }
                         }
                         Text(
-                            tr("  ↑ {0} new post{1}", newPosts.size, plural(newPosts.size)),
-                            color = androidx.compose.ui.graphics.Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold
+                            tr("  ↑ {0} new post{1}", pending.size, plural(pending.size)),
+                            color = EInk.OnAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold
                         )
                     }
                 }
                 if (feedMenu) FeedMenu(vm, onClose = { feedMenu = false })
+                // Once per release: what's new, each opening its settings (not for brand-new
+                // accounts, for whom it's all new and the follow packs come first).
+                if (following.size >= STARTER_FOLLOWS) WhatsNewSheet(navigate)
                 FirstTimeTip(
                     "home-tabs-v2", tr("Tap Home again to jump back to the top. Long-press your picture at the top left to switch accounts."),
                     Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 84.dp, bottom = 16.dp)
@@ -305,7 +335,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 if (fab > 0.01f) FloatingActionButton(
                     onClick = { navigate(ComposeKey()) },
                     containerColor = EInk.Accent,
-                    contentColor = androidx.compose.ui.graphics.Color.Black,
+                    contentColor = EInk.OnAccent,
                     shape = CircleShape,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(56.dp)
                         .graphicsLayer { alpha = fab; scaleX = 0.6f + 0.4f * fab; scaleY = 0.6f + 0.4f * fab }
@@ -397,7 +427,7 @@ fun NotificationsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     else state.items.filter { it.type == NostrNotification.Type.REPLY || it.type == NostrNotification.Type.MENTION }
                 }
                 when {
-                    state.loading -> Spinner(Modifier.padding(top = 40.dp))
+                    state.loading -> LazyColumn(Modifier.fillMaxSize(), userScrollEnabled = false) { item { FeedSkeleton(rows = 8) } }
                     shown.isEmpty() -> LazyColumn(Modifier.fillMaxSize()) {
                         item { EmptyNote(state.error ?: if (tab == 0) tr("No notifications yet.") else tr("When someone replies to or mentions you, it shows here.")) }
                     }
@@ -686,13 +716,13 @@ internal fun FeedTab(
             androidx.compose.material3.Icon(
                 icon,
                 contentDescription = null,
-                tint = if (selected) androidx.compose.ui.graphics.Color.Black else SettingsAccent,
+                tint = if (selected) EInk.OnAccent else SettingsAccent,
                 modifier = Modifier.size(14.dp)
             )
         }
         Text(
             label,
-            color = if (selected) androidx.compose.ui.graphics.Color.Black else EInk.Value,
+            color = if (selected) EInk.OnAccent else EInk.Value,
             fontSize = 13.5.sp,
             maxLines = 1,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,

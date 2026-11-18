@@ -220,7 +220,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _home.update { it.copy(loading = false, refreshing = false, error = e.message ?: "Couldn't load the feed") }
+                _home.update { it.copy(loading = false, refreshing = false, error = tr("Couldn't load the feed.") + " " + friendlyError(e)) }
             }
         }
     }
@@ -936,9 +936,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         var ok = false
         val (working, done) = when {
-            replyTo != null -> "Replying" to "Replied"
-            quote != null -> "Quoting" to "Quoted"
-            else -> "Posting" to "Posted"
+            replyTo != null -> tr("Replying") to tr("Replied")
+            quote != null -> tr("Quoting") to tr("Quoted")
+            else -> tr("Posting") to tr("Posted")
         }
         val queued = java.util.concurrent.atomic.AtomicBoolean(onQueued == null)
         tracked(working, done, tr("Couldn't post"), finally = { onResult(ok) }, onStage = { stage ->
@@ -1019,7 +1019,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     fun skipPow(id: Long) {
         val tracker = trackers[id] ?: return
         tracker.skipPow.set(true)
-        _activity.update { if (it?.id == id) it.copy(status = "Sending without proof of work…", mining = null) else it }
+        _activity.update { if (it?.id == id) it.copy(status = tr("Sending without proof of work…"), mining = null) else it }
     }
 
     /** Stops the publish [id] before it's signed: nothing is sent. */
@@ -1373,41 +1373,41 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                     val rate = stage.hashesPerSecond.takeIf { stage.elapsedMs >= 300 } ?: _powHashRate.value
                     val m = PublishActivity.Mining(stage.difficulty, stage.hashes, rate, stage.elapsedMs)
                     if (!finishedFlag.get() && trackers[id]?.skipPow?.get() != true) show(PublishActivity(
-                        id, working, "Mining proof of work · ${stage.difficulty} bits",
+                        id, working, tr("Mining proof of work · {0} bits", stage.difficulty),
                         // Most of the bar is the work; signing and sending fill the rest.
                         (0.75 * m.chanceDone).toFloat().coerceAtMost(0.75f), PublishActivity.State.WORKING, m
                     ))
                 }
                 is com.example.btcwidget.nostr.PublishTracker.Stage.Signing -> if (!finishedFlag.get()) show(
                     PublishActivity(id, working, when (stage.signer) {
-                        com.example.btcwidget.nostr.SignerType.AMBER -> "Waiting for your signer app…"
-                        com.example.btcwidget.nostr.SignerType.BUNKER -> "Waiting for your remote signer…"
-                        else -> "Signing…"
+                        com.example.btcwidget.nostr.SignerType.AMBER -> tr("Waiting for your signer app…")
+                        com.example.btcwidget.nostr.SignerType.BUNKER -> tr("Waiting for your remote signer…")
+                        else -> tr("Signing…")
                     }, null, PublishActivity.State.WORKING)
                 )
                 is com.example.btcwidget.nostr.PublishTracker.Stage.Sending -> {
                     val total = stage.total.coerceAtLeast(1)
                     if (!finishedFlag.get()) show(PublishActivity(
                         id, working,
-                        if (stage.answered == 0) "Sending to ${stage.total} relays…" else "Sending · ${stage.answered} of ${stage.total} relays answered",
+                        if (stage.answered == 0) tr("Sending to {0} relays…", stage.total) else tr("Sending · {0} of {1} relays answered", stage.answered, stage.total),
                         // Never quite full until it's done: the first acceptance finishes it.
                         (0.1f + 0.85f * stage.answered / total).coerceAtMost(0.95f), PublishActivity.State.WORKING
                     ))
                     // Done already: keep counting the relays that have it while the tick shows.
                     else _activity.update { cur ->
                         if (cur?.id == id && cur.state == PublishActivity.State.DONE)
-                            cur.copy(status = "On ${stage.accepted} of ${stage.total} relays") else cur
+                            cur.copy(status = tr("On {0} of {1} relays", stage.accepted, stage.total)) else cur
                     }
                 }
             }
         }
-        show(PublishActivity(id, working, "Preparing…", null, PublishActivity.State.WORKING))
+        show(PublishActivity(id, working, tr("Preparing…"), null, PublishActivity.State.WORKING))
         trackers[id] = tracker
         jobs[id] = viewModelScope.launch {
             try {
                 withContext(tracker) { block() }
                 finishedFlag.set(true)
-                show(PublishActivity(id, "$done ✓", "Sent", 1f, PublishActivity.State.DONE))
+                show(PublishActivity(id, "$done ✓", tr("Sent"), 1f, PublishActivity.State.DONE))
                 clearLater(1_800)
             } catch (e: CancellationException) {
                 finishedFlag.set(true)
@@ -1418,13 +1418,18 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 throw e
             } catch (e: SignerRejected) {
                 finishedFlag.set(true)
-                show(PublishActivity(id, failure, "Cancelled in the signer", 1f, PublishActivity.State.FAILED))
+                show(PublishActivity(id, failure, tr("Cancelled in the signer"), 1f, PublishActivity.State.FAILED))
                 clearLater(3_000)
+            } catch (e: com.example.btcwidget.nostr.core.PublishRejected) {
+                finishedFlag.set(true)
+                show(PublishActivity(id, failure, rejectionText(e.why), 1f, PublishActivity.State.FAILED))
+                // Long enough to read what to do about it.
+                clearLater(7_000)
             } catch (e: Exception) {
                 finishedFlag.set(true)
                 Log.d("SocialViewModel", failure, e)
-                show(PublishActivity(id, failure, e.message ?: "Check your connection and try again.", 1f, PublishActivity.State.FAILED))
-                clearLater(4_000)
+                show(PublishActivity(id, failure, friendlyError(e), 1f, PublishActivity.State.FAILED))
+                clearLater(5_000)
             } finally {
                 lastMining.get()?.let { rememberHashRate(it.hashesPerSecond) }
                 trackers.remove(id)
@@ -1444,12 +1449,34 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 say(tr("Cancelled in the signer"))
             } catch (e: Exception) {
                 Log.d("SocialViewModel", failure, e)
-                say(e.message?.let { "$failure: $it" } ?: failure)
+                say(failure + " · " + if (e is com.example.btcwidget.nostr.core.PublishRejected) rejectionText(e.why) else friendlyError(e))
             } finally {
                 finally()
             }
         }
     }
+}
+
+/** Why relays turned a post down, in the user's language, with what to do about it. */
+internal fun rejectionText(why: com.example.btcwidget.nostr.core.RelayRejection.Explained): String = when (why.reason) {
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.POW ->
+        tr("A relay asks for proof of work ({0}). Turn it on in Settings › Proof of work and post again.", why.detail)
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.RATE_LIMITED -> tr("Relays are limiting how fast you post. Wait a minute and try again.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.AUTH -> tr("Your relays want you to sign in to them first. Try again in a moment, or add other relays in Settings › Relays.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.PAYMENT -> tr("These are paid relays. Pay for one, or add free relays in Settings › Relays.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.RESTRICTED -> tr("Your relays only take posts from their members. Add other relays in Settings › Relays.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.BLOCKED -> tr("Your relays won't take this post ({0}). Try other relays in Settings › Relays.", why.detail)
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.INVALID -> tr("Relays say the post is invalid ({0}).", why.detail)
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.DUPLICATE -> tr("Your relays already have this post.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.NO_ANSWER -> tr("No relay answered. Check your connection and try again.")
+    com.example.btcwidget.nostr.core.RelayRejection.Reason.OTHER -> tr("Relays turned it down: {0}", why.detail)
+}
+
+/** Any other failure, worded for people: no connection, timed out, or what it said. */
+internal fun friendlyError(e: Throwable): String = when (e) {
+    is java.net.UnknownHostException, is java.net.ConnectException -> tr("No internet connection. Check it and try again.")
+    is java.net.SocketTimeoutException, is kotlinx.coroutines.TimeoutCancellationException -> tr("That took too long. Check your connection and try again.")
+    else -> e.message?.takeIf { it.isNotBlank() }?.let { tr("Something went wrong: {0}", it) } ?: tr("Check your connection and try again.")
 }
 
 /** Mining longer than this lets the composer close while the post carries on in the status bar. */

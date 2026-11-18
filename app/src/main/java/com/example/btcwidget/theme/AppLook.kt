@@ -54,6 +54,50 @@ enum class AppLook(val id: String, val title: String, val summary: String, val c
                 cx = 0f, cy = 0f, rx = 1.4f, ry = 0.8f
             )
         )
+    ),
+
+    /** Zeus's Gilded: black with a soft champagne glow, gold accents and near-black surfaces. */
+    GILDED(
+        "gilded", "Gilded", "Black with a soft gold glow, from Zeus",
+        LookColors(
+            background = 0xFF000000.toInt(),
+            body = 0xFF141414.toInt(),
+            bodyStroke = 0xFF262523.toInt(),
+            value = 0xFFFFFFFF.toInt(),
+            label = 0xFFCFC9BE.toInt(),
+            caption = 0xFFA3A09A.toInt(),
+            track = 0xFF2C2A26.toInt(),
+            alert = 0xFFE14C4C.toInt(),
+            accent = 0xFFD5BF8D.toInt(),
+            onAccent = 0xFF1A1814.toInt(),
+            sheet = 0xFF141414.toInt(),
+            success = 0xFF46BE43.toInt(),
+            glow = Glow(
+                colors = listOf(0xFF4F473C.toInt(), 0xFF3A342B.toInt(), 0xFF1C1A16.toInt(), 0xFF000000.toInt()),
+                stops = listOf(0f, 0.3f, 0.6f, 1f),
+                cx = 0f, cy = 0f, rx = 1.4f, ry = 0.8f
+            )
+        )
+    ),
+
+    /** Zeus's Kyriaki: charcoal grey with Zeus orange, no glow. */
+    KYRIAKI(
+        "kyriaki", "Kyriaki", "Charcoal with Zeus orange",
+        LookColors(
+            background = 0xFF1E2022.toInt(),
+            body = 0xFF2A2E35.toInt(),
+            bodyStroke = 0xFF31363F.toInt(),
+            value = 0xFFFFFFFF.toInt(),
+            label = 0xFFCDCFD2.toInt(),
+            caption = 0xFFA7A9AC.toInt(),
+            track = 0xFF3B414B.toInt(),
+            alert = 0xFFE14C4C.toInt(),
+            accent = 0xFFFFA900.toInt(),
+            onAccent = 0xFF000000.toInt(),
+            sheet = 0xFF2A2E35.toInt(),
+            success = 0xFF46BE43.toInt(),
+            glow = null
+        )
     );
 
     companion object {
@@ -142,4 +186,35 @@ fun contrast(a: Int, b: Int): Double {
     }
     val (hi, lo) = lum(a).let { x -> lum(b).let { y -> if (x > y) x to y else y to x } }
     return (hi + 0.05) / (lo + 0.05)
+}
+
+/**
+ * The glow's colour at ([u], [v]), fractions of the window (0–1): the gradient's stops along the
+ * distance from its centre, the ellipse's radii counting as 1. Pure, so the bitmap the app
+ * draws from can be checked in tests.
+ */
+fun glowColorAt(glow: Glow, u: Float, v: Float): Int {
+    val dx = (u - glow.cx) / glow.rx
+    val dy = (v - glow.cy) / glow.ry
+    val d = kotlin.math.sqrt(dx * dx + dy * dy).coerceIn(0f, 1f)
+    val stops = glow.stops
+    if (d <= stops.first()) return glow.colors.first()
+    for (i in 1 until stops.size) {
+        if (d <= stops[i]) {
+            val t = (d - stops[i - 1]) / (stops[i] - stops[i - 1]).coerceAtLeast(1e-6f)
+            return lerpArgb(glow.colors[i - 1], glow.colors[i], t)
+        }
+    }
+    return glow.colors.last()
+}
+
+/**
+ * The glow as a small [width] × [height] picture (ARGB, row by row), for a window [aspect]
+ * (width ÷ height) wide. Drawn stretched over the window it's indistinguishable from the
+ * gradient, and costs one bitmap draw instead of a full-screen shader.
+ */
+fun glowPixels(glow: Glow, width: Int, height: Int): IntArray = IntArray(width * height) { i ->
+    val x = i % width
+    val y = i / width
+    glowColorAt(glow, (x + 0.5f) / width, (y + 0.5f) / height)
 }
