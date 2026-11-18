@@ -59,7 +59,14 @@ data class FeedItem(val note: Event, val repostedBy: String? = null, val sortTim
 class PublishTracker(val onStage: (Stage) -> Unit) : kotlin.coroutines.AbstractCoroutineContextElement(PublishTracker) {
     companion object Key : kotlin.coroutines.CoroutineContext.Key<PublishTracker>
 
+    /** Set to stop mining and publish the event without proof of work. */
+    val skipPow = java.util.concurrent.atomic.AtomicBoolean(false)
+
     sealed interface Stage {
+        /** Mining proof of work (NIP-13) for [difficulty] bits: [hashes] tried in [elapsedMs]. */
+        data class Mining(val difficulty: Int, val hashes: Long, val elapsedMs: Long) : Stage {
+            val hashesPerSecond: Double get() = if (elapsedMs <= 0) 0.0 else hashes * 1000.0 / elapsedMs
+        }
         /** Waiting for the signature; [signer] says whose (an app or a remote signer can take a while). */
         data class Signing(val signer: SignerType?) : Stage
         /** Sent to [total] relays; [answered] have replied, [accepted] of them took it. */
@@ -938,6 +945,24 @@ class NostrRepository private constructor(private val context: Context) {
         }?.also { relayInfos[relay] = it }
     }
 
+    /**
+     * The most proof of work (NIP-11 `min_pow_difficulty`) any relay a post goes to asks for,
+     * and which relay that is. Asks each relay once per session, waiting at most [timeoutMs].
+     */
+    suspend fun relaysMinPow(timeoutMs: Long = 1_500): Pair<Int, String?> = coroutineScope {
+        val asks = pool.urls.toList().map { url ->
+            async {
+                // Relays that don't answer count as asking nothing, and aren't asked again.
+                url to (relayMinPow[url] ?: (kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { relayInfo(url) }?.minPowDifficulty ?: 0)
+                    .also { relayMinPow[url] = it })
+            }
+        }.awaitAll()
+        val top = asks.maxByOrNull { it.second }
+        val bits = top?.second ?: 0
+        bits to top?.first?.takeIf { bits > 0 }
+    }
+    private val relayMinPow = ConcurrentHashMap<String, Int>()
+
     /** What a search box entry points straight at, if anything. */
     sealed interface Direct {
         data class ProfileTarget(val pubkey: String) : Direct
@@ -1404,10 +1429,26 @@ class NostrRepository private constructor(private val context: Context) {
      * (an action the user is watching, like a repost or reply) it reports each step, and is done
      * as soon as one relay has it while the rest answer in the background.
      */
-    suspend fun publish(unsigned: UnsignedEvent, fast: Boolean = false): Event {
+    /**
+     * Signs and sends [unsigned]. With [pow] > 0 it first mines that many bits of proof of work
+     * (NIP-13) on every core but one; a [PublishTracker] in the context sees the progress and
+     * can skip the work ([PublishTracker.skipPow]) to send the event without it.
+     */
+    suspend fun publish(unsigned: UnsignedEvent, fast: Boolean = false, pow: Int = 0): Event {
         val tracker = kotlin.coroutines.coroutineContext[PublishTracker]
+        val ready = if (pow <= 0) unsigned else {
+            val difficulty = pow.coerceAtMost(com.example.btcwidget.nostr.core.Pow.MAX_DIFFICULTY)
+            tracker?.onStage?.invoke(PublishTracker.Stage.Mining(difficulty, 0, 0))
+            // Fresh time: the post is "made" when the work starts, not when the composer opened.
+            com.example.btcwidget.nostr.core.Pow.mine(
+                unsigned.copy(createdAt = maxOf(unsigned.createdAt, com.example.btcwidget.nostr.core.Events.now())),
+                difficulty,
+                skip = { tracker?.skipPow?.get() == true }
+            ) { p -> tracker?.onStage?.invoke(PublishTracker.Stage.Mining(difficulty, p.hashes, p.elapsedMs)) }
+                ?: com.example.btcwidget.nostr.core.Pow.withoutNonce(unsigned)
+        }
         tracker?.onStage?.invoke(PublishTracker.Stage.Signing(_account.value?.type))
-        val signed = requireSigner().sign(unsigned)
+        val signed = requireSigner().sign(ready)
         // [fast]: done once one relay has it (lists the UI already shows as changed).
         var total = 0
         val answered = java.util.concurrent.atomic.AtomicInteger()
@@ -1428,16 +1469,16 @@ class NostrRepository private constructor(private val context: Context) {
         return signed
     }
 
-    suspend fun post(content: String, extraTags: List<List<String>> = emptyList()): Event =
-        publish(Events.note(requireMe(), content, extraTags)).also { e ->
+    suspend fun post(content: String, extraTags: List<List<String>> = emptyList(), pow: Int = 0): Event =
+        publish(Events.note(requireMe(), content, extraTags), pow = pow).also { e ->
             publishToInbox(e, e.tagValues("p"))
         }
-    suspend fun reply(content: String, parent: Event, extraTags: List<List<String>> = emptyList()): Event =
-        publish(Events.reply(requireMe(), content, parent, relayHint(), extraTags)).also { e ->
+    suspend fun reply(content: String, parent: Event, extraTags: List<List<String>> = emptyList(), pow: Int = 0): Event =
+        publish(Events.reply(requireMe(), content, parent, relayHint(), extraTags), pow = pow).also { e ->
             publishToInbox(e, (e.tagValues("p") + parent.pubkey).distinct())
         }
-    suspend fun quote(content: String, quoted: Event, extraTags: List<List<String>> = emptyList()): Event =
-        publish(Events.quote(requireMe(), content, quoted, relayHint(), extraTags)).also { e ->
+    suspend fun quote(content: String, quoted: Event, extraTags: List<List<String>> = emptyList(), pow: Int = 0): Event =
+        publish(Events.quote(requireMe(), content, quoted, relayHint(), extraTags), pow = pow).also { e ->
             publishToInbox(e, (e.tagValues("p") + quoted.pubkey).distinct())
         }
 

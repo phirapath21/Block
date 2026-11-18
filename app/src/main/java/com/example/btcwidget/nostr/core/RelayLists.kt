@@ -63,7 +63,9 @@ data class RelayInfo(
     val paymentRequired: Boolean,
     val authRequired: Boolean,
     val restrictedWrites: Boolean,
-    val paymentsUrl: String?
+    val paymentsUrl: String?,
+    /** NIP-11 `limitation.min_pow_difficulty`: the proof of work (NIP-13) it asks for; 0 = none. */
+    val minPowDifficulty: Int = 0
 ) {
     companion object {
         fun parse(json: String): RelayInfo? = runCatching {
@@ -80,7 +82,8 @@ data class RelayInfo(
                 paymentRequired = lim?.optBoolean("payment_required") == true,
                 authRequired = lim?.optBoolean("auth_required") == true,
                 restrictedWrites = lim?.optBoolean("restricted_writes") == true,
-                paymentsUrl = str("payments_url")
+                paymentsUrl = str("payments_url"),
+                minPowDifficulty = lim?.optInt("min_pow_difficulty", 0)?.coerceIn(0, 256) ?: 0
             )
         }.getOrNull()
 

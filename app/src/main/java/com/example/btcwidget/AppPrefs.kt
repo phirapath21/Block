@@ -44,6 +44,9 @@ object AppPrefs {
     private const val LANDING_DONE = "landing_done"
     private const val LINKS_IN_APP = "links_in_app"
     private const val PRIVATE_LISTS = "private_lists"
+    private const val POW_DIFFICULTY = "pow_difficulty"
+    private const val POW_MATCH_RELAYS = "pow_match_relays"
+    private const val POW_HASH_RATE = "pow_hash_rate"
     private const val LANGUAGE = "language"
     private const val RECENT_SEARCHES = "recent_searches"
     private const val RECENT_PROFILES = "recent_profiles"
@@ -75,6 +78,18 @@ object AppPrefs {
     /** New bookmarks and mutes are private (encrypted, NIP-51; the default) or public. */
     fun privateLists(context: Context): Boolean = prefs(context).getBoolean(PRIVATE_LISTS, true)
     fun setPrivateLists(context: Context, private: Boolean) = edit(context) { putBoolean(PRIVATE_LISTS, private) }
+
+    /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
+    fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)
+    fun setPowDifficulty(context: Context, bits: Int) = edit(context) { putInt(POW_DIFFICULTY, bits) }
+
+    /** Mine at least what the user's relays ask for (NIP-11 `min_pow_difficulty`); on by default. */
+    fun powMatchRelays(context: Context): Boolean = prefs(context).getBoolean(POW_MATCH_RELAYS, true)
+    fun setPowMatchRelays(context: Context, match: Boolean) = edit(context) { putBoolean(POW_MATCH_RELAYS, match) }
+
+    /** This phone's last measured hashes per second (0 = not measured yet), for time estimates. */
+    fun powHashRate(context: Context): Float = prefs(context).getFloat(POW_HASH_RATE, 0f)
+    fun setPowHashRate(context: Context, rate: Float) = edit(context) { putFloat(POW_HASH_RATE, rate) }
 
     /** Whether the welcome page was passed (logged in, or chose to look around first). */
     fun landingDone(context: Context): Boolean = prefs(context).getBoolean(LANDING_DONE, false)

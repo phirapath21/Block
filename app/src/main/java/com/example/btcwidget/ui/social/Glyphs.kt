@@ -140,6 +140,8 @@ object Glyphs {
     val ListLine = stroked("ListLine", "M9,7h11M9,12h11M9,17h11M4.5,7h0.01M4.5,12h0.01M4.5,17h0.01")
 
     // The composer's toolbar, drawn for Block.
+    /** A pickaxe: proof of work (NIP-13). */
+    val Pickaxe = stroked("Pickaxe", "M4.5,19.5L17.6,6.4M6.5,6.3C10.5,3.3 16.5,2.6 19.1,4.9C21.4,7.5 20.7,13.5 17.7,17.5", 1.9f)
     val Poll = stroked("Poll", "M5,19.5V13M10,19.5V5M15,19.5V9.5M20,19.5V15.5M3.5,19.5h18")
     val Calendar = stroked("Calendar", "M5.5,5.5h13a1.5,1.5 0,0 1,1.5 1.5v11.5a1.5,1.5 0,0 1,-1.5 1.5h-13a1.5,1.5 0,0 1,-1.5 -1.5V7a1.5,1.5 0,0 1,1.5 -1.5zM4,10h16M8.5,3.5v3.5M15.5,3.5v3.5M12,13v2.5l1.8,1.2")
     val Warning = stroked("Warning", "M12,4.5L21,19.5H3zM12,10v4.5M12,17h0.01")

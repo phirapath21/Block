@@ -238,6 +238,9 @@ private fun AuthorLine(note: Event, author: Profile?, actions: NoteActions, larg
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (isVerified(author, note.pubkey)) VerifiedBadge(if (small) 15.dp else 17.dp, Modifier.padding(start = 3.dp))
+            // Proof of work (NIP-13) the author mined into the note.
+            val powBits = remember(note.id) { com.example.btcwidget.nostr.core.Pow.difficultyOf(note) }
+            PowBadge(powBits, Modifier.padding(start = 5.dp))
         }
         if (!large) Text(
             "• " + relativeTime(note.createdAt), color = EInk.Caption, fontSize = if (small) 13.sp else 14.sp, maxLines = 1
