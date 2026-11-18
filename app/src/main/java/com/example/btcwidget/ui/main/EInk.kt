@@ -60,7 +60,7 @@ object EInk {
             if (value == target) return
             from = current
             target = value
-            lookProgress = if (animateLooks) 0f else 1f
+            lookProgress = if (animateLooks && fadeLooks) 0f else 1f
         }
     private var target by mutableStateOf(com.example.btcwidget.theme.AppLook.DEFAULT)
     private var from by mutableStateOf(com.example.btcwidget.theme.AppLook.DEFAULT.colors)
@@ -68,6 +68,8 @@ object EInk {
     var lookProgress by mutableFloatStateOf(1f)
     /** Off until the UI is up, so the saved look applies at once when the app starts. */
     var animateLooks = false
+    /** False switches looks at once (UI tests, which check the result rather than the fade). */
+    var fadeLooks = true
 
     /** The colours on screen now (mid-fade while changing look). */
     val current: com.example.btcwidget.theme.LookColors
