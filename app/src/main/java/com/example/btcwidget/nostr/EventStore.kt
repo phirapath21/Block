@@ -111,7 +111,14 @@ class EventStore(context: Context) : SQLiteOpenHelper(context.applicationContext
 
     fun prune(keep: Int, myPubkeys: Set<String>, protectedIds: Set<String>) {
         val db = runCatching { writableDatabase }.getOrNull() ?: return
-        runCatching { EventSql.prune(keep, myPubkeys, protectedIds).forEach { exec(db, it.sql, it.args) } }
+        // One transaction: one connection for the temporary keep-list, and fast inserts into it.
+        runCatching {
+            db.beginTransaction()
+            try {
+                EventSql.prune(keep, myPubkeys, protectedIds).forEach { exec(db, it.sql, it.args) }
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+        }
     }
 
     fun clear() {
@@ -124,8 +131,9 @@ class EventStore(context: Context) : SQLiteOpenHelper(context.applicationContext
         val db = runCatching { writableDatabase }.getOrNull() ?: return
         runCatching {
             val authorsClause = if (myPubkeys.isEmpty()) "" else " AND pubkey NOT IN (${myPubkeys.joinToString(",") { "?" }})"
+            // Private messages and the lists every screen needs are kept whatever their age.
             val ids = db.rawQuery(
-                "SELECT id FROM events WHERE created_at < ?$authorsClause",
+                "SELECT id FROM events WHERE created_at < ? AND kind NOT IN (${EventSql.KEPT_KINDS})$authorsClause",
                 (listOf(cutoff.toString()) + myPubkeys).toTypedArray()
                 ).use { c -> buildList { while (c.moveToNext()) c.getString(0)?.let { if (it !in protectedIds) add(it) } } }
             db.beginTransaction()

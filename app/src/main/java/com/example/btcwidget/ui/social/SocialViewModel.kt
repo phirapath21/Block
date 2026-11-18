@@ -622,7 +622,23 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     suspend fun thread(id: String) = runCatching { repo.thread(id) }.getOrNull()
-    suspend fun note(id: String) = runCatching { repo.note(id) }.getOrNull()
+    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null) =
+        runCatching { repo.note(id, relays, author) }.getOrNull()
+
+    /** [pubkey]'s published relays (NIP-65), for their profile. */
+    suspend fun relayListOf(pubkey: String) = runCatching { repo.relayListOf(pubkey) }.getOrDefault(emptyList())
+
+    /**
+     * Adds [url] to the user's relay list (NIP-65, read and write) and publishes it. With no
+     * list published yet, it starts from the relays Block uses now, so none are dropped.
+     */
+    fun addRelayToMine(url: String) {
+        val current = repo.relayEntries.value.ifEmpty {
+            repo.currentRelayUrls().map { com.example.btcwidget.nostr.core.RelayLists.Entry(it, read = true, write = true) }
+        }
+        if (current.any { it.url.trimEnd('/') == url.trimEnd('/') }) { say(tr("Already in your relays")); return }
+        saveRelayList(current + com.example.btcwidget.nostr.core.RelayLists.Entry(url, read = true, write = true))
+    }
     fun hashtagSuggestions(prefix: String) = repo.hashtagSuggestions(prefix)
     suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address): com.example.btcwidget.nostr.core.Article? {
         val key = "${address.kind}:${address.pubkey}:${address.identifier}"

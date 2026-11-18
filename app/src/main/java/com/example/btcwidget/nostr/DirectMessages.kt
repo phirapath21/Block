@@ -359,6 +359,12 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
     companion object {
         private const val WRAP_CACHE = "dm_wraps"
         private const val MOD_PREFS = "dm_moderation_prefs"
+
+        /** Forgets [pubkey]'s "delete for me" and unsent message lists (on logout or removing the account). */
+        fun clearLocalModeration(context: android.content.Context, pubkey: String) {
+            context.getSharedPreferences(MOD_PREFS, android.content.Context.MODE_PRIVATE).edit()
+                .remove("del_$pubkey").remove("unsent_$pubkey").apply()
+        }
         const val MAX_FILE = 25L * 1024 * 1024
 
         /** Inbox relays suggested when setting up DMs. */

@@ -93,6 +93,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
     var addToList by remember(pubkey) { mutableStateOf(false) }
     var profileMenu by remember(pubkey) { mutableStateOf(false) }
     var showQr by remember(pubkey) { mutableStateOf(false) }
+    var showRelays by remember(pubkey) { mutableStateOf(false) }
     val badges by produceKept<List<Badges.Definition>>(emptyList(), pubkey) { value = vm.badgesOf(pubkey) }
     // Loaded the first time the Articles tab opens.
     var articles by rememberKeptState<List<Article>?>(pubkey) { null }
@@ -150,6 +151,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
     Box(Modifier.fillMaxSize().background(EInk.Background).onSizeChanged { widthPx = it.width }) {
         if (addToList) AddToListSheet(vm, pubkey, onClose = { addToList = false })
         if (showQr) ProfileQrDialog(vm, pubkey, navigate, onDismiss = { showQr = false })
+        if (showRelays) ProfileRelaysSheet(vm, pubkey, profile?.bestName ?: Profile.shortNpub(pubkey), canAdd = account != null && !isMe, onDismiss = { showRelays = false })
         if (profileMenu) {
             val context = LocalContext.current
             val name = profile?.bestName ?: Profile.shortNpub(pubkey)
@@ -164,6 +166,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                     Toast.makeText(context, tr("npub copied"), Toast.LENGTH_SHORT).show()
                 })
                 add(SheetAction(Glyphs.Person, tr("Lists by {0}", name)) { navigate(ListsKey(pubkey)) })
+                add(SheetAction(Glyphs.Relay, tr("Relays")) { showRelays = true })
                 if (loggedIn && !isMe) {
                     if (pubkey in muted) add(SheetAction(Glyphs.SoundOn, tr("Unmute {0}", name)) { vm.mute(pubkey, false) })
                     else add(SheetAction(Glyphs.SoundOff, tr("Mute {0}", name), destructive = true) { vm.mute(pubkey, true) })
@@ -374,5 +377,48 @@ private fun BadgesRow(badges: List<Badges.Definition>) {
                 modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
             )
         }
+    }
+}
+
+/**
+ * The relays [pubkey] publishes (NIP-65): where they post (write) and where they want to be
+ * reached (read). When their posts or picture don't show, one of these likely has them:
+ * each can be added to the user's own relays.
+ */
+@Composable
+private fun ProfileRelaysSheet(vm: SocialViewModel, pubkey: String, name: String, canAdd: Boolean, onDismiss: () -> Unit) {
+    val entries by androidx.compose.runtime.produceState<List<com.example.btcwidget.nostr.core.RelayLists.Entry>?>(null, pubkey) { value = vm.relayListOf(pubkey) }
+    val mine by vm.relayEntries.collectAsState()
+    BlockSheet(onDismiss) {
+        Text(tr("{0}'s relays", name), color = EInk.Value, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        Text(tr("From their relay list (NIP-65). Add one to your relays to see their posts and profile when your relays don't have them."),
+            color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp))
+        val list = entries
+        when {
+            list == null -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+            }
+            list.isEmpty() -> Text(tr("{0} hasn't published a relay list.", name), color = EInk.Caption, fontSize = 14.sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp))
+            else -> list.forEach { e ->
+                val have = mine.any { it.url.trimEnd('/') == e.url.trimEnd('/') }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(e.url.removePrefix("wss://").trimEnd('/'), color = EInk.Value, fontSize = 15.sp, maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(
+                            when { e.read && e.write -> tr("Posts and reads here"); e.write -> tr("Posts here"); else -> tr("Reads here") },
+                            color = EInk.Caption, fontSize = 12.sp
+                        )
+                    }
+                    if (canAdd) {
+                        if (have) Text(tr("Added"), color = EInk.Caption, fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        else PillButton(tr("Add"), filled = false) { vm.addRelayToMine(e.url) }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
     }
 }

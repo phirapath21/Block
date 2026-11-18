@@ -132,25 +132,38 @@ object EventSql {
      */
     fun prune(keep: Int, me: String?): List<Statement> = prune(keep, setOfNotNull(me), emptySet())
 
+    /**
+     * Kinds never pruned: profiles, follow and relay lists (the newest of each is needed), and
+     * private messages (legacy DMs and gift wraps: their sender's key is a throwaway, so "mine"
+     * can't protect them, and deleting them would empty chats while offline).
+     */
+    const val KEPT_KINDS = "0, 3, 4, 1059, 10002"
+
+    /**
+     * Like [prune] for several accounts, also keeping [protectedIds] (bookmarks). Those go
+     * through a temporary table rather than one SQL parameter each, which would fail past
+     * SQLite's 999-parameter limit (and the database would then never be pruned).
+     */
     fun prune(keep: Int, myPubkeys: Set<String>, protectedIds: Set<String>): List<Statement> {
-        val where = mutableListOf("kind NOT IN (0, 3, 10002)")
+        val where = mutableListOf("kind NOT IN ($KEPT_KINDS)")
         val args = mutableListOf<Any>()
         if (myPubkeys.isNotEmpty()) {
             where += "pubkey NOT IN (${myPubkeys.joinToString(",") { "?" }})"
             args.addAll(myPubkeys)
         }
-        if (protectedIds.isNotEmpty()) {
-            where += "id NOT IN (${protectedIds.joinToString(",") { "?" }})"
-            args.addAll(protectedIds)
-        }
+        where += "id NOT IN (SELECT id FROM prune_keep)"
         args += keep
         return listOf(
+            Statement("CREATE TEMP TABLE IF NOT EXISTS prune_keep (id TEXT PRIMARY KEY)", emptyList()),
+            Statement("DELETE FROM prune_keep", emptyList())
+        ) + protectedIds.map { Statement("INSERT OR IGNORE INTO prune_keep (id) VALUES (?)", listOf(it)) } + listOf(
             Statement(
                 "DELETE FROM events WHERE id IN (SELECT id FROM events WHERE ${where.joinToString(" AND ")} " +
                     "ORDER BY created_at DESC LIMIT -1 OFFSET ?)",
                 args
             ),
-            Statement("DELETE FROM tags WHERE event_id NOT IN (SELECT id FROM events)", emptyList())
+            Statement("DELETE FROM tags WHERE event_id NOT IN (SELECT id FROM events)", emptyList()),
+            Statement("DELETE FROM prune_keep", emptyList())
         )
     }
 }

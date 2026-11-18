@@ -23,7 +23,7 @@ The app keeps the following only on your device, in its private app storage:
 - **Your relay list**, if you edit it.
 - **Scheduled posts** — posts you scheduled, kept until they are published at their time (then signed and sent to your relays) or you cancel them. Excluded from Android backup and device transfer, and deleted when you log out.
 - **Drafts** — text you typed in the composer but didn't post (one per new post, reply or quote, up to 50), so you can pick up where you left off. Excluded from Android backup and device transfer, and deleted when you post or log out.
-- **A local database of Nostr events** you have seen (notes, profiles, lists, and private messages still in their encrypted form), so screens open instantly and work offline. It holds about 50,000 events at most, and events older than 30 days are removed automatically (you can choose 90 days or no age limit in Settings). It is excluded from Android backup and device transfer, and is deleted when you log out.
+- **A local database of Nostr events** you have seen (notes, profiles, lists, and private messages still in their encrypted form), so screens open instantly and work offline. It holds about 50,000 events at most, and events older than 30 days are removed automatically (you can choose 90 days or no age limit in Settings), except your own, your bookmarks, private messages (still encrypted) and profiles and lists. It is excluded from Android backup and device transfer, and is deleted when you log out.
 
 Uninstalling the app or clearing its storage deletes all of this.
 
