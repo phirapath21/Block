@@ -1,8 +1,16 @@
 package com.example.btcwidget.ui.social
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.btcwidget.nostr.core.HomeFeed
@@ -11,35 +19,55 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The Home feeds as tabs: switching, and the buttons at the end. */
+/** Home's feeds as tabs at the top, as on X: all in view, one tap to switch, Manage at the end. */
 class FeedTabsTest {
 
     @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun tappingATabSelectsThatFeed() {
-        var picked: HomeFeed? = null
+    fun everyFeedIsATabAndOneTapSwitches() {
         var managed = false
         composeTestRule.setContent {
+            var current by remember { mutableStateOf(HomeFeed.DEFAULTS.first()) }
             FeedTabBar(
                 feeds = HomeFeed.DEFAULTS + HomeFeed.Hashtag("siamstr"),
-                current = HomeFeed.DEFAULTS.first(),
-                onSelect = { picked = it }, onManage = { managed = true }
+                current = current,
+                onSelect = { current = it }, onManage = { managed = true }
             )
         }
-        // Collapsed by default: only the currently selected feed is shown.
-        composeTestRule.onNodeWithText("Latest").assertExists()
-        composeTestRule.onNodeWithText("With replies").assertDoesNotExist()
+        // All feeds show at once, the open one marked selected.
+        composeTestRule.onNodeWithTag("feed_tabs").assertExists()
+        composeTestRule.onNodeWithText("Latest").assertIsSelected()
+        composeTestRule.onNodeWithText("With replies").assertIsNotSelected()
+        composeTestRule.onNodeWithText("#siamstr").assertExists()
 
-        // Tap the pill to slide out the feed menu.
-        composeTestRule.onNodeWithText("Latest").performClick()
-        composeTestRule.onNodeWithText("With replies").assertExists()
+        // One tap switches.
         composeTestRule.onNodeWithText("With replies").performClick()
-        composeTestRule.runOnIdle { assertEquals(HomeFeed.Following(true), picked) }
+        composeTestRule.onNodeWithText("With replies").assertIsSelected()
+        composeTestRule.onNodeWithText("Latest").assertIsNotSelected()
 
-        // Menu auto-collapses after selecting; tap the pill again to access Manage feeds.
-        composeTestRule.onNodeWithText("Latest").performClick()
         composeTestRule.onNodeWithContentDescription("Manage feeds").performClick()
         composeTestRule.runOnIdle { assertTrue(managed) }
+    }
+
+    @Test
+    fun tappingTheOpenTabReportsIt() {
+        var picked: HomeFeed? = null
+        composeTestRule.setContent {
+            FeedTabBar(feeds = HomeFeed.DEFAULTS, current = HomeFeed.DEFAULTS.first(), onSelect = { picked = it }, onManage = {})
+        }
+        // Home turns this into "back to the top", as on X.
+        composeTestRule.onNodeWithText("Latest").performClick()
+        composeTestRule.runOnIdle { assertEquals(HomeFeed.DEFAULTS.first(), picked) }
+    }
+
+    @Test
+    fun tabsFoldAwayWithTheBars() {
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalBarsVisible provides false) {
+                FeedTabBar(feeds = HomeFeed.DEFAULTS, current = HomeFeed.DEFAULTS.first(), onSelect = {}, onManage = {})
+            }
+        }
+        composeTestRule.onNodeWithTag("feed_tabs").assertDoesNotExist()
     }
 }
