@@ -41,10 +41,9 @@ fun MainNavigation() {
     com.example.btcwidget.ui.social.LocalSidePanel provides { com.example.btcwidget.ui.social.SidePanel(social, navigate) }
   ) {
   androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
-  // While the lock screen is up, screen readers can't reach the app under it.
   androidx.compose.foundation.layout.Box(
     androidx.compose.ui.Modifier.fillMaxSize().then(
-      if (com.example.btcwidget.ui.social.AppLockState.locked) androidx.compose.ui.Modifier.clearAndSetSemantics {} else androidx.compose.ui.Modifier
+      androidx.compose.ui.Modifier
     )
   ) {
   NavDisplay(
@@ -136,7 +135,6 @@ fun MainNavigation() {
   // While a repost, reply or post is being sent: what it's waiting for, over every screen.
   com.example.btcwidget.ui.social.PublishStatusBar(social, androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopCenter))
   }
-  com.example.btcwidget.ui.social.AppLockGate(activity as? androidx.fragment.app.FragmentActivity)
   }
   }
 }

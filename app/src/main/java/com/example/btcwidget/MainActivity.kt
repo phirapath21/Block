@@ -2,8 +2,8 @@ package com.example.btcwidget
 
 import android.graphics.Color
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
-import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.btcwidget.nostr.SignerBridge
@@ -30,7 +30,7 @@ private const val PIP_CMD = "cmd"
 private const val PIP_TOGGLE = "toggle"
 private const val PIP_MUTE = "mute"
 
-class MainActivity : FragmentActivity() {
+class MainActivity : ComponentActivity() {
   /** Results from Nostr signer apps (NIP-55), handed to the waiting signer. */
   private val signerLauncher =
     registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { SignerBridge.onResult(it) }

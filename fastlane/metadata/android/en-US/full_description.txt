@@ -1,0 +1,24 @@
+Block is two things in one app: Bitcoin at a glance on your home screen, and a Nostr social client for the people who talk about it.
+
+<b>Bitcoin widgets and dashboard</b>
+<ul>
+<li>Home-screen widgets in a desk-blockclock style: price, sats per dollar or baht, block height, fees, hash rate, difficulty, halving countdown, Lightning capacity, Strategy (MSTR) and Strive (ASST) holdings, and the value of your stack.</li>
+<li>Price chart widget (24H / 7D / 30D / 1Y), halving countdown and Bitcoin quotes. Every widget is resizable.</li>
+<li>Dashboard with a large panel for the number you care about, alerts for price, fees, halving and difficulty adjustments, and USD or THB with your choice of price source.</li>
+</ul>
+
+<b>Nostr social</b>
+<ul>
+<li>A timeline laid out like X: notes, replies, reposts, quotes, likes, emoji reactions and zaps.</li>
+<li>Private messages (NIP-17), lists, bookmarks, communities, groups, live streams, Shorts and long-form articles.</li>
+<li>Photo albums, videos, polls, link previews, and live cards for Bitcoin transactions and blocks in posts.</li>
+<li>Zap in one tap with a Nostr Wallet Connect (NWC) wallet.</li>
+<li>Your relays your way: outbox model, relay checkup and suggestions, NIP-11 info.</li>
+<li>Proof of work (NIP-13) for your posts, and themes including Ember from Zeus.</li>
+<li>English and Thai.</li>
+</ul>
+
+<b>Private by design</b>
+No account of ours, no ads, no analytics, no tracking. Market data comes from public sources such as mempool.space; social data from the Nostr relays you choose. Your key stays on your phone (encrypted with the Android Keystore) or in your signer app (Amber, or a remote signer).
+
+Block shows information only. It is not an exchange and does not give financial advice.

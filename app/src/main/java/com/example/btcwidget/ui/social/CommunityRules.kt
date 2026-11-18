@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.sp
 import com.example.btcwidget.ui.main.EInk
 
 /**
- * Community rules shown in the app (also in docs/community-rules.md). Google Play requires
- * apps with user posts to state what isn't allowed, and to offer reporting and blocking.
+ * Community rules shown in the app (also in docs/community-rules.md): what isn't welcome, and
+ * how to mute and report it.
  */
 object CommunityRules {
     const val TITLE = "Community rules"

@@ -32,13 +32,6 @@ object AppPrefs {
     private const val HISTORY_AT = "history_fetched_at"
     private const val MEMPOOL_URL = "mempool_url"
     private const val EVENT_RETENTION_DAYS = "event_retention_days"
-    private const val APP_PIN_SALT = "app_pin_salt"
-    private const val APP_PIN_HASH = "app_pin_hash"
-    private const val APP_PIN_LENGTH = "app_pin_length"
-    private const val APP_PIN_FAILURES = "app_pin_failures"
-    private const val APP_PIN_LOCKED_UNTIL = "app_pin_locked_until"
-    private const val APP_BIOMETRIC_LOCK = "app_biometric_lock"
-    private const val APP_LOCK_PREFERENCE = "app_lock_preference"
     private const val VIDEO_AUTOPLAY = "video_autoplay"
     private const val VIDEO_QUALITY = "video_quality"
     private const val LANDING_DONE = "landing_done"
@@ -46,8 +39,6 @@ object AppPrefs {
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
-    private const val APP_LOCK_SCOPE = "app_lock_scope"
-    private const val APP_LOCK_AFTER = "app_lock_after_ms"
     private const val WHATS_NEW_SEEN = "whats_new_seen"
     private const val BTC_TX_CARDS = "btc_tx_cards"
     private const val BTC_BLOCK_CARDS = "btc_block_cards"
@@ -66,7 +57,11 @@ object AppPrefs {
     private fun chartRange(id: Int) = "chart_range_$id"
 
     /** Keys written by older versions for features that no longer exist. */
-    private val OBSOLETE = listOf("haptic_enabled", "blockclock_theme")
+    private val OBSOLETE = listOf(
+        "haptic_enabled", "blockclock_theme",
+        // The app lock (removed): its PIN hash and salt, failures and choices.
+        "app_pin_salt", "app_pin_hash", "app_pin_length", "app_pin_failures", "app_pin_locked_until", "app_biometric_lock", "app_lock_preference", "app_lock_scope", "app_lock_after_ms"
+    )
 
     const val DEFAULT_REFRESH_MINUTES = 30
     private const val DEFAULT_HERO = "BLOCK"
@@ -229,41 +224,6 @@ object AppPrefs {
     fun eventRetentionDays(context: Context): Int = prefs(context).getInt(EVENT_RETENTION_DAYS, 30)
     fun setEventRetentionDays(context: Context, days: Int) = edit(context) {
         putInt(EVENT_RETENTION_DAYS, days.takeIf { it in setOf(0, 30, 90) } ?: 30)
-    }
-
-    fun appPinSalt(context: Context): String? = prefs(context).getString(APP_PIN_SALT, null)
-    fun appPinHash(context: Context): String? = prefs(context).getString(APP_PIN_HASH, null)
-    fun hasAppPin(context: Context): Boolean = appPinSalt(context) != null && appPinHash(context) != null
-    fun setAppPin(context: Context, salt: String, hash: String, length: Int) = edit(context) {
-        putString(APP_PIN_SALT, salt); putString(APP_PIN_HASH, hash); putInt(APP_PIN_LENGTH, length)
-        remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL)
-    }
-    fun clearAppPin(context: Context) = edit(context) {
-        remove(APP_PIN_SALT); remove(APP_PIN_HASH); remove(APP_PIN_LENGTH); remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL)
-        remove(APP_BIOMETRIC_LOCK); putString(APP_LOCK_PREFERENCE, "PIN")
-    }
-    /** How many digits the PIN has (0 for PINs set before this was stored). */
-    fun appPinLength(context: Context): Int = prefs(context).getInt(APP_PIN_LENGTH, 0)
-    /** Wrong PINs in a row, kept across restarts so closing the app doesn't reset the wait. */
-    fun appPinFailures(context: Context): Int = prefs(context).getInt(APP_PIN_FAILURES, 0)
-    fun appPinLockedUntil(context: Context): Long = prefs(context).getLong(APP_PIN_LOCKED_UNTIL, 0L)
-    fun setAppPinFailures(context: Context, failures: Int, lockedUntil: Long) = edit(context) {
-        putInt(APP_PIN_FAILURES, failures); putLong(APP_PIN_LOCKED_UNTIL, lockedUntil)
-    }
-    fun clearAppPinFailures(context: Context) = edit(context) { remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL) }
-    fun biometricLock(context: Context): Boolean = prefs(context).getBoolean(APP_BIOMETRIC_LOCK, false)
-    fun setBiometricLock(context: Context, enabled: Boolean) = edit(context) { putBoolean(APP_BIOMETRIC_LOCK, enabled) }
-    /** What the app lock guards: "app" (the default) or "sensitive" (private key, payments, messages). */
-    fun appLockScope(context: Context): String = prefs(context).getString(APP_LOCK_SCOPE, null) ?: "app"
-    fun setAppLockScope(context: Context, scope: String) = edit(context) { putString(APP_LOCK_SCOPE, scope) }
-
-    /** How long Block can be in the background before it asks again (0 = at once). */
-    fun appLockAfterMs(context: Context): Long = prefs(context).getLong(APP_LOCK_AFTER, 0L)
-    fun setAppLockAfterMs(context: Context, ms: Long) = edit(context) { putLong(APP_LOCK_AFTER, ms) }
-
-    fun appLockPreference(context: Context): String = prefs(context).getString(APP_LOCK_PREFERENCE, "PIN") ?: "PIN"
-    fun setAppLockPreference(context: Context, preference: String) = edit(context) {
-        putString(APP_LOCK_PREFERENCE, preference.takeIf { it == "PIN" || it == "BIOMETRIC" } ?: "PIN")
     }
 
     // ---- Your stack (stored only on this device, in satoshis) ----

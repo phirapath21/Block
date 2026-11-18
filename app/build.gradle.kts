@@ -24,8 +24,13 @@ android {
     // The NDK is only used to strip debug data from the native libraries we ship (secp256k1);
     // without a set version the build packaged them unstripped, about 5 MB over all CPU types.
     ndkVersion = "27.2.12479018"
+    // F-Droid and reproducible builds: no Google-encrypted dependency report inside the APK.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
     defaultConfig {
-        // Store identity: unique on Google Play and permanent once published.
+        // The app's identity on Zapstore and F-Droid: permanent once published.
         applicationId = "io.github.phirapath21.btcwidget"
         minSdk = 24
         targetSdk = 36
@@ -83,8 +88,6 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
-  // AndroidX biometric prompts and in-app QR camera preview.
-  implementation(libs.androidx.fragment)
 
   // Arch Components
   implementation(libs.androidx.lifecycle.runtime.compose)
@@ -132,7 +135,6 @@ dependencies {
   implementation(libs.coil.gif)
   implementation(libs.media3.exoplayer)
   // Fingerprint / face prompt with compatibility down to Android 7.
-  implementation(libs.androidx.biometric)
   // HLS (.m3u8) streams: the videos that offer several qualities to choose from
   implementation(libs.media3.exoplayer.hls)
   // QR codes: ZXing core encoder/decoder with our own CameraX preview and analyzer.

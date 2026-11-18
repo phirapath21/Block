@@ -1,15 +1,21 @@
-# Releasing Block to Google Play
+# Releasing Block (Zapstore and F-Droid)
 
-## 1. Create the upload key (once)
+Block is released in two places, and only these:
 
-Keep the keystore and passwords somewhere safe and **never commit them** (`.gitignore` already excludes `*.jks`, `*.keystore` and `keystore.properties`).
+- **Zapstore**: the signed APK attached to a GitHub release, published to Nostr with the `zapstore` command-line tool.
+- **F-Droid**: F-Droid builds the app itself from this repository's source at a release tag.
+
+Both read the store listing from [`fastlane/metadata/android/`](../fastlane/metadata/android/), so the text and pictures live in one place.
+
+## 1. The signing key (once)
+
+Keep the keystore and its passwords safe and **never commit them**. `.gitignore` already excludes `*.jks`, `*.keystore` and `keystore.properties`.
 
 ```bash
 keytool -genkeypair -v -keystore release.jks -alias blockface -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-The alias `blockface` is from before the app was renamed Block. Keep it: if you already made this keystore, its alias can't change, and every update must be signed with the same key.
-
+The alias `blockface` dates from before the app was renamed Block. If you already made this keystore, keep it: an alias can't change.
 
 Create `keystore.properties` in the project root:
 
@@ -20,15 +26,23 @@ keyAlias=blockface
 keyPassword=YOUR_KEY_PASSWORD
 ```
 
-With **Play App Signing** (the default for new apps), this is your *upload* key; Google holds the app signing key. If the upload key is lost, it can be reset through Play Console support.
+**Back up the keystore in two places.** There is no store that can reset it. Every update must be signed with the same key, or Android refuses to install it over the old one, and people would have to uninstall (losing their settings) to update.
 
-## 2. Set the version
+## 2. Version and changelog
 
-In `app/build.gradle.kts`, raise `versionCode` by 1 for every upload and set `versionName` (e.g. `1.0.0`, `1.0.1`).
+In `app/build.gradle.kts`, set:
+- `versionCode`: raise it by 1 for every release;
+- `versionName`: for example `1.0.1`.
+
+Write what changed, in at most 500 characters, to:
+- `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`;
+- `fastlane/metadata/android/th/changelogs/<versionCode>.txt` (Thai), if you can.
+
+F-Droid shows these files next to the update.
 
 ## 3. Test the release build
 
-R8 shrinking is on for release builds, so test the release build itself, not just debug:
+R8 shrinking is on for release builds, so test the release APK itself, not only debug.
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -40,32 +54,135 @@ R8 shrinking is on for release builds, so test the release build itself, not jus
 
 Install `app/build/outputs/apk/release/app-release.apk` on a phone and check:
 
-- [ ] Dashboard: hero panel, chips, price chart (drag on it), pull to refresh
-- [ ] Widgets tab: switches, drag to reorder, collapse sections, Reset
-- [ ] Add each widget (Bitcoin metrics, Price chart, Halving, Quotes); resize them; tap them
-- [ ] Settings: currency USD/THB, price sources (Kraken, Bitkub), your stack, privacy policy link
-- [ ] Alerts: switch one on (notification permission prompt), and wait for a background refresh
-- [ ] Airplane mode: cached data shows, "offline" banner, widgets keep their last values
+- [ ] **Bitcoin:**
+  - [ ] Dashboard: the large panel, the chips, the price chart, pull to refresh.
+  - [ ] Add each widget, resize it and tap it.
+  - [ ] Alerts: the permission prompt appears.
+- [ ] **Log in** with each method: nsec, Amber, and a remote signer (bunker).
+- [ ] **Timeline:** scrolls smoothly, photo albums, videos, a quoted note, Bitcoin transaction rows and their sheet.
+- [ ] **Post, reply and quote:**
+  - [ ] with an image;
+  - [ ] with proof of work turned on (Settings › Proof of work).
+- [ ] **Private messages:** send and receive.
+- [ ] **Zaps:**
+  - [ ] with an NWC wallet;
+  - [ ] without one (an external wallet app opens).
+- [ ] **Live:** a stream (side panel › Live), its chat and details sheet, the mini player and picture-in-picture.
+- [ ] **Shorts, search, profile, bookmarks.**
+- [ ] **Themes:** Block, Ember, Gilded, Kyriaki. **Language:** Thai.
+- [ ] **Airplane mode:** cached data shows, and the widgets keep their last values.
 
-## 4. Build the bundle Play needs
+## 4. Tag and make a GitHub release
+
+F-Droid finds new versions by their tags, so always tag releases as `v<versionName>`.
 
 ```bash
-./gradlew bundleRelease
+git tag v1.0.1
 ```
 
-Upload `app/build/outputs/bundle/release/app-release.aab`.
+```bash
+git push origin v1.0.1
+```
 
-## 5. Play Console checklist
+Build the signed APK at that tag and check its signature:
 
-1. Create the app: name **Block: Bitcoin Widgets**, default language English, App, Free.
-2. **Store listing:** text and graphics from `docs/play-store/listing.md` and `docs/play-store/graphics/`.
-3. **App content:** privacy policy URL, Data safety, ads, app access, content rating, target audience, financial features — answers in `docs/play-store/policy-forms.md`.
-4. **Testing:** start with **Internal testing**, install from the Play link and run the checklist above again. New personal developer accounts must run a **closed test with at least 12 testers for 14 days** before production access is granted.
-5. Review the **pre-launch report** (Play's automatic device tests) for crashes.
-6. Promote to **Production**.
+```bash
+./gradlew assembleRelease
+```
+
+```bash
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+On GitHub, make a release from the tag:
+- attach the APK, renamed `block-v1.0.1.apk`;
+- paste the changelog.
+
+## 5. Publish to Zapstore
+
+Zapstore publishes apps as Nostr events signed by the developer. People see that the APK comes from your npub.
+
+1. **Install the `zapstore` command-line tool**, following Zapstore's developer documentation.
+2. **Add a `zapstore.yaml` at the project root** that points at the GitHub releases. Check the tool's current documentation for the exact fields. A starting point:
+
+   ```yaml
+   name: Block
+   repository: https://github.com/phirapath21/Block
+   license: MIT
+   tags: [bitcoin, nostr, widgets]
+   assets:
+     - .*\.apk$
+   ```
+
+3. **Run the publish command** from the project root. It fetches the newest release APK, reads the listing, and signs the events.
+   - Sign with your developer key through a remote signer (bunker) rather than pasting the nsec.
+   - Use the same npub every time: it is how Zapstore users know updates are yours.
+
+## 6. Publish to F-Droid
+
+### First time
+
+1. On GitLab, fork [fdroiddata](https://gitlab.com/fdroid/fdroiddata).
+2. Add `metadata/io.github.phirapath21.btcwidget.yml`:
+
+   ```yaml
+   Categories:
+     - Internet
+     - Money
+   License: MIT
+   AuthorName: phirapath21
+   SourceCode: https://github.com/phirapath21/Block
+   IssueTracker: https://github.com/phirapath21/Block/issues
+
+   AutoName: Block
+
+   RepoType: git
+   Repo: https://github.com/phirapath21/Block.git
+
+   Builds:
+     - versionName: 1.0.0
+       versionCode: 1
+       commit: v1.0.0
+       subdir: app
+       gradle:
+         - yes
+       ndk: 27.2.12479018
+
+   AutoUpdateMode: Version
+   UpdateCheckMode: Tags
+   CurrentVersion: 1.0.0
+   CurrentVersionCode: 1
+   ```
+
+3. Test the build with `fdroidserver`. Its Docker image is easiest:
+
+   ```bash
+   fdroid build -v -l io.github.phirapath21.btcwidget
+   ```
+
+4. Open a merge request to fdroiddata. Reviewers may ask for changes, and the first review can take a few weeks.
+
+### Later updates
+
+These are automatic. F-Droid checks the tags (`UpdateCheckMode: Tags`), builds the new `v…` tag, and publishes it, usually within a few days.
+
+### Things F-Droid checks
+
+- **Only free software:** Block uses no Google Play Services, Firebase or other closed libraries, and the QR scanner is CameraX + ZXing.
+  - The build doesn't embed Google's encrypted dependency report (`dependenciesInfo` is off in `app/build.gradle.kts`).
+- **Anti-features:** Block reads market data from services that aren't free software (Coinbase, Kraken, Bitkub, Yahoo Finance, CoinGecko, blockchain.info).
+  - Reviewers will likely mark it **NonFreeNet**.
+  - That's normal for apps like this, and it doesn't stop the listing.
+- **Signing:** by default F-Droid signs its build with its own key. People then can't update between the F-Droid and Zapstore versions without reinstalling.
+  - To let them, make the build **reproducible** and add `AllowedAPKSigningKeys` (your certificate's SHA-256) and `Binaries` (the GitHub release APK URL) to the metadata. F-Droid then ships your own signed APK once it rebuilds the same bytes.
+  - This is optional, and can be added later.
 
 ## Notes
 
-- Application ID: `io.github.phirapath21.btcwidget` — permanent once published.
-- Min SDK 24 (Android 7.0), target SDK 36.
-- The app is English-only for now; Thai can be added later as a translation.
+- **Application ID:** `io.github.phirapath21.btcwidget`. It is permanent once published.
+- **SDK:** min SDK 24 (Android 7.0), target SDK 36.
+- **The store listing** is in `fastlane/metadata/android/` in English and Thai:
+  - title, short and full description;
+  - icon, feature graphic and phone screenshots;
+  - changelogs.
+  - Add new screenshots to `images/phoneScreenshots/` (numbered `1.png`, `2.png`…).
