@@ -38,9 +38,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.btcwidget.PriceData
+import com.example.btcwidget.TxDetails
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -55,9 +57,9 @@ import java.util.concurrent.ConcurrentHashMap
  *    structured `["block", "<height>", "<btcUsd>", "<feeSatVb>"]` tag when signed.
  * 2. [BlockStampBadge] — Sleek Bitcoin-orange pill shown on stamped notes; tapping opens a detailed
  *    Timechain Snapshot dialog with Halving Epoch, Moscow Time, and 1-tap Mempool Explorer link.
- * 3. [BitcoinContextCard] — Auto-detects Bitcoin transaction IDs (`mempool.space/tx/<txid>` or
- *    standalone 64-hex txid references) and Block Heights (`mempool.space/block/...` or `Block #925,000`)
- *    inside note text and renders a live Mempool Explorer Card (cached in memory for 120 FPS scrolling).
+ * 3. [BitcoinContextDetector] — finds every transaction a note links to (`mempool.space/tx/<txid>`,
+ *    `txid: <hex>`), or the block it points at, and fetches them from the mempool server; the cards
+ *    themselves ([BitcoinEmbeds]) are in TxCards.kt.
  */
 @Immutable
 data class BlockStamp(
@@ -273,152 +275,100 @@ sealed interface BitcoinEmbedRef {
     }
 }
 
+/** A block, as its card shows it. */
 @Immutable
 data class MempoolSummary(
-    val isTx: Boolean,
     val title: String,
     val subtitle: String,
-    val confirmed: Boolean,
     val primaryMetric: String,
     val secondaryMetric: String,
     val explorerUrl: String
 )
 
 object BitcoinContextDetector {
+    /** The most transactions one note's card lists. */
+    const val MAX_TXS = 12
+
     private val refCache = ConcurrentHashMap<String, List<BitcoinEmbedRef>>()
-    private val apiCache = ConcurrentHashMap<String, MempoolSummary>()
 
-    private val MEMPOOL_TX_URL = Regex("""https?://(?:www\.)?(?:mempool\.space|blockstream\.info)/tx/([0-9a-fA-F]{64})\b""")
-    private val MEMPOOL_BLOCK_URL = Regex("""https?://(?:www\.)?(?:mempool\.space|blockstream\.info)/block/([0-9a-fA-F]{64}|\d{1,7})\b""")
-    private val LABELED_TXID = Regex("""(?i)\b(?:txid|tx)\s*[:=]\s*([0-9a-fA-F]{64})\b""")
-    private val INLINE_BLOCK_NUM = Regex("""(?i)\bblock\s*#(\d{3},?\d{3}|\d{6,7})\b""")
-
-    /** Detects at most 1 Bitcoin Transaction or Block reference in a note to render an interactive embed card. */
-    fun detect(note: Event): BitcoinEmbedRef? {
-        val list = refCache.getOrPut(note.id) {
-            val content = note.content
-            buildList {
-                MEMPOOL_TX_URL.find(content)?.groupValues?.getOrNull(1)?.lowercase()?.let {
-                    add(BitcoinEmbedRef.TxRef(it))
-                }
-                if (isEmpty()) {
-                    LABELED_TXID.find(content)?.groupValues?.getOrNull(1)?.lowercase()?.let {
-                        add(BitcoinEmbedRef.TxRef(it))
-                    }
-                }
-                if (isEmpty()) {
-                    MEMPOOL_BLOCK_URL.find(content)?.groupValues?.getOrNull(1)?.lowercase()?.let {
-                        add(BitcoinEmbedRef.BlockRef(it))
-                    }
-                }
-                if (isEmpty() && BlockStamp.fromEvent(note) == null) {
-                    INLINE_BLOCK_NUM.find(content)?.groupValues?.getOrNull(1)?.replace(",", "")?.let { h ->
-                        val num = h.toIntOrNull()
-                        if (num != null && num in 100_000..2_500_000) {
-                            add(BitcoinEmbedRef.BlockRef(num.toString()))
-                        }
-                    }
-                }
-            }
-        }
-        return list.firstOrNull()
+    /**
+     * What a note's Bitcoin card shows: every transaction it links to or labels (`txid: …`), in
+     * the order they appear, without repeats, at most [MAX_TXS]; or, when there are none, the
+     * one block it points at. Empty when there's nothing.
+     */
+    fun detectAll(note: Event): List<BitcoinEmbedRef> = refCache.getOrPut(note.id) {
+        val links = com.example.btcwidget.TxLinks.find(note.content, stamped = BlockStamp.fromEvent(note) != null, maxTxs = MAX_TXS)
+        links.txids.map { BitcoinEmbedRef.TxRef(it) }.ifEmpty { listOfNotNull(links.block?.let { BitcoinEmbedRef.BlockRef(it) }) }
     }
 
-    suspend fun fetchSummary(ref: BitcoinEmbedRef, baseUrl: String = "https://mempool.space"): MempoolSummary = withContext(Dispatchers.IO) {
-        val base = baseUrl.trimEnd('/').ifBlank { "https://mempool.space" }
-        apiCache["${ref.key}:$base"]?.let { return@withContext it }
+    /** The first of [detectAll]. */
+    fun detect(note: Event): BitcoinEmbedRef? = detectAll(note).firstOrNull()
 
-        val summary = runCatching {
-            when (ref) {
-                is BitcoinEmbedRef.TxRef -> fetchTxSummary(ref, base)
-                is BitcoinEmbedRef.BlockRef -> fetchBlockSummary(ref, base)
-            }
-        }.getOrElse {
-            when (ref) {
-                is BitcoinEmbedRef.TxRef -> MempoolSummary(
-                    isTx = true,
-                    title = "TX ${ref.txid.take(8)}…${ref.txid.takeLast(8)}",
-                    subtitle = "Bitcoin Transaction · mempool.space",
-                    confirmed = true,
-                    primaryMetric = "On-Chain TX",
-                    secondaryMetric = "Tap to inspect",
-                    explorerUrl = ref.explorerUrl(base)
-                )
-                is BitcoinEmbedRef.BlockRef -> MempoolSummary(
-                    isTx = false,
-                    title = if (ref.heightOrHash.length <= 8) "Block #${"%,d".format(Locale.US, ref.heightOrHash.toIntOrNull() ?: 0)}"
-                    else "Block ${ref.heightOrHash.take(8)}…",
-                    subtitle = "Bitcoin Timechain · mempool.space",
-                    confirmed = true,
-                    primaryMetric = "Verified Block",
-                    secondaryMetric = "Tap to inspect",
-                    explorerUrl = ref.explorerUrl(base)
-                )
+    // ---- Transactions ----
+
+    private class Cached(val tx: TxDetails, val at: Long)
+    private val txCache = ConcurrentHashMap<String, Cached>()
+    private val txInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<TxDetails?>>()
+    private val tipCache = ConcurrentHashMap<String, Pair<Int, Long>>()
+    private val blockCache = ConcurrentHashMap<String, MempoolSummary>()
+    private val io = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
+
+    /** How long a transaction that could still change (in the mempool, or under 6 blocks) is reused. */
+    private const val FRESH_MS = 30_000L
+
+    /**
+     * [txid] from [base]'s Esplora API, or null if it couldn't be fetched (not remembered, so
+     * the next try asks again). Several cards asking at once share one request; a transaction
+     * buried 6 blocks deep is kept for the session, anything newer for [FRESH_MS].
+     */
+    suspend fun tx(txid: String, base: String, force: Boolean = false): TxDetails? {
+        val key = "$base $txid"
+        val now = System.currentTimeMillis()
+        txCache[key]?.let { c ->
+            val settled = c.tx.confirmations(tipCache[base]?.first) >= 6
+            if (!force && (settled || now - c.at < FRESH_MS)) return c.tx
+        }
+        // Lazy, so it can't finish (and remove itself) before it's in the map.
+        val job = txInFlight.computeIfAbsent(key) {
+            io.async(start = kotlinx.coroutines.CoroutineStart.LAZY) {
+                try {
+                    runCatching { TxDetails.parse(httpGet("$base/api/tx/$txid")) }.getOrNull()
+                        ?.also { txCache[key] = Cached(it, System.currentTimeMillis()) }
+                } finally {
+                    txInFlight.remove(key)
+                }
             }
         }
-        apiCache["${ref.key}:$base"] = summary
-        summary
+        job.start()
+        return job.await() ?: txCache[key]?.tx
     }
 
-    private fun fetchTxSummary(ref: BitcoinEmbedRef.TxRef, base: String): MempoolSummary {
-        val json = JSONObject(httpGet("$base/api/tx/${ref.txid}"))
-        val feeSats = json.optLong("fee", 0L)
-        val weight = json.optInt("weight", 0)
-        val vbytes = if (weight > 0) (weight + 3) / 4 else json.optInt("size", 1)
-        val feeRate = if (vbytes > 0) String.format(Locale.US, "%.1f sat/vB", feeSats.toDouble() / vbytes) else "$feeSats sats"
+    /** The height of [base]'s latest block (for confirmations), reused for [FRESH_MS]; null if it can't be had. */
+    suspend fun tipHeight(base: String): Int? {
+        val now = System.currentTimeMillis()
+        tipCache[base]?.let { (h, at) -> if (now - at < FRESH_MS) return h }
+        return withContext(Dispatchers.IO) {
+            runCatching { httpGet("$base/api/blocks/tip/height").trim().toInt() }.getOrNull()
+        }?.also { tipCache[base] = it to now } ?: tipCache[base]?.first
+    }
 
-        val vout = json.optJSONArray("vout")
-        var totalSats = 0L
-        if (vout != null) {
-            for (i in 0 until vout.length()) {
-                totalSats += vout.optJSONObject(i)?.optLong("value", 0L) ?: 0L
-            }
-        }
-        val btcValue = if (totalSats >= 100_000_000L) {
-            String.format(Locale.US, "%.4f BTC", totalSats / 100_000_000.0)
-        } else {
-            "${"%,d".format(Locale.US, totalSats)} sats"
-        }
+    // ---- Blocks ----
 
-        val status = json.optJSONObject("status")
-        val confirmed = status?.optBoolean("confirmed", false) == true
-        val blockHeight = status?.optInt("block_height", 0) ?: 0
-        val statusLabel = if (confirmed && blockHeight > 0) {
-            "Confirmed in Block #${"%,d".format(Locale.US, blockHeight)}"
-        } else if (confirmed) {
-            "Confirmed on Timechain"
-        } else {
-            "Unconfirmed in Mempool"
-        }
-
-        return MempoolSummary(
-            isTx = true,
-            title = "TX ${ref.txid.take(10)}…${ref.txid.takeLast(8)}",
-            subtitle = statusLabel,
-            confirmed = confirmed,
-            primaryMetric = btcValue,
-            secondaryMetric = "Fee: $feeRate",
-            explorerUrl = ref.explorerUrl(base)
-        )
+    /** A block's card, or null if it couldn't be fetched (asked again next time). */
+    suspend fun block(ref: BitcoinEmbedRef.BlockRef, base: String): MempoolSummary? = withContext(Dispatchers.IO) {
+        val key = "$base ${ref.key}"
+        blockCache[key] ?: runCatching { fetchBlockSummary(ref, base) }.getOrNull()?.also { blockCache[key] = it }
     }
 
     private fun fetchBlockSummary(ref: BitcoinEmbedRef.BlockRef, base: String): MempoolSummary {
-        val hash = if (ref.heightOrHash.length == 64) {
-            ref.heightOrHash
-        } else {
-            httpGet("$base/api/block-height/${ref.heightOrHash}").trim()
-        }
+        val hash = if (ref.heightOrHash.length == 64) ref.heightOrHash else httpGet("$base/api/block-height/${ref.heightOrHash}").trim()
         val json = JSONObject(httpGet("$base/api/block/$hash"))
         val height = json.optInt("height", ref.heightOrHash.toIntOrNull() ?: 0)
         val txCount = json.optInt("tx_count", 0)
-        val sizeBytes = json.optInt("size", 0)
-        val sizeMb = String.format(Locale.US, "%.2f MB", sizeBytes / 1_000_000.0)
-
+        val sizeMb = String.format(Locale.US, "%.2f MB", json.optInt("size", 0) / 1_000_000.0)
         return MempoolSummary(
-            isTx = false,
-            title = "Bitcoin Block #${"%,d".format(Locale.US, height)}",
+            title = "Block #${"%,d".format(Locale.US, height)}",
             subtitle = "Hash ${hash.take(10)}…${hash.takeLast(8)}",
-            confirmed = true,
             primaryMetric = "${"%,d".format(Locale.US, txCount)} txs",
             secondaryMetric = "Size: $sizeMb",
             explorerUrl = ref.explorerUrl(base)
@@ -429,144 +379,13 @@ object BitcoinContextDetector {
         val conn = URL(url).openConnection() as HttpURLConnection
         return try {
             conn.requestMethod = "GET"
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
+            conn.connectTimeout = 6000
+            conn.readTimeout = 8000
             conn.setRequestProperty("User-Agent", "Block-Android")
-            conn.inputStream.bufferedReader().use { it.readText() }
+            if (conn.responseCode !in 200..299) throw java.io.IOException("HTTP ${conn.responseCode}")
+            conn.inputStream.bufferedReader().use { it.readText().take(2_000_000) }
         } finally {
             conn.disconnect()
-        }
-    }
-}
-
-/**
- * Interactive Bitcoin / Mempool context card shown inside [NoteBody] when a note references
- * a Bitcoin transaction or block height.
- */
-@Composable
-fun BitcoinContextCard(
-    ref: BitcoinEmbedRef,
-    note: Event,
-    actions: NoteActions,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val mempoolBase = remember { com.example.btcwidget.AppPrefs.mempoolUrl(context).ifBlank { "https://mempool.space" } }
-    val summary by produceState<MempoolSummary?>(null, ref.key, mempoolBase) {
-        value = BitcoinContextDetector.fetchSummary(ref, mempoolBase)
-    }
-    val bitcoinOrange = Color(0xFFF7931A)
-    val confirmedGreen = Color(0xFF2EA043)
-
-    val s = summary
-    Column(
-        modifier = modifier
-            .padding(top = 8.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        bitcoinOrange.copy(alpha = 0.11f),
-                        EInk.Body
-                    )
-                )
-            )
-            .border(0.75.dp, bitcoinOrange.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
-            .clickable(onClickLabel = tr("View on Mempool")) {
-                actions.openLink(s?.explorerUrl ?: ref.explorerUrl, note)
-            }
-            .padding(12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(bitcoinOrange.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Glyphs.BlockCube,
-                        contentDescription = null,
-                        tint = bitcoinOrange,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Spacer(Modifier.width(9.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = s?.title ?: when (ref) {
-                            is BitcoinEmbedRef.TxRef -> "TX ${ref.txid.take(10)}…${ref.txid.takeLast(8)}"
-                            is BitcoinEmbedRef.BlockRef -> "Block #${ref.heightOrHash}"
-                        },
-                        color = EInk.Value,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = s?.subtitle ?: tr("Fetching Mempool status…"),
-                        color = EInk.Caption,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            if (s != null) {
-                Box(
-                    Modifier
-                        .padding(start = 8.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            if (s.confirmed) confirmedGreen.copy(alpha = 0.16f)
-                            else bitcoinOrange.copy(alpha = 0.18f)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = if (s.confirmed) tr("✓ Confirmed") else tr("⏳ Mempool"),
-                        color = if (s.confirmed) confirmedGreen else bitcoinOrange,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        if (s != null) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = EInk.BodyStroke,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = s.primaryMetric,
-                    color = bitcoinOrange,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-                Text(
-                    text = s.secondaryMetric,
-                    color = EInk.Label,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
         }
     }
 }

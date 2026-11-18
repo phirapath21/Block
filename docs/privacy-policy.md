@@ -110,7 +110,7 @@ To show market and network data, the app requests public data directly from thes
 | api.exchange.coinbase.com | 24-hour change and hourly price history | Always |
 | api.kraken.com | BTC price | Only if you choose Kraken as the price source |
 | api.bitkub.com | BTC/THB price and change | Only if you choose Bitkub for THB |
-| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity, the blocks and transactions behind Bitcoin links in notes | Always, unless you set your own mempool server in Settings, which is then asked instead |
+| mempool.space | Block height, fees, difficulty, hash rate, Lightning capacity, the blocks and transactions behind Bitcoin links in notes, and the latest block height to count their confirmations (asked again about once a minute while an unsettled transaction is on screen) | Always, unless you set your own mempool server in Settings, which is then asked instead |
 | blockchain.info | Bitcoin in circulation | Always |
 | query1.finance.yahoo.com | Strategy (MSTR) and Strive (ASST) share prices | Always |
 | api.coingecko.com | Strategy (MSTR) and Strive (ASST) bitcoin holdings | Always |
