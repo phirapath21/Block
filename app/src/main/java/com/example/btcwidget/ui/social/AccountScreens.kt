@@ -307,14 +307,14 @@ fun ComposeScreen(
     var schedulePicker by remember { mutableStateOf(false) }
     var draftsSheet by remember { mutableStateOf(false) }
     // Proof of work for this post: null follows the setting.
-    val powDefault by vm.powDifficulty.collectAsState()
-    val powRate by vm.powHashRate.collectAsState()
+    val powDefault by vm.pow.difficulty.collectAsState()
+    val powRate by vm.pow.hashRate.collectAsState()
     var powChoice by remember { mutableStateOf<Int?>(null) }
     var powSheet by remember { mutableStateOf(false) }
-    val powMatchRelays by vm.powMatchRelays.collectAsState()
+    val powMatchRelays by vm.pow.matchRelays.collectAsState()
     // Ready before Post is tapped: this phone's speed for the estimate, the relays' asks for the work.
-    LaunchedEffect(powDefault, powChoice) { if ((powChoice ?: powDefault) > 0) vm.benchmarkPow() }
-    LaunchedEffect(powMatchRelays, account?.pubkey) { if (powMatchRelays && account != null) vm.checkRelayPow() }
+    LaunchedEffect(powDefault, powChoice) { if ((powChoice ?: powDefault) > 0) vm.pow.benchmark() }
+    LaunchedEffect(powMatchRelays, account?.pubkey) { if (powMatchRelays && account != null) vm.pow.checkRelayPow() }
     var savedDrafts by remember(account?.pubkey) { mutableStateOf(com.example.btcwidget.nostr.Drafts.savedList(context, account?.pubkey)) }
     // "@name" picked from suggestions → pubkey; turned into nostr:npub links when sending.
     var mentions by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -400,7 +400,7 @@ fun ComposeScreen(
         }
         val extraTags = if (attachBlockStamp && blockStamp != null) listOf(blockStamp.toTag()) else emptyList()
         scheduleAt?.let { at ->
-            if (vm.schedule(body, images, if (sensitive) "Sensitive content" else null, at, extraTags)) {
+            if (vm.scheduledPosts.schedule(body, images, if (sensitive) "Sensitive content" else null, at, extraTags)) {
                 com.example.btcwidget.nostr.Drafts.remove(context, draftKey); onBack()
             } else sending = false
             return
@@ -545,7 +545,7 @@ fun ComposeScreen(
 
         // What this post will do, each with ✕ to undo it.
         // Proof of work applies to notes sent now (not polls or scheduled posts).
-        val relayPow by vm.relayPow.collectAsState()
+        val relayPow by vm.pow.relayPow.collectAsState()
         val relayAsks = if (powMatchRelays && relayPow.first in 1..24) relayPow.first else 0
         val powBits = maxOf(powChoice ?: powDefault, relayAsks)
         val powOn = powBits > 0 && !poll && scheduleAt == null

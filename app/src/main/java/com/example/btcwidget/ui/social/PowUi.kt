@@ -185,14 +185,14 @@ private fun PowLevels(selected: Int, rate: Double, onPick: (Int) -> Unit) {
 /** Settings → Proof of work. */
 @Composable
 internal fun PowSettingsPage(vm: SocialViewModel) {
-    val bits by vm.powDifficulty.collectAsState()
-    val rate by vm.powHashRate.collectAsState()
-    val measuring by vm.powBenchmarking.collectAsState()
-    val match by vm.powMatchRelays.collectAsState()
-    val relayPow by vm.relayPow.collectAsState()
+    val bits by vm.pow.difficulty.collectAsState()
+    val rate by vm.pow.hashRate.collectAsState()
+    val measuring by vm.pow.benchmarking.collectAsState()
+    val match by vm.pow.matchRelays.collectAsState()
+    val relayPow by vm.pow.relayPow.collectAsState()
     LaunchedEffect(Unit) {
-        vm.benchmarkPow()
-        vm.checkRelayPow()
+        vm.pow.benchmark()
+        vm.pow.checkRelayPow()
     }
     // The slider moves freely; the setting is saved when it's let go.
     var dragging by remember { mutableFloatStateOf(-1f) }
@@ -225,7 +225,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
                 Slider(
                     value = shown.toFloat(),
                     onValueChange = { dragging = it },
-                    onValueChangeFinished = { vm.setPowDifficulty(dragging.roundToInt()); dragging = -1f },
+                    onValueChangeFinished = { vm.pow.setDifficulty(dragging.roundToInt()); dragging = -1f },
                     valueRange = 0f..Pow.CHOICES.max().toFloat(),
                     steps = Pow.CHOICES.max() - 1,
                     colors = SliderDefaults.colors(
@@ -243,7 +243,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
     }
 
     SettingsHeader(tr("How long it takes here"))
-    PowLevels(selected = shown, rate = rate) { vm.setPowDifficulty(it) }
+    PowLevels(selected = shown, rate = rate) { vm.pow.setDifficulty(it) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             if (rate > 0) tr("This phone: {0} on {1} cores", powRateText(rate), Pow.defaultThreads())
@@ -251,7 +251,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
             color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.weight(1f)
         )
         if (measuring) CircularProgressIndicator(color = EInk.Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-        else SettingsButton(tr("Measure again")) { vm.benchmarkPow(force = true) }
+        else SettingsButton(tr("Measure again")) { vm.pow.benchmark(force = true) }
     }
 
     SettingsDivider()
@@ -260,7 +260,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
         summary = tr("Some relays only take posts with proof of work. Block mines at least that much, up to 24 bits, even when this is off for you.") +
             (relayPow.second?.let { "\n" + tr("{0} asks for {1} bits.", it.removePrefix("wss://").removeSuffix("/"), relayPow.first) } ?: ""),
         checked = match
-    ) { vm.setPowMatchRelays(it) }
+    ) { vm.pow.setMatchRelays(it) }
     SettingsNote(tr("Used for notes, replies and quotes. Likes, reposts, messages and lists go out at once. You can change it for one post in the composer, or skip the work while it runs. Mining uses all but one core: long ones warm the phone."))
 }
 

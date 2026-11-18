@@ -128,7 +128,7 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
     val profiles by vm.profiles.collectAsState()
     val following by vm.following.collectAsState()
     val account by vm.account.collectAsState()
-    val nwc by vm.nwc.collectAsState()
+    val nwc by vm.wallet.nwc.collectAsState()
     val loaded by produceKept<Any?>(Unit, address) { value = vm.liveStream(address) }
     // Asked again now and then while open: title, viewers, and whether it's still live.
     var fresh by remember(address) { mutableStateOf<LiveStreams.Live?>(null) }
