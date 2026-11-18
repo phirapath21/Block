@@ -318,7 +318,7 @@ fun MainScreenContent(
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= WIDE_DP
     var switcher by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxSize().background(EInk.Background)
+        Modifier.fillMaxSize().screenBackground()
             .then(if (wide) Modifier.displayCutoutPadding().navigationBarsPadding() else Modifier)
     ) {
     if (wide) SideRail(
@@ -594,7 +594,7 @@ private fun BottomBar(
     Column(
         modifier.fillMaxWidth().then(
             if (overVideo) Modifier.background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000))))
-            else Modifier.background(EInk.Background)
+            else Modifier.screenBackground()
         )
     ) {
         if (!overVideo) HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)

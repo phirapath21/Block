@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.Context
+import com.example.btcwidget.ui.main.screenBackground
 import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.biometric.BiometricManager
@@ -233,7 +234,7 @@ fun AppLockGate(activity: FragmentActivity?) {
 
     // Every touch stops here: the app under the lock screen must not be tapped through it.
     Box(
-        Modifier.fillMaxSize().background(EInk.Background)
+        Modifier.fillMaxSize().screenBackground()
             // A touch goes only to the top layer that handles touches, so listening here is
             // enough to keep it from the app underneath. Nothing is consumed: consuming froze
             // the PIN keys (they lost each tap, or saw it cancelled by the slightest move).

@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.Context
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.Intent
 import android.net.Uri
 import android.speech.tts.TextToSpeech
@@ -181,7 +182,7 @@ fun ArticleScreen(vm: SocialViewModel, naddr: String, navigate: (NavKey) -> Unit
         )
     }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         ArticleTopBar(
             title = articleObj?.title ?: tr("Article"),
             hasToc = headings.size >= 2,
@@ -244,7 +245,7 @@ private fun ArticleTopBar(
     onOpenToc: () -> Unit,
     onBack: () -> Unit
 ) {
-    Column(Modifier.fillMaxWidth().background(EInk.Background).statusBarsPadding()) {
+    Column(Modifier.fillMaxWidth().screenBackground().statusBarsPadding()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -384,7 +385,7 @@ private fun ReaderSettingsBar(
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                         .clickable { onFontSizeChange(prefs.fontSizeSp - 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -400,7 +401,7 @@ private fun ReaderSettingsBar(
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                         .clickable { onFontSizeChange(prefs.fontSizeSp + 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -859,7 +860,7 @@ private fun ArticleBody(
                                 Box(
                                     Modifier
                                         .clip(RoundedCornerShape(50))
-                                        .background(EInk.Background)
+                                        .screenBackground()
                                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                                         .clickable { quoteToFeedText = h.text }
                                         .padding(horizontal = 9.dp, vertical = 3.dp)
@@ -1107,7 +1108,7 @@ private fun ArticleAudioPlayerBar(
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                         .clickable(onClick = onPrev)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
@@ -1132,7 +1133,7 @@ private fun ArticleAudioPlayerBar(
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                         .clickable(onClick = onNext)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
@@ -1142,7 +1143,7 @@ private fun ArticleAudioPlayerBar(
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                         .clickable(onClick = onToggleSpeed)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
@@ -1158,7 +1159,7 @@ private fun ArticleAudioPlayerBar(
                     Modifier
                         .size(30.dp)
                         .clip(CircleShape)
-                        .background(EInk.Background)
+                        .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, CircleShape)
                         .clickable(onClick = onStop),
                     contentAlignment = Alignment.Center
@@ -1282,7 +1283,7 @@ private fun AuthorSupportFooterCard(
             Box(
                 Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(EInk.Background)
+                    .screenBackground()
                     .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
                     .clickable { actions.zap(article.event) }
                     .padding(horizontal = 13.dp, vertical = 7.dp)
@@ -1642,7 +1643,7 @@ private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(EInk.Background)
+            .screenBackground()
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 9.dp, vertical = 5.dp),

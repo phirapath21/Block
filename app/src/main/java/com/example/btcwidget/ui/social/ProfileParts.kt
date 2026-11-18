@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.animation.core.RepeatMode
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -243,7 +244,7 @@ internal fun ProfileTopBar(
             if (banner != null) {
                 AsyncImage(banner, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
-            } else Box(Modifier.fillMaxSize().background(EInk.Background))
+            } else Box(Modifier.fillMaxSize().screenBackground())
         }
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().height(52.dp).padding(horizontal = 10.dp),

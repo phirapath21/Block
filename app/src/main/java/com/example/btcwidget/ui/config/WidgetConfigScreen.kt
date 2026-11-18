@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.config
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,7 @@ fun WidgetConfigScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(EInk.Background)
+            .screenBackground()
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())

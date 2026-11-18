@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -163,7 +164,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val listState = vm.listState("messages")
     ScrollToTopOnTabTap("MESSAGES", listState) { vm.startDms() }
 
-    Box(Modifier.fillMaxSize().background(EInk.Background)) {
+    Box(Modifier.fillMaxSize().screenBackground()) {
         LazyColumn(Modifier.fillMaxSize(), state = listState) {
             // Top bar: Chats / Requests chips + quick New Group pill
             item(key = "header_tabs") {
@@ -549,7 +550,7 @@ private fun ConversationRow(
                     Modifier
                         .align(Alignment.BottomEnd)
                         .clip(CircleShape)
-                        .background(EInk.Background)
+                        .screenBackground()
                         .padding(2.dp)
                 ) {
                     Avatar(profiles[c.peers[1]], c.peers[1], size = 30)
@@ -705,7 +706,7 @@ private fun NewMessageDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(EInk.Background)
+                .screenBackground()
                 .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
                 .clickable(onClick = onNewGroup)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -1063,7 +1064,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
     val primaryProfile = profiles[primaryPeer]
     val title = peers.joinToString(", ") { profiles[it]?.bestName ?: Profile.shortNpub(it) }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background).imePadding()) {
+    Column(Modifier.fillMaxSize().screenBackground().imePadding()) {
         // Polished Chat Top Bar with avatar, verified badge & encryption status
         ChatTopBar(
             title = title,
@@ -1511,7 +1512,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(EInk.Background)
+                        .screenBackground()
                         .navigationBarsPadding()
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.Bottom
@@ -1664,7 +1665,7 @@ private fun ChatTopBar(
     val isGroup = peers.size > 1
     val primaryPeer = peers.first()
     val primaryProfile = profiles[primaryPeer]
-    Column(Modifier.fillMaxWidth().background(EInk.Background).statusBarsPadding()) {
+    Column(Modifier.fillMaxWidth().screenBackground().statusBarsPadding()) {
         Row(
             Modifier
                 .fillMaxWidth()

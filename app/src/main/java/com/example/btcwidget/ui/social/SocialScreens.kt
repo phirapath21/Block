@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.btcwidget.nostr.core.Event
 import androidx.compose.ui.text.withStyle
@@ -90,7 +91,7 @@ import kotlinx.coroutines.launch
 /** Title bar for pushed screens: back arrow and a title. */
 @Composable
 fun SocialTopBar(title: String, onBack: () -> Unit) {
-    Column(modifier = Modifier.background(EInk.Background).statusBarsPadding()) {
+    Column(modifier = Modifier.screenBackground().statusBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(52.dp)) {
             Text(
                 text = "←",
@@ -424,7 +425,7 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
         NoteCard(n.event, NoteStats(), actions)
         return
     }
-    val orange = androidx.compose.ui.graphics.Color(0xFFF7931A)
+    val orange = EInk.Accent
     val (icon, tint) = when (n.type) {
         NostrNotification.Type.REPOST -> "⟲" to EInk.Value
         NostrNotification.Type.LIKE -> "♥" to orange
@@ -527,7 +528,7 @@ internal fun FeedTabBar(
             androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)),
         modifier = modifier
     ) {
-        Column(Modifier.fillMaxWidth().background(EInk.Background)) {
+        Column(Modifier.fillMaxWidth().screenBackground()) {
             Row(Modifier.fillMaxWidth().height(FEED_TAB_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
                 FeedTabStrip(feeds, current, onSelect, Modifier.weight(1f).fillMaxHeight().testTag("feed_tabs"))
                 Box(Modifier.width(0.5.dp).height(20.dp).background(EInk.BodyStroke))

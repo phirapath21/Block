@@ -5,6 +5,13 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "Theme" to "ธีม",
+    "Colours for Block's screens and menus. Widgets keep their own theme (Bitcoin and widgets)." to "สีของหน้าจอและเมนูใน Block ส่วนวิดเจ็ตใช้ธีมของตัวเอง (ตั้งได้ที่ Bitcoin และวิดเจ็ต)",
+    "Block" to "Block",
+    "Graphite with Bitcoin orange" to "สีเทาเข้มกับส้ม Bitcoin",
+    "Ember" to "Ember",
+    "Black with a warm orange glow, from Zeus" to "ดำสนิทกับแสงเรืองสีส้มอบอุ่น จาก Zeus",
+    "Theme, language, videos, where links open" to "ธีม ภาษา วิดีโอ และที่เปิดลิงก์",
     "Proof of work" to "Proof of work",
     "Mine your posts so spam filters trust them (NIP-13)" to "ขุดโพสต์ของคุณให้ตัวกรองสแปมเชื่อถือ (NIP-13)",
     "Difficulty" to "ความยาก",

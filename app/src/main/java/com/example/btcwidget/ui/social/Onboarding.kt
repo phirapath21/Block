@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -73,7 +74,7 @@ fun LandingScreen(
     val uriHandler = LocalUriHandler.current
     val hasSigner = remember { AmberSigner.isInstalled(context) }
     Column(
-        Modifier.fillMaxSize().background(EInk.Background).statusBarsPadding().navigationBarsPadding()
+        Modifier.fillMaxSize().screenBackground().statusBarsPadding().navigationBarsPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Spacer(Modifier.height(48.dp))
@@ -139,7 +140,7 @@ fun OnboardingScreen(vm: SocialViewModel, onFinish: () -> Unit) {
     var topics by remember { mutableStateOf(setOf("bitcoin", "nostr")) }
     // Back (button or gesture) goes to the previous step; from the first, it leaves as usual.
     androidx.activity.compose.BackHandler(enabled = step > 0) { step-- }
-    Column(Modifier.fillMaxSize().background(EInk.Background).statusBarsPadding().navigationBarsPadding().imePadding()) {
+    Column(Modifier.fillMaxSize().screenBackground().statusBarsPadding().navigationBarsPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (step > 0) Text(
                 tr("← Back"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,

@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +39,7 @@ fun EngagementScreen(vm: SocialViewModel, noteId: String, initialTab: Int, navig
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     val data by produceKept<NostrRepository.Engagement?>(null, noteId) { value = vm.engagement(noteId) }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Post engagement"), onBack)
         val d = data
         FeedTabs(

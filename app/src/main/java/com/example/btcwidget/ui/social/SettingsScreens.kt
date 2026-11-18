@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
@@ -67,7 +68,7 @@ enum class SettingsPage(val title: String, val summary: String, val icon: () -> 
     ACCOUNT("Your account", "Accounts on this phone, your key, scheduled posts, log out", { NavIcons.Profile.outline }),
     NOTIFICATIONS("Notifications", "What Block tells you about while it's closed", { NavIcons.Bell.outline }),
     PRIVACY("Privacy and safety", "Muted words, web of trust, private lists", { Glyphs.Shield }),
-    DISPLAY("Display and language", "Language, videos, where links open", { Glyphs.Eye }),
+    DISPLAY("Display and language", "Theme, language, videos, where links open", { Glyphs.Eye }),
     RELAYS("Relays and servers", "Where your notes, messages and media go", { Glyphs.Server }),
     POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
@@ -89,7 +90,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Zaps" to SettingsPage.NOTIFICATIONS, "Messages" to SettingsPage.NOTIFICATIONS,
     "Muted words and hashtags" to SettingsPage.PRIVACY, "Muted conversations" to SettingsPage.PRIVACY, "Web of trust" to SettingsPage.PRIVACY,
     "Private bookmarks and mutes" to SettingsPage.PRIVACY, "Community rules" to SettingsPage.PRIVACY,
-    "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
+    "Theme" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
     "Relays" to SettingsPage.RELAYS, "Message inbox relays" to SettingsPage.RELAYS, "Media servers" to SettingsPage.RELAYS,
     "Wallet (NWC)" to SettingsPage.WALLET,
     "Proof of work" to SettingsPage.POW, "Difficulty" to SettingsPage.POW, "Match what my relays ask for" to SettingsPage.POW,
@@ -107,7 +108,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
 @Composable
 fun SettingsHome(accountName: String?, onOpen: (SettingsPage) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(EInk.Background).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().screenBackground().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             SettingsTextField(
                 value = query, onValueChange = { query = it.take(40) }, placeholder = tr("Search settings"),
@@ -143,7 +144,7 @@ fun SettingsPageScreen(
     bitcoin: @Composable () -> Unit = {},
 ) {
     val account by vm.account.collectAsState()
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr(page.title), onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             val needsAccount = page in setOf(SettingsPage.NOTIFICATIONS, SettingsPage.PRIVACY, SettingsPage.WALLET)
@@ -420,6 +421,11 @@ private fun DisplayPage(vm: SocialViewModel) {
     val autoplay by vm.videoAutoplay.collectAsState()
     val quality by vm.videoQuality.collectAsState()
 
+    SettingsHeader(tr("Theme"))
+    SettingsNote(tr("Colours for Block's screens and menus. Widgets keep their own theme (Bitcoin and widgets)."))
+    LookPicker()
+
+    SettingsDivider()
     SettingsHeader(tr("Language"))
     SettingsNote(tr("Text in menus, buttons and messages. Posts stay in the language they were written in."))
     Lang.Choice.entries.forEach { c ->

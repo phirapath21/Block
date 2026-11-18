@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -148,7 +149,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
         if (n == 0) null else tr("{0} posts", compactCount(n) + if (end) "" else "+")
     }
 
-    Box(Modifier.fillMaxSize().background(EInk.Background).onSizeChanged { widthPx = it.width }) {
+    Box(Modifier.fillMaxSize().screenBackground().onSizeChanged { widthPx = it.width }) {
         if (addToList) AddToListSheet(vm, pubkey, onClose = { addToList = false })
         if (showQr) ProfileQrDialog(vm, pubkey, navigate, onDismiss = { showQr = false })
         if (showRelays) ProfileRelaysSheet(vm, pubkey, profile?.bestName ?: Profile.shortNpub(pubkey), canAdd = account != null && !isMe, onDismiss = { showRelays = false })

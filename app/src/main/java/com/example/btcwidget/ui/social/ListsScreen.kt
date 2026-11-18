@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,7 +68,7 @@ fun ListsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, owner: String? 
     LaunchedEffect(me, own) { if (own && me != null) vm.loadLists() }
     var creating by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         if (onBack != null) SocialTopBar(tr("Lists"), onBack)
         SocialScaffold(vm, navigate) { _ ->
             val lists = if (own) mine else theirs
@@ -155,7 +156,7 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
     var confirmDelete by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(list?.title ?: tr("List"), onBack)
         SocialScaffold(vm, navigate) { actions ->
             when {

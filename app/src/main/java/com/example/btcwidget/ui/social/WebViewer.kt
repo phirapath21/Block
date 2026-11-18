@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -64,7 +65,7 @@ fun WebViewer(url: String, note: Event?, stats: NoteStats, actions: NoteActions,
     var sheet by remember { mutableStateOf(1) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = false)) {
         BackHandler { if (!page.goBack()) onDismiss() }
-        Column(Modifier.fillMaxSize().background(EInk.Background).statusBarsPadding()) {
+        Column(Modifier.fillMaxSize().screenBackground().statusBarsPadding()) {
             // Top bar.
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 BarButton("✕", "Close", onDismiss)

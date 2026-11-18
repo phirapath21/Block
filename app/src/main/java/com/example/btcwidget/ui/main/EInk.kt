@@ -18,6 +18,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,16 +43,39 @@ import com.example.btcwidget.BlockclockScene
 import java.util.Locale
 
 /**
- * App palette. The app itself (Nostr screens, menus, settings) always uses the Classic
- * colours; the chosen [theme] only changes how widgets are drawn: the home-screen widgets,
- * their previews in the app ([EInkDevice]) and share cards. [theme] is snapshot state, so
- * those previews update when it changes.
+ * App palette. The app's own colours (Nostr screens, menus, settings) come from the chosen
+ * [look] ([com.example.btcwidget.theme.AppLook]); the widget [theme] only changes how
+ * blockclock panels are drawn: the home-screen widgets, their previews in the app
+ * ([EInkDevice]) and share cards. Both are snapshot state, so screens redraw when they change;
+ * a new look fades in over [LOOK_FADE_MS] ([lookProgress] runs 0 → 1, see [AnimateLook]).
  */
 object EInk {
     /** The widget theme. Not used for the app's own colours. */
     var theme: AppTheme by mutableStateOf(AppTheme.CLASSIC)
 
-    private val ui get() = AppTheme.CLASSIC.palette.ui
+    /** The app's colour theme. Setting it starts a fade from the colours on screen now. */
+    var look: com.example.btcwidget.theme.AppLook
+        get() = target
+        set(value) {
+            if (value == target) return
+            from = current
+            target = value
+            lookProgress = if (animateLooks) 0f else 1f
+        }
+    private var target by mutableStateOf(com.example.btcwidget.theme.AppLook.DEFAULT)
+    private var from by mutableStateOf(com.example.btcwidget.theme.AppLook.DEFAULT.colors)
+    /** 0 → 1 while a new [look] fades in. */
+    var lookProgress by mutableFloatStateOf(1f)
+    /** Off until the UI is up, so the saved look applies at once when the app starts. */
+    var animateLooks = false
+
+    /** The colours on screen now (mid-fade while changing look). */
+    val current: com.example.btcwidget.theme.LookColors
+        get() = com.example.btcwidget.theme.lerpLook(from, target.colors, lookProgress)
+    /** How strongly the look's glow shows (fades with the look). */
+    val glowAlpha: Float get() = com.example.btcwidget.theme.glowStrength(from, target.colors, lookProgress)
+
+    private val ui get() = current
     val Background get() = Color(ui.background)
     val Body get() = Color(ui.body)
     val BodyStroke get() = Color(ui.bodyStroke)
@@ -60,7 +84,12 @@ object EInk {
     val Caption get() = Color(ui.caption)
     val Track get() = Color(ui.track)
     val Alert get() = Color(ui.alert)
-    val Accent get() = Color(0xFFF7931A)
+    val Accent get() = Color(ui.accent)
+    /** Text and icons on [Accent]. */
+    val OnAccent get() = Color(ui.onAccent)
+    /** Bottom sheets, menus and dialogs. */
+    val Sheet get() = Color(ui.sheet)
+    val Success get() = Color(ui.success)
 
     /** Face for screen titles (unified X-style sans-serif across the app). */
     val TitleFont: FontFamily get() = FontFamily.Default

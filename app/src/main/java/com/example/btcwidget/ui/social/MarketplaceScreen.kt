@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.content.Context
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -222,7 +223,7 @@ fun MarketplaceScreen(
         )
     }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         // Sticky header: Search bar + Filter + My Shop + Sell CTA
         StoreTopHeader(
             query = query,
@@ -748,13 +749,13 @@ fun ListingDetailScreen(
             return@SocialScaffold
         }
 
-        Column(Modifier.fillMaxSize().background(EInk.Background)) {
+        Column(Modifier.fillMaxSize().screenBackground()) {
             // Top bar with Share & Edit/More
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(EInk.Background)
+                    .screenBackground()
                     .statusBarsPadding()
                     .height(52.dp)
                     .padding(horizontal = 4.dp)
@@ -1175,7 +1176,7 @@ private fun BuyerBottomBar(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .background(EInk.Background)
+            .screenBackground()
             .navigationBarsPadding()
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
@@ -1232,7 +1233,7 @@ private fun SellerBottomBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .background(EInk.Background)
+            .screenBackground()
             .navigationBarsPadding()
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
@@ -1519,7 +1520,7 @@ fun ShopScreen(
         if (seller == null) vm.loadProfiles(listOf(pubkey))
     }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(
             title = seller?.bestName?.let { tr("{0}'s Shop", it) } ?: tr("Shop"),
             onBack = onBack
@@ -1681,7 +1682,7 @@ fun EditListingScreen(
         unfocusedLabelColor = EInk.Caption
     )
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(
             title = if (address == null) tr("List an item") else tr("Edit listing"),
             onBack = onBack
@@ -1911,7 +1912,7 @@ fun EditListingScreen(
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(EInk.Background)
+                .screenBackground()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {

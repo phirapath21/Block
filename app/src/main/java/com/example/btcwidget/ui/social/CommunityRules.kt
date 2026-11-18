@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -45,7 +46,7 @@ object CommunityRules {
 
 @Composable
 fun CommunityRulesScreen(onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(CommunityRules.TITLE, onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
             Text(CommunityRules.INTRO, color = EInk.Label, fontSize = 15.sp)

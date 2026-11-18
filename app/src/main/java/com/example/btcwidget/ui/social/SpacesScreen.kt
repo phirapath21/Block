@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.ui.graphics.graphicsLayer
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,7 +68,7 @@ import com.example.btcwidget.ui.main.EInkChip
 @Composable
 fun SpacesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -188,7 +189,7 @@ fun CommunityScreen(vm: SocialViewModel, coordinate: String, navigate: (NavKey) 
     var text by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     val sendHaptics = rememberHaptics()
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(community?.name ?: tr("Community"), onBack)
         SocialScaffold(vm, navigate) { actions ->
             val c = community

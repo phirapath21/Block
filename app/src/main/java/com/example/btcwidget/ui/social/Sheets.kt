@@ -41,7 +41,7 @@ import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.launch
 
 /** The raised surface of sheets and dialogs: a step above the black background. */
-internal val SheetColor = Color(0xFF16181C)
+internal val SheetColor get() = EInk.Sheet
 private val PillShape = RoundedCornerShape(50)
 private val AccentOrange get() = EInk.Accent
 

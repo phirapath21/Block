@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.os.Build
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
@@ -162,7 +163,7 @@ internal fun mediaRatioFor(ratio: Float, min: Float, max: Float, screenWidthDp: 
 fun ReadableColumn(enabled: Boolean = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600, content: @Composable () -> Unit) {
     val panel = LocalSidePanel.current
     androidx.compose.foundation.layout.BoxWithConstraints(
-        androidx.compose.ui.Modifier.fillMaxSize().then(if (enabled) androidx.compose.ui.Modifier.background(com.example.btcwidget.ui.main.EInk.Background) else androidx.compose.ui.Modifier),
+        androidx.compose.ui.Modifier.fillMaxSize().then(if (enabled) androidx.compose.ui.Modifier.screenBackground() else androidx.compose.ui.Modifier),
         contentAlignment = androidx.compose.ui.Alignment.TopCenter
     ) {
         // Room beside the posts: the side panel (trending, live now), as X has on the right.

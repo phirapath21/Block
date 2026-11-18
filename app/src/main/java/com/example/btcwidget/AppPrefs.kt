@@ -45,6 +45,7 @@ object AppPrefs {
     private const val LINKS_IN_APP = "links_in_app"
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
+    private const val APP_LOOK = "app_look"
     private const val POW_MATCH_RELAYS = "pow_match_relays"
     private const val POW_HASH_RATE = "pow_hash_rate"
     private const val LANGUAGE = "language"
@@ -78,6 +79,11 @@ object AppPrefs {
     /** New bookmarks and mutes are private (encrypted, NIP-51; the default) or public. */
     fun privateLists(context: Context): Boolean = prefs(context).getBoolean(PRIVATE_LISTS, true)
     fun setPrivateLists(context: Context, private: Boolean) = edit(context) { putBoolean(PRIVATE_LISTS, private) }
+
+    /** The app's colour theme (screens, menus); widgets keep their own [theme]. */
+    fun appLook(context: Context): com.example.btcwidget.theme.AppLook =
+        com.example.btcwidget.theme.AppLook.of(prefs(context).getString(APP_LOOK, null))
+    fun setAppLook(context: Context, look: com.example.btcwidget.theme.AppLook) = edit(context) { putString(APP_LOOK, look.id) }
 
     /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
     fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)
