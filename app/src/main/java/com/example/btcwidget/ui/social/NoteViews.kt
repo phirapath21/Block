@@ -398,9 +398,9 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
     segments.filterIsInstance<Content.Segment.Video>().take(2).forEach { VideoPlayer(it.url, note, actions) }
     // A card for the first web link (not for posts that already show photos, video or a quote).
     if (depth == 0 && segments.none { it is Content.Segment.Image || it is Content.Segment.Video || it is Content.Segment.NoteRef || it is Content.Segment.AddressRef }) {
-        val btcEmbed = remember(note.id) { BitcoinContextDetector.detect(note) }
-        if (btcEmbed != null) {
-            BitcoinContextCard(btcEmbed, note, actions)
+        val btcEmbeds = remember(note.id) { BitcoinContextDetector.detectAll(note) }
+        if (btcEmbeds.isNotEmpty()) {
+            BitcoinEmbeds(btcEmbeds, note, actions)
         } else {
             segments.filterIsInstance<Content.Segment.Link>().firstOrNull()?.let { LinkCard(it.url, note, actions) }
         }
