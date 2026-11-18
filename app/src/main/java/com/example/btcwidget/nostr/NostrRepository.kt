@@ -2153,7 +2153,7 @@ class NostrRepository private constructor(private val context: Context) {
         publish(Events.metadata(me, profile, profileEvents[me]))
     }
 
-    /** NIP-56 report of [note] (e.g. "spam", "illegal"), as Google Play requires for user content. */
+    /** NIP-56 report of [note] (e.g. "spam", "illegal"): public, so relays and others can act on it. */
     suspend fun report(note: Event, reason: String) {
         publish(UnsignedEvent(requireMe(), Events.now(), 1984, listOf(listOf("e", note.id, reason), listOf("p", note.pubkey)), ""))
     }

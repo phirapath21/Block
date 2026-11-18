@@ -24,8 +24,13 @@ android {
     // The NDK is only used to strip debug data from the native libraries we ship (secp256k1);
     // without a set version the build packaged them unstripped, about 5 MB over all CPU types.
     ndkVersion = "27.2.12479018"
+    // F-Droid and reproducible builds: no Google-encrypted dependency report inside the APK.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
     defaultConfig {
-        // Store identity: unique on Google Play and permanent once published.
+        // The app's identity on Zapstore and F-Droid: permanent once published.
         applicationId = "io.github.phirapath21.btcwidget"
         minSdk = 24
         targetSdk = 36

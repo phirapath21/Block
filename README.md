@@ -254,7 +254,7 @@ app/src/main/java/com/example/btcwidget/
 | [`docs/privacy-policy.md`](docs/privacy-policy.md) | Privacy policy |
 | [`docs/community-rules.md`](docs/community-rules.md) | Community rules |
 | [`docs/RELEASE.md`](docs/RELEASE.md) | Building and publishing a release |
-| [`docs/play-store/`](docs/play-store/) | Store listing, graphics and policy-form answers |
+| [`fastlane/metadata/android/`](fastlane/metadata/android/) | Store listing for F-Droid and Zapstore: title, descriptions (English, Thai), icon, feature graphic, screenshots, changelogs |
 
 ## License
 
