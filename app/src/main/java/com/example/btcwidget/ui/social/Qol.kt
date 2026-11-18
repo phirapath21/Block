@@ -110,7 +110,7 @@ fun FirstTimeTip(id: String, text: String, modifier: androidx.compose.ui.Modifie
             androidx.compose.material3.Text(
                 tr("Got it"), color = SettingsAccent, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 modifier = androidx.compose.ui.Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
-                    .clickable { shown = false; com.example.btcwidget.AppPrefs.setTipSeen(context, id) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { shown = false; com.example.btcwidget.AppPrefs.setTipSeen(context, id) }
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
         }

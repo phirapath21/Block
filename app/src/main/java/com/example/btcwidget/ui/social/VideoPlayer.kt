@@ -274,7 +274,7 @@ fun VideoPlayer(url: String, note: Event, actions: NoteActions) {
                 val shown = c.boundsInWindow().height
                 onScreen = c.size.height > 0 && shown / c.size.height >= 0.6f
             }
-            .clickable(onClickLabel = tr("Open video")) { actions.openVideo(url, note) },
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open video")) { actions.openVideo(url, note) },
         contentAlignment = Alignment.Center
     ) {
         val p = player
@@ -303,7 +303,7 @@ fun VideoPlayer(url: String, note: Event, actions: NoteActions) {
 private fun VideoBadge(onClick: (() -> Unit)? = null, label: String? = null, content: @Composable () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
-            .then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick) else Modifier)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) { content() }
@@ -347,7 +347,7 @@ internal fun VideoControls(player: ExoPlayer, url: String, landscape: Boolean, o
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 2.dp)) {
             Box(
                 Modifier.size(40.dp).clip(CircleShape).background(VideoAccent)
-                    .clickable(onClickLabel = if (playing) tr("Pause") else tr("Play")) { if (player.isPlaying) player.pause() else player.play() },
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (playing) tr("Pause") else tr("Play")) { if (player.isPlaying) player.pause() else player.play() },
                 contentAlignment = Alignment.Center
             ) { Icon(if (playing) Glyphs.Pause else Glyphs.Play, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
             val shown = dragging?.let { (it * total).toLong() } ?: position
@@ -360,7 +360,7 @@ internal fun VideoControls(player: ExoPlayer, url: String, landscape: Boolean, o
             Text(
                 SPEED_LABELS[speedIndex], color = if (speedIndex == 0) Color.White else VideoAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, if (speedIndex == 0) Color(0x55FFFFFF) else VideoAccent, RoundedCornerShape(50))
-                    .clickable(onClickLabel = tr("Playback speed")) {
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Playback speed")) {
                         speedIndex = (speedIndex + 1) % SPEEDS.size
                         player.setPlaybackSpeed(SPEEDS[speedIndex])
                     }.padding(horizontal = 12.dp, vertical = 5.dp)
@@ -431,7 +431,7 @@ private fun QualityButton(player: ExoPlayer) {
     Box {
         Text(
             "$label ▾", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(onClickLabel = tr("Video quality")) { open = true }.padding(horizontal = 10.dp, vertical = 8.dp)
+            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Video quality")) { open = true }.padding(horizontal = 10.dp, vertical = 8.dp)
         )
         BlockDropdown(expanded = open, onDismiss = { open = false }) {
             BlockDropdownItem(tr("Auto"), selected = !manual) { open = false; player.chooseQuality(null, context) }
@@ -448,7 +448,7 @@ private val SPEED_LABELS = listOf("1x", "1.5x", "2x", "0.5x")
 @Composable
 private fun ControlIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr(label), onClick = onClick),
+        Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label), onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(icon, contentDescription = tr(label), tint = EInk.Value, modifier = Modifier.size(24.dp)) }
 }

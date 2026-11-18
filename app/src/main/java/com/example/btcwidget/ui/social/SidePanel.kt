@@ -53,7 +53,7 @@ fun SidePanel(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 null -> NotesSkeleton(2)
                 else -> if (l.isEmpty()) Text(tr("Nothing trending on your relays right now."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                 else l.take(5).forEachIndexed { i, t ->
-                    Column(Modifier.fillMaxWidth().clickable { navigate(com.example.btcwidget.HashtagKey(t.tag)) }.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                    Column(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.HashtagKey(t.tag)) }.padding(horizontal = 14.dp, vertical = 8.dp)) {
                         Text(tr("{0} · Trending", i + 1), color = EInk.Caption, fontSize = 12.sp)
                         Text("#" + t.tag, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(tr("{0} people · {1} posts", compactCount(t.people), compactCount(t.notes)), color = EInk.Caption, fontSize = 12.sp)
@@ -62,14 +62,14 @@ fun SidePanel(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             }
             if (!trends.isNullOrEmpty()) Text(
                 tr("Show more"), color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth().clickable { navigate(com.example.btcwidget.SearchKey) }.padding(horizontal = 14.dp, vertical = 12.dp)
+                modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.SearchKey) }.padding(horizontal = 14.dp, vertical = 12.dp)
             )
         }
         val live = lives.orEmpty().filter { it.isLive }.take(3)
         if (live.isNotEmpty()) PanelCard(tr("Live now"), Modifier.padding(top = 14.dp)) {
             live.forEach { l ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { navigate(com.example.btcwidget.LiveKey(l.address)) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.LiveKey(l.address)) }.padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(Modifier.width(76.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(8.dp)).background(EInk.Track)) {

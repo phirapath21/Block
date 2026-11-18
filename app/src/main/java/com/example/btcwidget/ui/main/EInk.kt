@@ -177,7 +177,7 @@ fun EInkChip(
             .clip(EInk.ChipShape)
             .background(if (selected) EInk.Accent else EInk.Body, EInk.ChipShape)
             .then(if (!selected) Modifier.border(1.dp, EInk.BodyStroke, EInk.ChipShape) else Modifier)
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
     ) {

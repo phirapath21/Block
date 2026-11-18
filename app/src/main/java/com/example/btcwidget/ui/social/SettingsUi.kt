@@ -91,7 +91,7 @@ fun SettingsLinkRow(
     onClick: () -> Unit
 ) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClickLabel = title, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = title, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         when {
@@ -175,7 +175,7 @@ fun SettingsButton(label: String, primary: Boolean = false, enabled: Boolean = t
             .clip(shape)
             .background(bg)
             .then(if (!primary) Modifier.border(1.dp, if (destructive) Destructive else EInk.BodyStroke, shape) else Modifier)
-            .clickable(enabled = enabled, onClickLabel = label, onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) { Text(label, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Bold) }

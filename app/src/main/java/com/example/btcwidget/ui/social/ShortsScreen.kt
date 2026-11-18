@@ -122,7 +122,7 @@ private fun ShortsTopBar(position: Float, onBack: (() -> Unit)?, onSelect: (Int)
     ) {
         // As a tab of its own there's nothing to go back to.
         if (onBack != null) Box(
-            Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Back"), onClick = onBack),
+            Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
             contentAlignment = Alignment.Center
         ) { Icon(Glyphs.Back, contentDescription = tr("Back"), tint = Color.White, modifier = Modifier.size(24.dp)) }
         else Spacer(Modifier.width(44.dp))
@@ -136,7 +136,7 @@ private fun ShortsTopBar(position: Float, onBack: (() -> Unit)?, onSelect: (Int)
                         tr(label), color = Color.White.copy(alpha = 0.6f + 0.4f * near), fontSize = 16.sp,
                         fontWeight = if (near > 0.5f) FontWeight.Bold else FontWeight.Normal, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.width(TAB_WIDTH).clip(RoundedCornerShape(8.dp))
-                            .clickable(onClickLabel = tr(label)) { onSelect(i) }.padding(vertical = 6.dp)
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label)) { onSelect(i) }.padding(vertical = 6.dp)
                     )
                 }
             }
@@ -358,7 +358,7 @@ private fun ShortPage(
 private fun ShortCaption(note: Event, author: Profile?, actions: NoteActions, modifier: Modifier) {
     var expanded by remember(note.id) { mutableStateOf(false) }
     Column(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { actions.openProfile(note.pubkey) }) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(note.pubkey) }) {
             DisplayName(author, note.pubkey, Color.White, 16.sp, Modifier.weight(1f, fill = false))
             Text("  · " + relativeTime(note.createdAt), color = Color(0xCCFFFFFF), fontSize = 13.sp, maxLines = 1)
         }
@@ -366,7 +366,7 @@ private fun ShortCaption(note: Event, author: Profile?, actions: NoteActions, mo
         if (text.isNotBlank()) Text(
             text, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp,
             maxLines = if (expanded) 12 else 2, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp).clickable(onClickLabel = if (expanded) "Show less" else "Show more") { expanded = !expanded }
+            modifier = Modifier.padding(top = 4.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (expanded) tr("Show less") else tr("Show more")) { expanded = !expanded }
         )
     }
 }
@@ -394,7 +394,7 @@ private fun ShortSideBar(
             }
             if (note.pubkey != actions.me && !actions.isFollowing(note.pubkey)) Box(
                 Modifier.size(20.dp).clip(CircleShape).background(Accent)
-                    .clickable(onClickLabel = tr("Follow")) { actions.follow(note.pubkey, true) },
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Follow")) { actions.follow(note.pubkey, true) },
                 contentAlignment = Alignment.Center
             ) { Text("+", color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
         }
@@ -418,7 +418,7 @@ private val LocalCompactSide = androidx.compose.runtime.compositionLocalOf { fal
 @Composable
 private fun SideButton(icon: ImageVector, count: Int?, label: String, tint: Color = Color.White, onClick: () -> Unit) {
     Column(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = label, onClick = onClick).padding(4.dp),
+        Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick).padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val compact = LocalCompactSide.current

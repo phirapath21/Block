@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import android.content.Context
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.example.btcwidget.ui.main.screenBackground
 import android.content.Intent
 import android.net.Uri
@@ -257,7 +259,7 @@ private fun ArticleTopBar(
                 Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .clickable(onClickLabel = tr("Back"), onClick = onBack),
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Glyphs.Back, contentDescription = tr("Back"), tint = EInk.Value, modifier = Modifier.size(22.dp))
@@ -279,7 +281,7 @@ private fun ArticleTopBar(
                         .clip(CircleShape)
                         .background(EInk.Body)
                         .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                        .clickable(onClickLabel = tr("Edit article"), onClick = onEdit),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Edit article"), onClick = onEdit),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Glyphs.Quote, contentDescription = tr("Edit article"), tint = EInk.Value, modifier = Modifier.size(16.dp))
@@ -292,7 +294,7 @@ private fun ArticleTopBar(
                     .clip(CircleShape)
                     .background(if (isBookmarked) EInk.Accent.copy(alpha = 0.16f) else EInk.Body)
                     .border(0.5.dp, if (isBookmarked) EInk.Accent else EInk.BodyStroke, CircleShape)
-                    .clickable(onClickLabel = tr("Save to Reading List"), onClick = onToggleBookmark),
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Save to Reading List"), onClick = onToggleBookmark),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -310,7 +312,7 @@ private fun ArticleTopBar(
                         .clip(CircleShape)
                         .background(EInk.Body)
                         .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                        .clickable(onClickLabel = tr("Table of contents"), onClick = onOpenToc),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Table of contents"), onClick = onOpenToc),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Glyphs.ListLine, contentDescription = tr("Table of contents"), tint = EInk.Value, modifier = Modifier.size(17.dp))
@@ -322,7 +324,7 @@ private fun ArticleTopBar(
                     .clip(RoundedCornerShape(50))
                     .background(if (showReaderSettings) EInk.Accent else EInk.Body)
                     .border(0.5.dp, if (showReaderSettings) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
-                    .clickable(onClickLabel = tr("Reading settings"), onClick = onToggleReaderSettings)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Reading settings"), onClick = onToggleReaderSettings)
                     .padding(horizontal = 11.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -387,7 +389,7 @@ private fun ReaderSettingsBar(
                         .clip(RoundedCornerShape(50))
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable { onFontSizeChange(prefs.fontSizeSp - 2) }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { onFontSizeChange(prefs.fontSizeSp - 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text("A−", color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -403,7 +405,7 @@ private fun ReaderSettingsBar(
                         .clip(RoundedCornerShape(50))
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable { onFontSizeChange(prefs.fontSizeSp + 2) }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { onFontSizeChange(prefs.fontSizeSp + 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text("A+", color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -426,7 +428,7 @@ private fun ReaderChip(
             .clip(RoundedCornerShape(50))
             .background(if (selected) EInk.Accent else EInk.Background)
             .border(0.5.dp, if (selected) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 5.dp)
     ) {
         Text(
@@ -649,7 +651,7 @@ private fun ArticleBody(
                             Modifier
                                 .clip(RoundedCornerShape(50))
                                 .background(EInk.Accent)
-                                .clickable {
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                     showResumeBanner = false
                                     scope.launch {
                                         listState.animateScrollToItem(headerItemsCount + initialSavedBlockIdx)
@@ -663,7 +665,7 @@ private fun ArticleBody(
                             Modifier
                                 .size(24.dp)
                                 .clip(CircleShape)
-                                .clickable { showResumeBanner = false },
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button) { showResumeBanner = false },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Glyphs.Close, contentDescription = tr("Dismiss"), tint = EInk.Caption, modifier = Modifier.size(14.dp))
@@ -696,7 +698,7 @@ private fun ArticleBody(
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 12.dp).clickable { actions.openProfile(article.pubkey) }
+                            modifier = Modifier.padding(top = 12.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(article.pubkey) }
                         ) {
                             Avatar(author, article.pubkey, size = 36)
                             Spacer(Modifier.width(10.dp))
@@ -738,7 +740,7 @@ private fun ArticleBody(
                                         .clip(RoundedCornerShape(50))
                                         .background(if (ttsActive) EInk.Accent else EInk.Body)
                                         .border(0.5.dp, if (ttsActive) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
-                                        .clickable {
+                                        .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                             if (ttsPlaying) {
                                                 ttsRef.value?.stop()
                                                 ttsPlaying = false
@@ -838,7 +840,7 @@ private fun ArticleBody(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(EInk.Body)
                                 .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
-                                .clickable(enabled = matchingBlockIdx >= 0) {
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = matchingBlockIdx >= 0) {
                                     if (matchingBlockIdx >= 0) {
                                         focusedBlockIdx = matchingBlockIdx
                                         scope.launch {
@@ -862,7 +864,7 @@ private fun ArticleBody(
                                         .clip(RoundedCornerShape(50))
                                         .screenBackground()
                                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                                        .clickable { quoteToFeedText = h.text }
+                                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { quoteToFeedText = h.text }
                                         .padding(horizontal = 9.dp, vertical = 3.dp)
                                 ) {
                                     Text(tr("Share quote"), color = EInk.Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -1110,7 +1112,8 @@ private fun ArticleAudioPlayerBar(
                         .clip(RoundedCornerShape(50))
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable(onClick = onPrev)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onPrev)
+                        .semantics { contentDescription = tr("Previous paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text("⏮", color = EInk.Value, fontSize = 12.sp)
@@ -1120,7 +1123,7 @@ private fun ArticleAudioPlayerBar(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(EInk.Accent)
-                        .clickable(onClick = onPlayPause),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onPlayPause),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1135,7 +1138,8 @@ private fun ArticleAudioPlayerBar(
                         .clip(RoundedCornerShape(50))
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable(onClick = onNext)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onNext)
+                        .semantics { contentDescription = tr("Next paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text("⏭", color = EInk.Value, fontSize = 12.sp)
@@ -1145,7 +1149,7 @@ private fun ArticleAudioPlayerBar(
                         .clip(RoundedCornerShape(50))
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                        .clickable(onClick = onToggleSpeed)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onToggleSpeed)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
@@ -1161,7 +1165,7 @@ private fun ArticleAudioPlayerBar(
                         .clip(CircleShape)
                         .screenBackground()
                         .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                        .clickable(onClick = onStop),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onStop),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Glyphs.Close, contentDescription = tr("Stop"), tint = EInk.Caption, modifier = Modifier.size(15.dp))
@@ -1196,7 +1200,7 @@ private fun AuthorSupportFooterCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(author, article.pubkey, size = 44, onClick = { actions.openProfile(article.pubkey) })
-            Column(Modifier.weight(1f).padding(start = 12.dp).clickable { actions.openProfile(article.pubkey) }) {
+            Column(Modifier.weight(1f).padding(start = 12.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(article.pubkey) }) {
                 Text(
                     tr("Written by"),
                     color = EInk.Caption,
@@ -1251,7 +1255,7 @@ private fun AuthorSupportFooterCard(
                         .clip(RoundedCornerShape(50))
                         .background(EInk.Accent.copy(alpha = 0.14f))
                         .border(1.dp, EInk.Accent, RoundedCornerShape(50))
-                        .clickable {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                             if (account == null) {
                                 navigate(LoginKey)
                             } else {
@@ -1285,7 +1289,7 @@ private fun AuthorSupportFooterCard(
                     .clip(RoundedCornerShape(50))
                     .screenBackground()
                     .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                    .clickable { actions.zap(article.event) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.zap(article.event) }
                     .padding(horizontal = 13.dp, vertical = 7.dp)
             ) {
                 Text(
@@ -1412,7 +1416,7 @@ internal fun ArticleComposerDialog(
                         Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .clickable(enabled = !publishing) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !publishing) {
                                 if (title.isNotBlank() || content.isNotBlank()) saveDraft(showToast = false)
                                 onDismiss()
                             },
@@ -1434,7 +1438,7 @@ internal fun ArticleComposerDialog(
                                 .clip(RoundedCornerShape(50))
                                 .background(EInk.Body)
                                 .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                                .clickable { saveDraft(showToast = true) }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button) { saveDraft(showToast = true) }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(tr("Save draft"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -1445,7 +1449,7 @@ internal fun ArticleComposerDialog(
                         Modifier
                             .clip(RoundedCornerShape(50))
                             .background(if (canPublish) EInk.Accent else EInk.Body)
-                            .clickable(enabled = canPublish) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canPublish) {
                                 val me = account?.pubkey ?: return@clickable
                                 publishing = true
                                 val hashtags = tagsInput.split(',', ' ')
@@ -1603,7 +1607,7 @@ internal fun ArticleComposerDialog(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(EInk.Body)
                                     .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
-                                    .clickable(enabled = !uploadingCover) {
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !uploadingCover) {
                                         coverPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                                     }
                                     .padding(horizontal = 12.dp, vertical = 14.dp)
@@ -1645,7 +1649,7 @@ private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .screenBackground()
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 9.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1718,7 +1722,7 @@ private fun Modifier.onLongPress(onLongPress: () -> Unit): Modifier = composed {
 
 @Composable
 private fun ArticleAction(label: String, onClick: () -> Unit) {
-    Text(label, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp))
+    Text(label, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(vertical = 4.dp))
 }
 
 @Composable
@@ -1831,7 +1835,7 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
         val words = article.content.split(Regex("\\s+")).count { it.isNotBlank() }
         maxOf(1, (words + 120) / 200)
     }
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp)) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp)) {
         Column(Modifier.weight(1f)) {
             Text(article.title, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             article.summary?.let { Text(it, color = EInk.Label, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }

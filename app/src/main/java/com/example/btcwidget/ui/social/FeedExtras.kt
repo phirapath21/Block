@@ -176,7 +176,7 @@ fun StarterFollows(vm: SocialViewModel, navigate: (NavKey) -> Unit, modifier: Mo
                     .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(50))
                     .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                    .clickable { navigate(SearchKey) },
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(SearchKey) },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -205,7 +205,7 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
             .clip(shape)
             .background(EInk.Body)
             .border(0.5.dp, EInk.BodyStroke, shape)
-            .clickable(onClickLabel = tr("See who's in it"), onClick = onOpen)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("See who's in it"), onClick = onOpen)
             .padding(14.dp)
     ) {
         // Faces, overlapping, with a ring of the card's colour so they read as separate.
@@ -231,7 +231,7 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
                 .clip(RoundedCornerShape(50))
                 .background(if (done) Color.Transparent else EInk.Accent)
                 .border(1.dp, if (done) EInk.BodyStroke else Color.Transparent, RoundedCornerShape(50))
-                .clickable(enabled = !done) { tapped = true; onFollowAll() },
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !done) { tapped = true; onFollowAll() },
             contentAlignment = Alignment.Center
         ) {
             Text(

@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -52,7 +54,7 @@ internal fun ComposeToolButton(icon: ImageVector, label: String, enabled: Boolea
             .size(48.dp)
             .clip(CircleShape)
             .background(if (on) SettingsAccent.copy(alpha = 0.16f) else Color.Transparent)
-            .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = label, tint = SettingsAccent.copy(alpha = if (enabled) 1f else 0.35f), modifier = Modifier.size(22.dp))
@@ -73,7 +75,7 @@ internal fun ComposeStatusChip(icon: ImageVector, text: String, onClear: (() -> 
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(15.dp))
         Text(text, color = EInk.Value, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 6.dp))
         if (onClear != null) Box(
-            Modifier.padding(start = 2.dp).size(24.dp).clip(CircleShape).clickable(onClickLabel = tr("Undo"), onClick = onClear),
+            Modifier.padding(start = 2.dp).size(24.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Undo"), onClick = onClear),
             contentAlignment = Alignment.Center
         ) { Icon(Glyphs.CloseLine, contentDescription = tr("Undo"), tint = EInk.Caption, modifier = Modifier.size(13.dp)) }
     }
@@ -85,7 +87,7 @@ internal fun ChoicePill(label: String, selected: Boolean, icon: ImageVector? = n
     Row(
         Modifier.clip(RoundedCornerShape(50))
             .then(if (selected) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(start = if (icon != null) 10.dp else 14.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -165,7 +167,7 @@ internal fun AttachmentTile(
         if (attachment != null) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(8.dp).size(30.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f))
-                    .clickable(onClickLabel = tr("Remove image"), onClick = onRemove),
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove image"), onClick = onRemove),
                 contentAlignment = Alignment.Center
             ) { Icon(Glyphs.CloseLine, contentDescription = tr("Remove image"), tint = Color.White, modifier = Modifier.size(15.dp)) }
             if (onMoveLeft != null || onMoveRight != null) {
@@ -175,12 +177,14 @@ internal fun AttachmentTile(
                 ) {
                     if (onMoveLeft != null) Box(
                         Modifier.size(28.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f))
-                            .clickable(onClickLabel = tr("Move left"), onClick = onMoveLeft),
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Move left"), onClick = onMoveLeft)
+                            .semantics { contentDescription = tr("Move left") },
                         contentAlignment = Alignment.Center
                     ) { Text("←", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
                     if (onMoveRight != null) Box(
                         Modifier.size(28.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f))
-                            .clickable(onClickLabel = tr("Move right"), onClick = onMoveRight),
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Move right"), onClick = onMoveRight)
+                            .semantics { contentDescription = tr("Move right") },
                         contentAlignment = Alignment.Center
                     ) { Text("→", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
                 }
@@ -200,7 +204,7 @@ internal fun MentionSuggestions(people: List<Profile>, handleOf: (Profile) -> St
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
-                    .clickable(onClickLabel = tr("Mention {0}", p.bestName)) { onPick(p) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Mention {0}", p.bestName)) { onPick(p) }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Avatar(p, p.pubkey, size = 34)

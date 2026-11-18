@@ -47,7 +47,7 @@ internal fun FollowPackList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         else -> if (l.isEmpty()) EmptyNote(tr("No follow packs found on your relays.")) else LazyColumn(Modifier.fillMaxSize()) {
             items(l, key = { it.address }) { pack ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { navigate(PackKey(pack.address)) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(PackKey(pack.address)) }.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // A few faces from the pack, overlapping.
@@ -89,7 +89,7 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
                         Column(Modifier.padding(16.dp)) {
                             Text(pack.title, color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             pack.description?.let { Text(it, color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp)) }
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable { navigate(ProfileKey(pack.owner)) }) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(pack.owner)) }) {
                                 Avatar(profiles[pack.owner], pack.owner, size = 20)
                                 Text(
                                     tr("by ") + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)) + tr(" · {0} people", pack.members.size),
@@ -109,7 +109,7 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
                     items(pack.members, key = { it }) { pk ->
                         val p = profiles[pk]
                         val on = pk in following
-                        Row(Modifier.fillMaxWidth().clickable { navigate(ProfileKey(pk)) }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(pk)) }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                             Avatar(p, pk, size = 44)
                             Column(Modifier.weight(1f).padding(start = 10.dp)) {
                                 Text(p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)

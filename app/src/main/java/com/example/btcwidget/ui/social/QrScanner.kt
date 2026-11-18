@@ -100,7 +100,7 @@ private fun CameraScannerDialog(onDismiss: () -> Unit, onResult: (String?) -> Un
                     Text(tr("Keep the code inside the frame"), color = com.example.btcwidget.ui.main.EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
                 }
                 Box(
-                    Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Close"), onClick = onDismiss),
+                    Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Close"), onClick = onDismiss),
                     contentAlignment = Alignment.Center
                 ) { Icon(Glyphs.CloseLine, contentDescription = tr("Close"), tint = Color.White, modifier = Modifier.size(22.dp)) }
             }

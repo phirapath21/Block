@@ -98,7 +98,7 @@ fun SocialTopBar(title: String, onBack: () -> Unit) {
                 color = EInk.Value,
                 fontSize = 22.sp,
                 modifier = Modifier
-                    .clickable(onClickLabel = tr("Back"), onClick = onBack)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
             Text(title, color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -172,7 +172,7 @@ internal fun BackToTopButton(state: LazyListState, modifier: Modifier = Modifier
                 .clip(CircleShape)
                 .background(SheetColor)
                 .border(0.75.dp, EInk.BodyStroke, CircleShape)
-                .clickable(onClickLabel = tr("Back to top")) {
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back to top")) {
                     haptics.tick()
                     scope.launch {
                         if (state.firstVisibleItemIndex > 12) state.scrollToItem(6)
@@ -217,7 +217,7 @@ fun PillButton(text: String, filled: Boolean = true, modifier: Modifier = Modifi
         modifier = modifier
             .clip(RoundedCornerShape(50))
             .then(if (filled) Modifier.background(EInk.Accent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -301,7 +301,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             .shadow(8.dp, RoundedCornerShape(50))
                             .clip(RoundedCornerShape(50))
                             .background(EInk.Accent)
-                            .clickable(onClickLabel = tr("Show new posts")) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show new posts")) {
                                 pillHaptics.tick()
                                 vm.showNewPosts()
                                 scope.launch { listState.animateScrollToItem(0) }
@@ -354,7 +354,7 @@ fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClickLabel = label) { onSelect(i) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) { onSelect(i) }
                     .padding(top = 12.dp)
             ) {
                 Text(
@@ -473,7 +473,7 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = g.noteId != null) {
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = g.noteId != null) {
                 val id = g.noteId ?: return@clickable
                 actions.openNote(target ?: n.event.copy(id = id))
             }
@@ -651,7 +651,7 @@ private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (Ho
                         .fillMaxHeight()
                         .then(if (fits) Modifier.weight(1f) else Modifier)
                         .tabSemantics(isSelected)
-                        .clickable(onClickLabel = label) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) {
                             if (!isSelected) haptics.tick()
                             onSelect(feeds[i])
                         }
@@ -709,7 +709,7 @@ internal fun FeedTab(
                     else -> androidx.compose.ui.graphics.Color.Transparent
                 }
             )
-            .clickable(onClickLabel = label) { haptics.tick(); onClick() }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) { haptics.tick(); onClick() }
             .padding(horizontal = if (selected) 14.dp else 12.dp)
     ) {
         if (icon != null) {
@@ -747,7 +747,7 @@ private fun FeedIconTile(f: HomeFeed, selected: Boolean = false) {
 @Composable
 private fun SheetIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, tint: androidx.compose.ui.graphics.Color = EInk.Value, onClick: () -> Unit) {
     Box(
-        Modifier.size(36.dp).clip(CircleShape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        Modifier.size(36.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Icon(icon, contentDescription = label, tint = if (enabled) tint else EInk.BodyStroke, modifier = Modifier.size(19.dp))
@@ -768,12 +768,12 @@ private fun FeedMenu(vm: SocialViewModel, onClose: () -> Unit) {
                 Text(tr("Feeds"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 if (editing) Text(
                     tr("Reset"), color = EInk.Caption, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable { vm.resetFeeds() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.resetFeeds() }.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
                 Box(
                     Modifier.clip(RoundedCornerShape(50))
                         .then(if (editing) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
-                        .clickable { editing = !editing }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { editing = !editing }
                         .padding(horizontal = 16.dp, vertical = 7.dp)
                 ) {
                     Text(
@@ -786,7 +786,7 @@ private fun FeedMenu(vm: SocialViewModel, onClose: () -> Unit) {
                 val selected = f == current
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected && !editing) EInk.Body else androidx.compose.ui.graphics.Color.Transparent)
-                        .clickable(enabled = !editing) { vm.selectFeed(f); onClose() }.padding(horizontal = 10.dp, vertical = 9.dp),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !editing) { vm.selectFeed(f); onClose() }.padding(horizontal = 10.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     FeedIconTile(f, selected = selected)
@@ -814,7 +814,7 @@ private fun KindChip(icon: androidx.compose.ui.graphics.vector.ImageVector, labe
     Row(
         Modifier.clip(RoundedCornerShape(50))
             .then(if (selected) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(start = 10.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -828,7 +828,7 @@ private fun KindChip(icon: androidx.compose.ui.graphics.vector.ImageVector, labe
 @Composable
 private fun AddableFeedRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String?, onAdd: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = tr("Add"), onClick = onAdd).padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Add"), onClick = onAdd).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         androidx.compose.material3.Icon(icon, contentDescription = null, tint = EInk.Label, modifier = Modifier.size(20.dp))
@@ -881,7 +881,7 @@ private fun AddFeed(vm: SocialViewModel, existing: List<HomeFeed>) {
                 val ready = input.isNotBlank()
                 Box(
                     Modifier.clip(RoundedCornerShape(50)).background(if (ready) SettingsAccent else EInk.Track)
-                        .clickable(enabled = ready) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready) {
                             val feed = if (kind == 0) HomeFeed.cleanTag(input)?.let { HomeFeed.Hashtag(it) }
                             else com.example.btcwidget.nostr.core.normalizeRelayUrl(input.trim().let { if (it.startsWith("ws")) it else "wss://$it" })?.let { HomeFeed.Global(it) }
                             if (feed == null) error = if (kind == 0) tr("One word, letters and numbers only") else tr("Not a relay address")

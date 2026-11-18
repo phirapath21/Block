@@ -135,7 +135,7 @@ fun NoteCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { actions.openNote(note) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (repostedBy != null) {
@@ -147,7 +147,7 @@ fun NoteCard(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .padding(start = 38.dp, bottom = 4.dp)
-                    .clickable { actions.openProfile(repostedBy) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(repostedBy) }
             )
         }
         if (large) {
@@ -300,7 +300,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             }
             Text(
                 tr("Show"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable(onClickLabel = tr("Show sensitive content")) { revealed = true }.padding(8.dp)
+                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show sensitive content")) { revealed = true }.padding(8.dp)
             )
         }
         return
@@ -425,7 +425,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             .take(1).forEach { ref ->
                 Row(
                     Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-                        .clickable(onClickLabel = tr("Watch the stream")) { actions.openArticle(ref.address) }.padding(12.dp),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Watch the stream")) { actions.openArticle(ref.address) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(tr("● LIVE"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -446,7 +446,7 @@ private fun LinkCard(url: String, note: Event, actions: NoteActions) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-            .clickable(onClickLabel = tr("Open link")) { actions.openLink(url, note) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open link")) { actions.openLink(url, note) }
     ) {
         p.image?.let {
             AsyncImage(
@@ -487,7 +487,7 @@ private fun ShowMore(label: String = tr("Show more"), onClick: () -> Unit) {
     Text(
         label, color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(6.dp))
-            .clickable(onClickLabel = tr("Read the whole post"), onClick = onClick).padding(vertical = 4.dp)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Read the whole post"), onClick = onClick).padding(vertical = 4.dp)
     )
 }
 
@@ -513,7 +513,7 @@ private fun HighlightBody(note: Event, actions: NoteActions, fontSize: Int) {
         address != null -> ArticleCard(address, actions)
         h.url != null -> Text(
             tr("From ") + h.url.substringAfter("://").substringBefore('/'), color = EInk.Caption, fontSize = 13.sp,
-            modifier = Modifier.padding(top = 6.dp).clickable { actions.openLink(h.url, note) }
+            modifier = Modifier.padding(top = 6.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openLink(h.url, note) }
         )
     }
 }
@@ -565,7 +565,7 @@ private fun NoteImage(note: Event, url: String, actions: NoteActions) {
             .clip(shape)
             .background(EInk.Body)
             .border(0.5.dp, EInk.BodyStroke, shape)
-            .clickable(onClickLabel = tr("View image")) { actions.openImage(url, note) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("View image")) { actions.openImage(url, note) }
     )
 }
 
@@ -605,7 +605,7 @@ private fun NoteAlbum(note: Event, urls: List<String>, actions: NoteActions) {
                     .offset(x = w * t.x + left, y = h * t.y + top)
                     .size(width = w * t.w - left - right, height = h * t.h - top - bottom)
                     .background(EInk.Body)
-                    .clickable(onClickLabel = tr("View image")) { actions.openImage(url, note) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("View image")) { actions.openImage(url, note) }
                     .semantics(mergeDescendants = true) {
                         contentDescription = if (last) tr("Image {0} of {1}, {2} more", i + 1, urls.size, layout.more)
                         else tr("Image {0} of {1}", i + 1, urls.size)
@@ -640,7 +640,7 @@ private fun ArticleCard(address: com.example.btcwidget.nostr.core.Nip19.Address,
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-            .clickable { actions.openArticle(address) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openArticle(address) }
     ) {
         val a = article
         a?.image?.let { url ->
@@ -670,7 +670,7 @@ private fun ListingInlineCard(address: com.example.btcwidget.nostr.core.Nip19.Ad
             .clip(RoundedCornerShape(14.dp))
             .background(EInk.Body)
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-            .clickable { actions.openArticle(address) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openArticle(address) }
             .padding(10.dp)
     ) {
         val cover = l?.images?.firstOrNull()
@@ -715,7 +715,7 @@ private fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: No
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-            .clickable(enabled = quoted != null) { quoted?.let(actions.openNote) }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = quoted != null) { quoted?.let(actions.openNote) }
             .padding(10.dp)
     ) {
         val q = quoted
@@ -730,7 +730,7 @@ private fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: No
                 Text(
                     tr("Look for it on njump.me ›"),
                     color = SettingsAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 6.dp).clickable {
+                    modifier = Modifier.padding(top = 6.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) {
                         actions.openLink("https://njump.me/" + com.example.btcwidget.nostr.core.Nip19.nevent(ref.id, hints.relays.take(2), hints.author), quoting)
                     }
                 )
@@ -847,13 +847,13 @@ private fun ReactionMenu(expanded: Boolean, note: Event, actions: NoteActions, o
                 QUICK_REACTIONS.forEach { emoji ->
                     Text(
                         emoji, fontSize = 22.sp,
-                        modifier = Modifier.clip(CircleShape).clickable(onClickLabel = tr("React {0}", emoji)) { onDismiss(); actions.react(note, emoji, null) }.padding(6.dp)
+                        modifier = Modifier.clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React {0}", emoji)) { onDismiss(); actions.react(note, emoji, null) }.padding(6.dp)
                     )
                 }
                 custom.entries.take(30).forEach { (code, url) ->
                     AsyncImage(
                         model = url, contentDescription = ":$code:",
-                        modifier = Modifier.size(34.dp).clip(CircleShape).clickable(onClickLabel = tr("React :{0}:", code)) { onDismiss(); actions.react(note, ":$code:", url) }.padding(6.dp)
+                        modifier = Modifier.size(34.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React :{0}:", code)) { onDismiss(); actions.react(note, ":$code:", url) }.padding(6.dp)
                     )
                 }
             }
@@ -868,7 +868,12 @@ fun Avatar(profile: Profile?, pubkey: String, size: Int, onClick: (() -> Unit)? 
         .size(size.dp)
         .clip(CircleShape)
         .background(EInk.Track)
-        .let { if (onClick != null) it.clickable(onClickLabel = tr("Open profile"), onClick = onClick) else it }
+        // Tappable: named after the person, so TalkBack says whose profile it opens.
+        .let {
+            if (onClick != null) it.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open profile"), onClick = onClick)
+                .semantics { contentDescription = tr("{0}'s profile", profile?.bestName ?: Profile.shortNpub(pubkey)) }
+            else it
+        }
     // Block only loads over HTTPS: most hosts given as http:// answer on https:// too.
     val picture = profile?.picture?.let { if (it.startsWith("http://")) "https://" + it.removePrefix("http://") else it }
         ?.takeIf { it.startsWith("https://") }

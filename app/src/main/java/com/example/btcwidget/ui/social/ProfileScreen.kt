@@ -320,17 +320,17 @@ private fun ProfileHeader(
                 Text(
                     (followingCount?.let { compactCount(it) } ?: "…") + tr(" Following"),
                     color = EInk.Label, fontSize = 14.sp,
-                    modifier = Modifier.clickable(onClickLabel = tr("Show who they follow"), onClick = onOpenFollowing).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
+                    modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show who they follow"), onClick = onOpenFollowing).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Followers"),
                     color = EInk.Label, fontSize = 14.sp,
-                    modifier = Modifier.clickable(onClickLabel = tr("Show their followers"), onClick = onOpenFollowers).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
+                    modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their followers"), onClick = onOpenFollowers).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Lists"),
                     color = EInk.Label, fontSize = 14.sp,
-                    modifier = Modifier.clickable(onClickLabel = tr("Show their lists"), onClick = onOpenLists).padding(vertical = 2.dp)
+                    modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their lists"), onClick = onOpenLists).padding(vertical = 2.dp)
                 )
             }
             val npub = Nip19.npub(pubkey)
@@ -363,7 +363,7 @@ private fun BadgesRow(badges: List<Badges.Definition>) {
     ) {
         badges.forEach { b ->
             Box(
-                Modifier.size(32.dp).clip(CircleShape).background(EInk.Body).clickable(onClickLabel = b.name) { open = b },
+                Modifier.size(32.dp).clip(CircleShape).background(EInk.Body).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = b.name) { open = b },
                 contentAlignment = Alignment.Center
             ) {
                 if (b.image != null) AsyncImage(model = b.image, contentDescription = b.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())

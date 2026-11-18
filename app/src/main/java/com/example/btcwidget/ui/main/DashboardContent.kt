@@ -106,7 +106,7 @@ fun DashboardContent(
                 aspectRatio = 2f,
                 stale = !data.lastFetchSuccessful,
                 progress = if (hero == "HALVING") BlockclockMetrics.halvingProgress(data.blockHeight).toFloat() else null,
-                modifier = if (isStackHero) Modifier.clickable(
+                modifier = if (isStackHero) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, 
                     onClickLabel = tr(if (stackHidden) "Show stack value" else "Hide stack value"),
                     onClick = onToggleStackHidden
                 ) else Modifier
@@ -119,12 +119,12 @@ fun DashboardContent(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = tr("Share ›"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(onClickLabel = tr("Share {0}", BlockclockMetrics.MODE_NAMES.getOrElse(BlockclockMetrics.MODE_KEYS.indexOf(hero)) { hero })) { onShare(hero) }
+                        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Share {0}", BlockclockMetrics.MODE_NAMES.getOrElse(BlockclockMetrics.MODE_KEYS.indexOf(hero)) { hero })) { onShare(hero) }
                             .padding(vertical = 6.dp, horizontal = 4.dp)
                     )
                     Text(
                         text = tr("Post to Nostr →"), color = EInk.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(onClickLabel = tr("Prepare a Nostr post")) { onPostToNostr(hero) }
+                        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Prepare a Nostr post")) { onPostToNostr(hero) }
                             .padding(vertical = 6.dp, horizontal = 4.dp)
                     )
                 }
@@ -205,7 +205,7 @@ private fun PortfolioStackCard(
                 fontSize = 13.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = tr("Show stack value"), onClick = onToggleStackHidden)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show stack value"), onClick = onToggleStackHidden)
                     .padding(vertical = 4.dp)
             )
         }

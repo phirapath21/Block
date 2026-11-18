@@ -115,7 +115,7 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
                             scope.launch { y.snapTo((y.value + drag.y).coerceIn(0f, (constraints.maxHeight - heightPx).coerceAtLeast(0f))) }
                         }
                     }
-                    .clickable(onClickLabel = if (l != null) tr("Back to the stream") else tr("Back to the video")) {
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (l != null) tr("Back to the stream") else tr("Back to the video")) {
                         if (l != null) onOpen(l.address) else v?.let(onOpenVideo)
                     }
             ) {
@@ -143,7 +143,7 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
 @Composable
 private fun MiniButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier.padding(start = 4.dp).size(28.dp).clip(CircleShape).background(Color(0x66000000)).clickable(onClickLabel = label, onClick = onClick),
+        modifier.padding(start = 4.dp).size(28.dp).clip(CircleShape).background(Color(0x66000000)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(16.dp)) }
 }

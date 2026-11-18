@@ -76,7 +76,7 @@ fun EngagementScreen(vm: SocialViewModel, noteId: String, initialTab: Int, navig
 private fun EngagementRow(profile: Profile?, pubkey: String, badge: String?, comment: String?, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp)
+        modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Avatar(profile, pubkey, size = 42)
         Spacer(Modifier.width(10.dp))

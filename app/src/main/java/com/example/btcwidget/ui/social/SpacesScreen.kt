@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.launch
@@ -145,9 +147,10 @@ private fun GroupList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         error?.let { Text(it, color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) }
         LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
             items(saved, key = { it.toString() }) { a ->
-                Row(Modifier.fillMaxWidth().clickable { navigate(GroupKey(a.toString())) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(GroupKey(a.toString())) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(a.toString(), color = EInk.Value, fontSize = 15.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("✕", color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.clickable(onClickLabel = tr("Remove")) { vm.spaces.forgetGroup(a); saved = vm.spaces.savedGroups() }.padding(6.dp))
+                    Text("✕", color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove")) { vm.spaces.forgetGroup(a); saved = vm.spaces.savedGroups() }
+                        .semantics { contentDescription = tr("Remove") }.padding(6.dp))
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             }
@@ -157,7 +160,7 @@ private fun GroupList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
 @Composable
 private fun SpaceRow(image: String?, name: String, about: String?, badge: String?, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Body), contentAlignment = Alignment.Center) {
             if (image != null) AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             else Text(name.take(1).uppercase(), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -366,7 +369,7 @@ internal fun SpaceChat(
                     ) {
                         Row(
                             Modifier.clip(RoundedCornerShape(50)).background(SettingsAccent)
-                                .clickable(onClickLabel = tr("Show new messages")) { scope.launch { listState.animateScrollToItem(messages?.size ?: 0) }; unseen = 0 }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show new messages")) { scope.launch { listState.animateScrollToItem(messages?.size ?: 0) }; unseen = 0 }
                                 .padding(horizontal = 14.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -404,7 +407,7 @@ internal fun SpaceChat(
                     val ready = text.isNotBlank() && !sending
                     Box(
                         Modifier.size(42.dp).clip(CircleShape).background(if (ready || sending) SettingsAccent else EInk.Track)
-                            .clickable(enabled = ready, onClickLabel = tr("Send")) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready, onClickLabel = tr("Send")) {
                                 sending = true
                                 sendHaptics.confirm()
                                 val outgoing = text

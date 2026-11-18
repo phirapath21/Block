@@ -60,7 +60,7 @@ internal fun MyRelaysTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
                     e.url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable(onClickLabel = tr("About this relay")) { onInfo(e.url) }
+                    modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("About this relay")) { onInfo(e.url) }
                 )
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     fun set(read: Boolean, write: Boolean) { entries = entries.map { if (it.url == e.url) it.copy(read = read, write = write) else it } }
@@ -70,7 +70,7 @@ internal fun MyRelaysTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                     Spacer(Modifier.weight(1f))
                     Text(
                         tr("Remove"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { entries = entries.filter { it.url != e.url } }.padding(6.dp)
+                        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { entries = entries.filter { it.url != e.url } }.padding(6.dp)
                     )
                 }
             }
@@ -107,9 +107,9 @@ internal fun RelaySetTab(vm: SocialViewModel, blocked: Boolean, onInfo: (String)
             )
         }
         items(urls, key = { it }) { url ->
-            Row(Modifier.fillMaxWidth().clickable { onInfo(url) }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onInfo(url) }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text(tr("Remove"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { urls = urls - url }.padding(6.dp))
+                Text(tr("Remove"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { urls = urls - url }.padding(6.dp))
             }
             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         }

@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -118,7 +120,7 @@ fun ReplyBar(
                         .onFocusChanged { focused = it.isFocused }
                 )
                 // Logged out: tapping the field goes to log in instead.
-                if (me == null) Box(Modifier.matchParentSize().clickable(onClickLabel = tr("Log in to reply"), onClick = onLogin))
+                if (me == null) Box(Modifier.matchParentSize().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Log in to reply"), onClick = onLogin))
             }
             IconCell(Glyphs.Expand, "Open full reply editor", ink, iconSize = 20) { if (me == null) onLogin() else onExpand() }
         }
@@ -133,7 +135,8 @@ fun ReplyBar(
                         Text(
                             "✕", color = Color.White, fontSize = 11.sp,
                             modifier = Modifier.align(Alignment.TopEnd).clip(CircleShape).background(Color(0x99000000))
-                                .clickable(onClickLabel = tr("Remove image")) { images = images - img }.padding(horizontal = 5.dp)
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove image")) { images = images - img }
+                                .semantics { contentDescription = tr("Remove image") }.padding(horizontal = 5.dp)
                         )
                     }
                 }
@@ -160,7 +163,7 @@ fun ReplyBar(
                         .clip(RoundedCornerShape(50))
                         // Block's accent where X uses its blue.
                         .background(if (canSend) EInk.Accent else hint.copy(alpha = 0.25f))
-                        .clickable(enabled = canSend, onClickLabel = tr("Send reply")) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canSend, onClickLabel = tr("Send reply")) {
                             sending = true
                             sendHaptics.confirm()
                             vm.send(text.trim(), target, null, images) { ok ->

@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.draggable
@@ -256,9 +258,10 @@ fun ImageViewer(
                     Modifier
                         .fillMaxWidth()
                         .draggable(drag, androidx.compose.foundation.gestures.Orientation.Vertical)
-                        .clickable(onClickLabel = if (expanded) tr("Show less") else tr("Show more")) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (expanded) tr("Show less") else tr("Show more")) {
                             expanded = !expanded; if (expanded) textPx = screenPx * 0.32f
                         }
+                        .semantics { contentDescription = if (expanded) tr("Show less") else tr("Show more") }
                         .padding(bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) { Box(Modifier.size(width = 40.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.5f))) }
@@ -277,7 +280,7 @@ fun ImageViewer(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .then(if (following) Modifier.border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(50)) else Modifier.background(Accent))
-                                .clickable(onClickLabel = if (following) tr("Unfollow") else tr("Follow")) { actions.follow(note.pubkey, !following) }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (following) tr("Unfollow") else tr("Follow")) { actions.follow(note.pubkey, !following) }
                                 .padding(horizontal = 18.dp, vertical = 8.dp)
                         )
                     }
@@ -293,7 +296,7 @@ fun ImageViewer(
                         ) { Text(caption, color = Color.White, fontSize = 15.sp, lineHeight = 21.sp) }
                         Text(
                             tr("Show less"), color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { expanded = false }.padding(vertical = 4.dp)
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = false }.padding(vertical = 4.dp)
                         )
                     } else {
                         Text(
@@ -302,12 +305,12 @@ fun ImageViewer(
                             onTextLayout = { cut = it.hasVisualOverflow },
                             modifier = Modifier
                                 .padding(top = 10.dp)
-                                .clickable(onClickLabel = tr("Open post")) { onDismiss(); actions.openNote(note) }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open post")) { onDismiss(); actions.openNote(note) }
                         )
                         if (cut) Text(
                             tr("Show more"), color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
                             modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                                .clickable(onClickLabel = tr("Read the whole post")) { expanded = true; textPx = screenPx * 0.32f }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Read the whole post")) { expanded = true; textPx = screenPx * 0.32f }
                                 .padding(vertical = 4.dp)
                         )
                     }

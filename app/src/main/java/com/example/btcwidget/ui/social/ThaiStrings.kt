@@ -5,6 +5,11 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "Previous paragraph" to "ย่อหน้าก่อนหน้า",
+    "Next paragraph" to "ย่อหน้าถัดไป",
+    "{0}'s profile" to "โปรไฟล์ของ {0}",
+    "Move left" to "เลื่อนไปทางซ้าย",
+    "Move right" to "เลื่อนไปทางขวา",
     "A few things that arrived recently." to "ของใหม่ที่เพิ่งมา",
     "A relay asks for proof of work ({0}). Turn it on in Settings › Proof of work and post again." to "relay ขอ proof of work ({0}) เปิดได้ที่ Settings › Proof of work แล้วโพสต์อีกครั้ง",
     "Check your connection and try again." to "ตรวจการเชื่อมต่อแล้วลองใหม่",

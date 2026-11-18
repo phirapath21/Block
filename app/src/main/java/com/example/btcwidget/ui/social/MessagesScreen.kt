@@ -195,7 +195,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                 .clip(RoundedCornerShape(50))
                                 .background(EInk.Body)
                                 .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                                .clickable(onClickLabel = tr("New group chat")) { newGroup = true }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("New group chat")) { newGroup = true }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(Glyphs.Group, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(16.dp))
@@ -249,7 +249,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                         .size(22.dp)
                                         .clip(CircleShape)
                                         .background(EInk.Track)
-                                        .clickable(onClickLabel = tr("Clear")) { filterQuery = "" },
+                                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Clear")) { filterQuery = "" },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(Glyphs.CloseLine, contentDescription = tr("Clear"), tint = EInk.Value, modifier = Modifier.size(12.dp))
@@ -536,7 +536,7 @@ private fun ConversationRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -708,7 +708,7 @@ private fun NewMessageDialog(
                 .clip(RoundedCornerShape(14.dp))
                 .screenBackground()
                 .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-                .clickable(onClick = onNewGroup)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onNewGroup)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Box(
@@ -760,7 +760,7 @@ private fun NewMessageDialog(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable { onOpen(pk) }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { onOpen(pk) }
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -839,7 +839,7 @@ private fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart: 
                             .clip(RoundedCornerShape(50))
                             .background(EInk.Accent.copy(alpha = 0.16f))
                             .border(0.5.dp, EInk.Accent, RoundedCornerShape(50))
-                            .clickable { picked = picked - pk }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { picked = picked - pk }
                             .padding(start = 4.dp, end = 8.dp, top = 3.dp, bottom = 3.dp)
                     ) {
                         Avatar(profiles[pk], pk, size = 20)
@@ -864,7 +864,7 @@ private fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart: 
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .clickable { picked = if (on) picked - pk else (picked + pk).take(MAX_GROUP) }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { picked = if (on) picked - pk else (picked + pk).take(MAX_GROUP) }
                         .padding(vertical = 7.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1087,7 +1087,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     .fillMaxWidth()
                                     .padding(vertical = 20.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { navigate(ProfileKey(primaryPeer)) }
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(primaryPeer)) }
                                     .padding(12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -1406,7 +1406,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                     fontSize = 26.sp,
                                                                     modifier = Modifier
                                                                         .clip(CircleShape)
-                                                                        .clickable(onClickLabel = tr("React {0}", e)) {
+                                                                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React {0}", e)) {
                                                                             menuFor = null
                                                                             vm.reactDm(peers, m, e)
                                                                         }
@@ -1499,7 +1499,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .clickable(onClickLabel = tr("Cancel reply")) { replyTo = null },
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Cancel reply")) { replyTo = null },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Glyphs.CloseLine, contentDescription = tr("Cancel reply"), tint = EInk.Caption, modifier = Modifier.size(15.dp))
@@ -1524,7 +1524,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             .clip(CircleShape)
                             .background(EInk.Body)
                             .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                            .clickable(enabled = !mediaSending, onClickLabel = tr("Attach photo, video, or file")) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !mediaSending, onClickLabel = tr("Attach photo, video, or file")) {
                                 showAttachSheet = true
                             },
                         contentAlignment = Alignment.Center
@@ -1580,7 +1580,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(if (ready || sending) EInk.Accent else EInk.Track)
-                            .clickable(enabled = ready, onClickLabel = tr("Send")) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready, onClickLabel = tr("Send")) {
                                 sending = true
                                 sendHaptics.confirm()
                                 val outgoing = text.trim()
@@ -1677,7 +1677,7 @@ private fun ChatTopBar(
                 Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .clickable(onClickLabel = tr("Back"), onClick = onBack),
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Glyphs.Back, contentDescription = tr("Back"), tint = EInk.Value, modifier = Modifier.size(22.dp))
@@ -1687,7 +1687,7 @@ private fun ChatTopBar(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable(onClick = onOpenProfile)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpenProfile)
                     .padding(horizontal = 6.dp, vertical = 4.dp)
             ) {
                 Avatar(primaryProfile, primaryPeer, size = 36)
@@ -1784,7 +1784,7 @@ private fun EncryptedAttachment(
                     .clip(RoundedCornerShape(14.dp))
                     .background(EInk.Track)
                     .then(
-                        if (bitmap != null) Modifier.clickable { showFullscreen = true } else Modifier
+                        if (bitmap != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { showFullscreen = true } else Modifier
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -1805,7 +1805,7 @@ private fun EncryptedAttachment(
                                 .size(30.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.55f))
-                                .clickable(onClickLabel = tr("Save to device")) {
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Save to device")) {
                                     onSaveFile(raw, defaultAttachmentName(info))
                                 },
                             contentAlignment = Alignment.Center
@@ -1830,7 +1830,7 @@ private fun EncryptedAttachment(
                         Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.95f))
-                            .clickable { showFullscreen = false },
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { showFullscreen = false },
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -1853,7 +1853,7 @@ private fun EncryptedAttachment(
                                         .clip(CircleShape)
                                         .background(EInk.Body)
                                         .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                                        .clickable { onSaveFile(raw, defaultAttachmentName(info)) },
+                                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { onSaveFile(raw, defaultAttachmentName(info)) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(Glyphs.Download, contentDescription = tr("Save to device"), tint = EInk.Value, modifier = Modifier.size(20.dp))
@@ -1865,7 +1865,7 @@ private fun EncryptedAttachment(
                                     .clip(CircleShape)
                                     .background(EInk.Body)
                                     .border(0.5.dp, EInk.BodyStroke, CircleShape)
-                                    .clickable { showFullscreen = false },
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { showFullscreen = false },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Glyphs.CloseLine, contentDescription = tr("Close"), tint = EInk.Value, modifier = Modifier.size(20.dp))
@@ -1937,7 +1937,7 @@ private fun EncryptedAttachment(
                                 .size(48.dp)
                                 .clip(CircleShape)
                                 .background(EInk.Accent)
-                                .clickable(onClickLabel = tr("Play video")) { playing = true },
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Play video")) { playing = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Glyphs.Play, contentDescription = tr("Play video"), tint = Color.Black, modifier = Modifier.size(26.dp))
@@ -1952,7 +1952,7 @@ private fun EncryptedAttachment(
                                 .size(30.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.55f))
-                                .clickable(onClickLabel = tr("Save to device")) {
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Save to device")) {
                                     onSaveFile(raw, defaultAttachmentName(info))
                                 },
                             contentAlignment = Alignment.Center
@@ -2003,7 +2003,7 @@ private fun EncryptedAttachment(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(iconBg)
-                        .clickable(enabled = decryptedBytes != null) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = decryptedBytes != null) {
                             val raw = decryptedBytes ?: return@clickable
                             if (info.isAudio) {
                                 if (isPlayingAudio) {
@@ -2073,7 +2073,7 @@ private fun EncryptedAttachment(
                             .size(32.dp)
                             .clip(CircleShape)
                             .background(iconBg)
-                            .clickable(onClickLabel = tr("Save to device")) {
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Save to device")) {
                                 onSaveFile(raw, displayName)
                             },
                         contentAlignment = Alignment.Center

@@ -729,7 +729,7 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
                     .padding(horizontal = 10.dp, vertical = 2.dp)
                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
                     .background(if (selected) EInk.Body else Color.Transparent)
-                    .clickable(onClickLabel = tr("Open {0}", tr(tab.title))) { onOpen(tab) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open {0}", tr(tab.title))) { onOpen(tab) }
                     .padding(horizontal = 14.dp, vertical = 13.dp)
             ) {
                 Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else EInk.Value, modifier = Modifier.size(26.dp))

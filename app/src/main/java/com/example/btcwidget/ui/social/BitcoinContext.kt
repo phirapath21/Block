@@ -158,7 +158,7 @@ fun BlockStampBadge(
             .clip(RoundedCornerShape(50))
             .background(bitcoinOrange.copy(alpha = 0.12f))
             .border(0.5.dp, bitcoinOrange.copy(alpha = 0.45f), RoundedCornerShape(50))
-            .clickable(onClickLabel = tr("Proof of Blockheight")) { showSheet = true }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Proof of Blockheight")) { showSheet = true }
             .padding(horizontal = 8.dp, vertical = 2.5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
