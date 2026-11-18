@@ -74,7 +74,7 @@ internal object VideoPositions {
 }
 
 /**
- * Bounded disk cache (150 MB LRU) for non-live videos so feed and Shorts videos don't re-download
+ * Bounded disk cache (150 MB LRU) for non-live videos so feed videos don't re-download
  * every time the user scrolls back or opens them full screen.
  */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)

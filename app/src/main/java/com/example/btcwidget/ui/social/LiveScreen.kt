@@ -150,7 +150,7 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
     LaunchedEffect(live?.isLive) { if (live != null && !live.isLive && PipVideo.live?.address == live.address) PipVideo.release() }
     var messages by rememberKeptState<List<Event>?> { null }
     if (live != null) DisposableEffect(live.address) {
-        val stop = vm.spaces.watchLiveChat(live) { messages = it }
+        val stop = vm.live.watchLiveChat(live) { messages = it }
         onDispose { stop() }
     }
     // The replay of an ended stream: one player for this screen, full screen or not.
@@ -199,7 +199,7 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
         androidx.compose.runtime.movableContentOf<(@Composable () -> Unit)?, Boolean> { pinned, overVideo ->
             val l = liveNow
             val found = loadedNow != null
-            SpaceChat(
+            LiveChat(
                 vm, navigate, onBack,
                 title = l?.title ?: tr("Live"),
                 note = if (!found) tr("This stream couldn't be found on your relays.") else tr("Live chat: messages and zaps are public."),

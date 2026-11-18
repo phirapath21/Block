@@ -47,7 +47,7 @@ fun BitcoinSettingsRoute(viewModel: MainScreenViewModel = androidx.lifecycle.vie
     val data = (state as? MainScreenUiState.Success)?.data
     val stackValue = data?.takeIf { settings.stackSats > 0 }?.let {
         val btc = settings.stackSats / Stack.SATS_PER_BTC.toDouble()
-        com.example.btcwidget.alerts.PriceAlerts.formatPrice(btc * com.example.btcwidget.alerts.PriceAlerts.price(it, settings.currency), settings.currency)
+        com.example.btcwidget.PriceFormat.format(btc * com.example.btcwidget.PriceFormat.price(it, settings.currency), settings.currency)
     }
     BitcoinSettings(
         stackSats = settings.stackSats, stackUnit = settings.stackUnit, stackValue = stackValue, onStackChange = viewModel::setStack,
@@ -69,14 +69,14 @@ fun BitcoinSettings(
     mempoolUrl: String = "", onMempoolUrl: (String) -> Unit = {},
 ) {
     SettingsHeader(tr("Currency"))
-    SettingsNote(tr("Prices, sats and alerts"))
+    SettingsNote(tr("Prices and sats"))
     listOf("USD" to "US dollar (USD)", "THB" to "Thai baht (THB)").forEach { (code, name) ->
         SettingsRadioRow(tr(name), selected = currency == code) { onCurrency(code) }
     }
 
     SettingsDivider()
     SettingsHeader(tr("Refresh every"))
-    SettingsNote(tr("Widgets, price alerts and phone notifications check in the background this often."))
+    SettingsNote(tr("Widgets and phone notifications check in the background this often."))
     listOf(15, 30, 60).forEach { m -> SettingsRadioRow(tr("{0} minutes", m), selected = refreshInterval == m) { onRefreshInterval(m) } }
 
     SettingsDivider()

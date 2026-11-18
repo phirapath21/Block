@@ -16,9 +16,6 @@ import com.example.btcwidget.PriceRepository
 import com.example.btcwidget.StackUnit
 import com.example.btcwidget.WidgetRefreshScheduler
 import com.example.btcwidget.WidgetUpdater
-import com.example.btcwidget.alerts.AlertNotifier
-import com.example.btcwidget.alerts.AlertRule
-import com.example.btcwidget.alerts.AlertStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Everything the user can change, as shown on screen. Persisted through [AppPrefs] / [AlertStore]. */
+/** Everything the user can change, as shown on screen. Persisted through [AppPrefs]. */
 data class SettingsState(
     val heroMetric: String,
     val currency: String,
@@ -40,9 +37,7 @@ data class SettingsState(
     val stackUnit: StackUnit,
     val stackHidden: Boolean,
     val dataSources: DataSources,
-    val mempoolUrl: String,
-    val alerts: List<AlertRule>,
-    val notificationsAllowed: Boolean
+    val mempoolUrl: String
 ) {
     val hasStack: Boolean get() = stackSats > 0
 }
@@ -101,9 +96,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         stackUnit = AppPrefs.stackUnit(appContext),
         stackHidden = AppPrefs.stackHidden(appContext),
         dataSources = AppPrefs.dataSources(appContext),
-        mempoolUrl = AppPrefs.mempoolUrl(appContext),
-        alerts = AlertStore.load(appContext),
-        notificationsAllowed = AlertNotifier.canNotify(appContext)
+        mempoolUrl = AppPrefs.mempoolUrl(appContext)
     )
 
     /** Called when the screen first appears: show data, keep refreshes scheduled, redraw widgets. */
@@ -196,29 +189,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         refreshData()
     }
 
-    /**
-     * Saves an alert. Returns true when the UI should ask for the notification permission
-     * (an alert was switched on, Android 13+, not yet granted).
-     */
-    fun updateAlert(rule: AlertRule): Boolean {
-        val current = (_uiState.value as? MainScreenUiState.Success)?.data
-        AlertStore.save(appContext, rule, current)
-        _settings.update { it.copy(alerts = AlertStore.load(appContext)) }
-        return if (rule.enabled) {
-            // Alerts need the background refresh even with no widget placed.
-            WidgetRefreshScheduler.schedulePeriodic(appContext)
-            !AlertNotifier.canNotify(appContext) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-        } else {
-            WidgetRefreshScheduler.cancelIfUnused(appContext)
-            false
-        }
-    }
-
-    /** Re-reads whether notifications are allowed (after the prompt, or on returning to the app). */
-    fun refreshNotificationPermission() {
-        _settings.update { it.copy(notificationsAllowed = AlertNotifier.canNotify(appContext)) }
-    }
-
     // ---- Market data ----
 
     /**
@@ -289,7 +259,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
                     PriceRepository.saveToPrefs(appContext, data)
                     _uiState.value = MainScreenUiState.Success(data)
                     WidgetUpdater.updateAllWidgets(appContext)
-                    AlertNotifier.checkAndNotify(appContext, data)
                 } else if (_uiState.value !is MainScreenUiState.Success) {
                     _uiState.value = MainScreenUiState.Error(
                         Exception("Failed to fetch price data. Please verify your internet connection.")

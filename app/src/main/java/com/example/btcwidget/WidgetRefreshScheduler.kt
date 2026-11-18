@@ -11,7 +11,6 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.btcwidget.alerts.AlertStore
 import java.util.concurrent.TimeUnit
 
 /**
@@ -74,10 +73,9 @@ object WidgetRefreshScheduler {
 
     /**
      * Cancels background refreshes once nothing needs them: no widget of any type is
-     * placed, no price alert is enabled, and Nostr notifications are off.
+     * placed and Nostr notifications are off.
      */
     fun cancelIfUnused(context: Context) {
-        if (AlertStore.anyEnabled(context)) return
         if (com.example.btcwidget.nostr.NostrBackground.wanted(context)) return
         val manager = AppWidgetManager.getInstance(context)
         val providers = listOf(

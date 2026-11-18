@@ -55,10 +55,6 @@ fun SocialViewModel.hashtagSuggestions(prefix: String) = repo.hashtagSuggestions
 
 suspend fun SocialViewModel.articlesBy(pubkey: String) = runCatching { repo.articles.byAuthor(pubkey) }.getOrDefault(emptyList())
 
-/** Video posts for Shorts: by the people you follow, or by everyone on your relays. */
-suspend fun SocialViewModel.videoFeed(everyone: Boolean, until: Long? = null) =
-    runCatching { repo.mediaFeed(com.example.btcwidget.nostr.core.HomeFeed.Media(videos = true, everyone = everyone), until) }.getOrDefault(emptyList())
-
 suspend fun SocialViewModel.profileFeed(pubkey: String, until: Long? = null) = runCatching { repo.profileFeed(pubkey, until) }.getOrDefault(emptyList())
 
 suspend fun SocialViewModel.hashtagFeed(tag: String) = runCatching { repo.hashtagFeed(tag) }.getOrDefault(emptyList())

@@ -73,15 +73,14 @@ class MainScreenTest {
     }
 
     @Test
-    fun bottomBar_hasFourTabsNewPostInTheMiddleAndTheMenuIsTopLeft() {
+    fun bottomBar_hasFiveTabsWithWalletAndNewPostFloats() {
         setContent()
-        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "Wallet", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
-        // Profile, Shorts, Live, Communities, Store, the Bitcoin page and Settings are in the side panel.
-        composeTestRule.onNodeWithContentDescription("Communities").assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription("Shorts").assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription("Store").assertDoesNotExist()
+        // "New post" floats over the social pages, not the Bitcoin page this opens on.
+        composeTestRule.onNodeWithTag("compose_button").assertDoesNotExist()
+        // Profile, Live, the Bitcoin page and Settings are in the side panel.
         composeTestRule.onNodeWithContentDescription("Settings").assertDoesNotExist()
     }
 
@@ -102,7 +101,7 @@ class MainScreenTest {
             }
         }
         composeTestRule.onNodeWithTag("side_rail").assertExists()
-        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "Wallet", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
     }
@@ -221,13 +220,6 @@ class MainScreenTest {
         scrollWidgetsTo(hasText("Market"))
         composeTestRule.onNodeWithText("Market").performClick()
         composeTestRule.onNodeWithContentDescription(sats).assertDoesNotExist()
-    }
-
-    @Test
-    fun alerts_tabShowsCurrentPrice() {
-        setContent()
-        openFromSideBar("Price alerts")
-        composeTestRule.onNodeWithText("\$74,455").assertExists()
     }
 
     @Test

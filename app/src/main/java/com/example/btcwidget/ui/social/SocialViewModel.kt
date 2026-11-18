@@ -478,10 +478,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         return liveStreams().also { livesCache = System.currentTimeMillis() to it }
     }
 
-    // ---- Store (NIP-99 marketplace) ----
-
-    val market = MarketState(this)
-
     // ---- Images ----
 
     /** An uploaded image waiting to be posted. */
