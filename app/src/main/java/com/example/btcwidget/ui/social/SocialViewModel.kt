@@ -462,7 +462,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address): com.example.btcwidget.nostr.core.Article? {
         val key = "${address.kind}:${address.pubkey}:${address.identifier}"
-        return runCatching { repo.article(address) }.getOrNull()
+        return runCatching { repo.articles.get(address) }.getOrNull()
             ?: _savedArticles.value.firstOrNull { it.address == key }
     }
 
@@ -604,7 +604,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     fun renameList(list: com.example.btcwidget.nostr.core.PeopleList, title: String, description: String?) {
         val name = title.trim().ifBlank { return }
-        act(tr("Couldn't rename the list")) { repo.updateList(list) { it.copy(title = name.take(80), description = description?.trim()?.ifBlank { null }) } }
+        act(tr("Couldn't rename the list")) { repo.peopleLists.update(list) { it.copy(title = name.take(80), description = description?.trim()?.ifBlank { null }) } }
         // Its Home feed carries the name too.
         val renamed = { f: com.example.btcwidget.nostr.core.HomeFeed ->
             if (f is com.example.btcwidget.nostr.core.HomeFeed.People && f.owner == list.owner && f.d == list.d) f.copy(name = name.take(80)) else f
@@ -619,7 +619,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteList(list: com.example.btcwidget.nostr.core.PeopleList) {
         // Out of the Home feed menu too.
         _homeFeeds.value.filter { it is com.example.btcwidget.nostr.core.HomeFeed.People && it.owner == list.owner && it.d == list.d }.forEach { removeFeed(it) }
-        act(tr("Couldn't delete the list")) { repo.deleteList(list); say(tr("List deleted")) }
+        act(tr("Couldn't delete the list")) { repo.peopleLists.delete(list); say(tr("List deleted")) }
     }
 
     // ---- Polls (NIP-88) ----
