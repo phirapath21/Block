@@ -60,6 +60,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -125,14 +130,62 @@ fun NoteList(
     }
     if (onLoadMore != null) LaunchedEffect(nearEnd, items.size) { if (nearEnd && items.isNotEmpty()) onLoadMore() }
 
-    LazyColumn(state = state, contentPadding = contentPadding, modifier = modifier.fillMaxSize()) {
-        if (header != null) item(key = "header", contentType = "header") { header() }
-        items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
-            NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
+    Box(modifier.fillMaxSize()) {
+        LazyColumn(state = state, contentPadding = contentPadding, modifier = Modifier.fillMaxSize()) {
+            if (header != null) item(key = "header", contentType = "header") { header() }
+            items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
+                NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
+            }
+            if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
         }
-        if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
+        BackToTopButton(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp))
     }
 }
+
+/**
+ * "Back to top": a round ↑ that rises in once you're well down a list and start scrolling
+ * back up (when the bars come back), and glides you to the top. From far down it first
+ * jumps close to the top, so the trip is quick instead of a long scroll through everything.
+ */
+@Composable
+internal fun BackToTopButton(state: LazyListState, modifier: Modifier = Modifier) {
+    val farDown by remember { derivedStateOf { state.firstVisibleItemIndex >= BACK_TO_TOP_AFTER } }
+    val visible = farDown && LocalBarsVisible.current
+    val scope = rememberCoroutineScope()
+    val haptics = rememberHaptics()
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)) +
+            androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 500f), initialScale = 0.6f) +
+            androidx.compose.animation.slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 2 },
+        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) +
+            androidx.compose.animation.scaleOut(androidx.compose.animation.core.tween(120), targetScale = 0.6f),
+        modifier = modifier
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(10.dp, CircleShape)
+                .clip(CircleShape)
+                .background(SheetColor)
+                .border(0.75.dp, EInk.BodyStroke, CircleShape)
+                .clickable(onClickLabel = tr("Back to top")) {
+                    haptics.tick()
+                    scope.launch {
+                        if (state.firstVisibleItemIndex > 12) state.scrollToItem(6)
+                        state.animateScrollToItem(0)
+                    }
+                }
+                .testTag("back_to_top")
+        ) {
+            androidx.compose.material3.Icon(Glyphs.ArrowUp, contentDescription = tr("Back to top"), tint = SettingsAccent, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
+/** How many notes down before "Back to top" can show. */
+internal const val BACK_TO_TOP_AFTER = 8
 
 @Composable
 fun Spinner(modifier: Modifier = Modifier) {
@@ -192,25 +245,38 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 val shown = home.items
                 var feedMenu by remember { mutableStateOf(false) }
                 val feeds by vm.homeFeeds.collectAsState()
-                PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
-                    when {
-                        home.loading && home.items.isEmpty() -> Spinner(Modifier.padding(top = 40.dp))
-                        shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
-                            item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
+                val barsVisible = LocalBarsVisible.current
+                Column(Modifier.fillMaxSize()) {
+                    FeedTabBar(
+                        feeds = feeds, current = feed,
+                        // The open tab again: back to the top (and again: refresh), as on X.
+                        onSelect = { f -> if (f == feed) TabTaps.tap("HOME") else vm.selectFeed(f) },
+                        onManage = { feedMenu = true }
+                    )
+                    PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
+                        when {
+                            home.loading && home.items.isEmpty() -> Spinner(Modifier.padding(top = 40.dp))
+                            shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
+                                item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
+                            }
+                            else -> NoteList(
+                                items = shown, stats = stats, actions = actions, state = listState,
+                                loadingMore = home.loading, onLoadMore = vm::loadMoreHome
+                            )
                         }
-                        else -> NoteList(
-                            items = shown, stats = stats, actions = actions, state = listState,
-                            loadingMore = home.loading, onLoadMore = vm::loadMoreHome
-                        )
                     }
                 }
+                // Just under the feed tabs, or near the top once they've folded away.
+                val newPostsTop by androidx.compose.animation.core.animateDpAsState(
+                    if (barsVisible) FEED_TAB_HEIGHT + 12.dp else 12.dp, androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 500f), label = "new_posts_top"
+                )
                 if (newPosts.isNotEmpty()) {
                     // "↑ N new posts": new notes wait here instead of shifting what you're reading.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 12.dp)
+                            .padding(top = newPostsTop)
                             .clip(RoundedCornerShape(50))
                             .background(EInk.Accent)
                             .clickable(onClickLabel = tr("Show new posts")) {
@@ -231,43 +297,18 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 if (feedMenu) FeedMenu(vm, onClose = { feedMenu = false })
                 FirstTimeTip(
                     "home-tabs-v2", tr("Tap Home again to jump back to the top. Long-press your picture at the top left to switch accounts."),
-                    Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = 74.dp)
+                    Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 84.dp, bottom = 16.dp)
                 )
-                // Floating bottom Feed Picker Pill (slides out horizontally on tap) + Compose button.
-                val fab by androidx.compose.animation.core.animateFloatAsState(if (LocalBarsVisible.current) 1f else 0f, label = "fab")
-                if (fab > 0.01f) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                            .graphicsLayer {
-                                alpha = fab
-                                translationY = (1f - fab) * 44f
-                            }
-                    ) {
-                        Box(Modifier.weight(1f, fill = false).padding(end = 10.dp)) {
-                            FeedTabBar(
-                                feeds = feeds,
-                                current = feed,
-                                onSelect = { f -> if (f == feed) TabTaps.tap("HOME") else vm.selectFeed(f) },
-                                onManage = { feedMenu = true },
-                                collapseSignal = listState.isScrollInProgress
-                            )
-                        }
-                        FloatingActionButton(
-                            onClick = { navigate(ComposeKey()) },
-                            containerColor = EInk.Accent,
-                            contentColor = androidx.compose.ui.graphics.Color.Black,
-                            shape = CircleShape,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Text("+", fontSize = 25.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                // Compose: bottom right, shrinking away with the bars while you scroll down.
+                val fab by androidx.compose.animation.core.animateFloatAsState(if (barsVisible) 1f else 0f, label = "fab")
+                if (fab > 0.01f) FloatingActionButton(
+                    onClick = { navigate(ComposeKey()) },
+                    containerColor = EInk.Accent,
+                    contentColor = androidx.compose.ui.graphics.Color.Black,
+                    shape = CircleShape,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(56.dp)
+                        .graphicsLayer { alpha = fab; scaleX = 0.6f + 0.4f * fab; scaleY = 0.6f + 0.4f * fab }
+                ) { Text("+", fontSize = 26.sp, fontWeight = FontWeight.Bold) }
             }
         }
     }
@@ -465,9 +506,10 @@ internal fun feedTabTitle(f: HomeFeed): String = when (f) {
 }
 
 /**
- * Floating Feed Picker Pill at the bottom of Home:
- * Shows ONLY the currently selected feed by default. Tapping the pill smoothly slides out
- * the horizontal feed menu tray (other feeds + Manage feeds button) right from the pill.
+ * Home's feeds as tabs under the top bar, as on X: the open feed in bold with an orange bar
+ * under its name that slides to the tab you pick. Tabs share the width when they fit, and
+ * scroll (keeping the open one in view, with soft fades at the cut edges) when they don't.
+ * Manage feeds sits at the end. The bar folds away with the top bar while you scroll down.
  */
 @Composable
 internal fun FeedTabBar(
@@ -475,153 +517,146 @@ internal fun FeedTabBar(
     current: HomeFeed,
     onSelect: (HomeFeed) -> Unit,
     onManage: () -> Unit,
-    modifier: Modifier = Modifier,
-    collapseSignal: Boolean = false
+    modifier: Modifier = Modifier
 ) {
-    var expanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(collapseSignal) {
-        if (collapseSignal && expanded) expanded = false
-    }
-    val haptics = rememberHaptics()
-    val shape = RoundedCornerShape(50)
-    val borderColor by androidx.compose.animation.animateColorAsState(
-        targetValue = if (expanded) SettingsAccent.copy(alpha = 0.55f) else EInk.BodyStroke,
-        label = "feed_pill_border"
-    )
-    val chevronRotation by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = 0.78f,
-            stiffness = 420f
-        ),
-        label = "feed_pill_chevron"
-    )
-    val otherFeeds = remember(feeds, current) { feeds.filter { it != current } }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    androidx.compose.animation.AnimatedVisibility(
+        visible = LocalBarsVisible.current,
+        enter = androidx.compose.animation.expandVertically(androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 500f)) +
+            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)),
+        exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 600f)) +
+            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)),
         modifier = modifier
-            .height(48.dp)
-            .shadow(14.dp, shape)
-            .clip(shape)
-            .background(EInk.Body.copy(alpha = 0.97f))
-            .border(0.75.dp, borderColor, shape)
-            .padding(horizontal = 6.dp)
     ) {
-        // Primary Selected Feed Pill (always visible; tap to slide out / retract the feed menu)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier
-                .height(36.dp)
-                .clip(RoundedCornerShape(50))
-                .background(SettingsAccent)
-                .clickable(onClickLabel = feedTabTitle(current)) {
-                    haptics.tick()
-                    expanded = !expanded
-                }
-                .padding(start = 13.dp, end = 10.dp)
-        ) {
-            androidx.compose.material3.Icon(
-                feedIcon(current),
-                contentDescription = null,
-                tint = androidx.compose.ui.graphics.Color.Black,
-                modifier = Modifier.size(15.dp)
-            )
-            Text(
-                feedTabTitle(current),
-                color = androidx.compose.ui.graphics.Color.Black,
-                fontSize = 13.5.sp,
-                maxLines = 1,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.widthIn(max = 150.dp),
-                overflow = TextOverflow.Ellipsis
-            )
-            androidx.compose.material3.Icon(
-                Glyphs.Chevron,
-                contentDescription = if (expanded) tr("Close") else tr("Feeds"),
-                tint = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f),
-                modifier = Modifier
-                    .size(16.dp)
-                    .graphicsLayer { rotationZ = chevronRotation }
-            )
-        }
-
-        // Slide-out menu emerging horizontally from the Feed Picker Pill
-        androidx.compose.animation.AnimatedVisibility(
-            visible = expanded,
-            enter = androidx.compose.animation.expandHorizontally(
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = 0.82f,
-                    stiffness = 380f
-                ),
-                expandFrom = Alignment.Start
-            ) + androidx.compose.animation.fadeIn(
-                animationSpec = androidx.compose.animation.core.tween(180)
-            ),
-            exit = androidx.compose.animation.shrinkHorizontally(
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = 0.9f,
-                    stiffness = 460f
-                ),
-                shrinkTowards = Alignment.Start
-            ) + androidx.compose.animation.fadeOut(
-                animationSpec = androidx.compose.animation.core.tween(130)
-            ),
-            modifier = Modifier.weight(1f, fill = false)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (otherFeeds.isNotEmpty()) {
-                    Box(
-                        Modifier
-                            .padding(horizontal = 5.dp)
-                            .width(0.75.dp)
-                            .height(22.dp)
-                            .background(EInk.BodyStroke)
-                    )
-                    androidx.compose.foundation.lazy.LazyRow(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.weight(1f, fill = false).testTag("feed_tabs"),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp)
-                    ) {
-                        items(otherFeeds, key = { it.id }) { f ->
-                            FeedTab(
-                                label = feedTabTitle(f),
-                                selected = false,
-                                icon = feedIcon(f),
-                                onClick = {
-                                    expanded = false
-                                    onSelect(f)
-                                }
-                            )
-                        }
-                    }
-                }
-                Box(
-                    Modifier
-                        .padding(horizontal = 4.dp)
-                        .width(0.75.dp)
-                        .height(22.dp)
-                        .background(EInk.BodyStroke)
-                )
-                CircleIconButton(
-                    Glyphs.Sliders,
-                    tr("Manage feeds"),
-                    Modifier.size(36.dp),
-                    onClick = {
-                        expanded = false
-                        onManage()
-                    }
-                )
+        Column(Modifier.fillMaxWidth().background(EInk.Background)) {
+            Row(Modifier.fillMaxWidth().height(FEED_TAB_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
+                FeedTabStrip(feeds, current, onSelect, Modifier.weight(1f).fillMaxHeight().testTag("feed_tabs"))
+                Box(Modifier.width(0.5.dp).height(20.dp).background(EInk.BodyStroke))
+                CircleIconButton(Glyphs.Sliders, tr("Manage feeds"), Modifier.padding(horizontal = 6.dp), onClick = onManage)
             }
+            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         }
     }
 }
 
-/** One pill inside a floating filter/feed capsule: Bitcoin Orange pill when selected, subtle chip with icon when in slide-out tray. */
+/** Height of the feed tabs, without their bottom line. */
+internal val FEED_TAB_HEIGHT = 50.dp
+
+@Composable
+private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (HomeFeed) -> Unit, modifier: Modifier) {
+    val labels = feeds.map { feedTabTitle(it) }
+    val selected = feeds.indexOf(current).coerceAtLeast(0)
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val haptics = rememberHaptics()
+    val boldStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    val tabPad = 16.dp
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+        // Tabs share the width when every name fits at its bold width (two or three feeds, as
+        // on X); otherwise they keep their own width and scroll.
+        val widths = remember(labels) {
+            labels.map { with(density) { measurer.measure(it, boldStyle, maxLines = 1).size.width.toDp().coerceAtMost(180.dp) } }
+        }
+        val fits = widths.fold(0.dp) { sum, w -> sum + w + tabPad * 2 } <= maxWidth
+        val scroll = rememberScrollState()
+        // Where each name sits in the row, for the sliding bar.
+        var rowCoords by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+        val textCoords = remember { mutableMapOf<Int, androidx.compose.ui.layout.LayoutCoordinates>() }
+        var bounds by remember { mutableStateOf<Map<Int, Pair<Float, Float>>>(emptyMap()) }
+        fun recompute() {
+            val row = rowCoords ?: return
+            if (!row.isAttached) return
+            bounds = textCoords.filterValues { it.isAttached }.mapValues { (_, c) -> row.localBoundingBoxOf(c).let { it.left to it.right } }
+        }
+        val barLeft = remember { androidx.compose.animation.core.Animatable(0f) }
+        val barWidth = remember { androidx.compose.animation.core.Animatable(0f) }
+        var placed by remember { mutableStateOf(false) }
+        val target = bounds[selected]
+        LaunchedEffect(selected, target) {
+            val (l, r) = target ?: return@LaunchedEffect
+            val minW = with(density) { 28.dp.toPx() }
+            val w = (r - l).coerceAtLeast(minW)
+            val x = (l + r) / 2 - w / 2
+            if (!placed) { barLeft.snapTo(x); barWidth.snapTo(w); placed = true }
+            else {
+                val spec = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.82f, stiffness = 520f)
+                kotlinx.coroutines.coroutineScope {
+                    launch { barLeft.animateTo(x, spec) }
+                    launch { barWidth.animateTo(w, spec) }
+                }
+            }
+        }
+        // The open tab stays in view, centred when it can be.
+        LaunchedEffect(selected, target, fits) {
+            if (fits) return@LaunchedEffect
+            val (l, r) = target ?: return@LaunchedEffect
+            val viewport = with(density) { maxWidth.toPx() }
+            scroll.animateScrollTo(((l + r) / 2 - viewport / 2).toInt().coerceIn(0, scroll.maxValue))
+        }
+        val accent = SettingsAccent
+        val barHeight = with(density) { 4.dp.toPx() }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxHeight()
+                .then(if (fits) Modifier.fillMaxWidth() else Modifier.horizontalScroll(scroll))
+                .onGloballyPositioned { rowCoords = it; recompute() }
+                .drawBehind {
+                    if (placed) drawRoundRect(
+                        color = accent,
+                        topLeft = androidx.compose.ui.geometry.Offset(barLeft.value, size.height - barHeight),
+                        size = androidx.compose.ui.geometry.Size(barWidth.value, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barHeight / 2, barHeight / 2)
+                    )
+                }
+        ) {
+            labels.forEachIndexed { i, label ->
+                val isSelected = i == selected
+                val color by androidx.compose.animation.animateColorAsState(
+                    if (isSelected) EInk.Value else EInk.Caption, androidx.compose.animation.core.tween(180), label = "tab_color"
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .then(if (fits) Modifier.weight(1f) else Modifier)
+                        .tabSemantics(isSelected)
+                        .clickable(onClickLabel = label) {
+                            if (!isSelected) haptics.tick()
+                            onSelect(feeds[i])
+                        }
+                        .padding(horizontal = tabPad)
+                ) {
+                    Text(
+                        label, color = color, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        modifier = Modifier.widthIn(max = 180.dp).onGloballyPositioned { textCoords[i] = it; recompute() }
+                    )
+                }
+            }
+        }
+        // Soft fades where the tabs are cut off, so it reads as "there's more this way".
+        if (!fits) {
+            val fade = 28.dp
+            if (scroll.canScrollBackward) Box(
+                Modifier.align(Alignment.CenterStart).width(fade).fillMaxHeight()
+                    .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(EInk.Background, EInk.Background.copy(alpha = 0f))))
+            )
+            if (scroll.canScrollForward) Box(
+                Modifier.align(Alignment.CenterEnd).width(fade).fillMaxHeight()
+                    .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(EInk.Background.copy(alpha = 0f), EInk.Background)))
+            )
+        }
+    }
+}
+
+/** Marks a tab for accessibility: a tab, selected or not. */
+private fun Modifier.tabSemantics(isSelected: Boolean): Modifier =
+    this.then(androidx.compose.ui.Modifier.semantics {
+        role = androidx.compose.ui.semantics.Role.Tab
+        selected = isSelected
+    })
+
+/** A rounded chip, orange when selected (Search's filters); with [icon], a soft chip. */
 @Composable
 internal fun FeedTab(
     label: String,
