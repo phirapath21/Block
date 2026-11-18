@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -235,7 +234,10 @@ fun AppLockGate(activity: FragmentActivity?) {
     // Every touch stops here: the app under the lock screen must not be tapped through it.
     Box(
         Modifier.fillMaxSize().background(EInk.Background)
-            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } },
+            // A touch goes only to the top layer that handles touches, so listening here is
+            // enough to keep it from the app underneath. Nothing is consumed: consuming froze
+            // the PIN keys (they lost each tap, or saw it cancelled by the slightest move).
+            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
         contentAlignment = Alignment.Center
     ) {
         Column(
