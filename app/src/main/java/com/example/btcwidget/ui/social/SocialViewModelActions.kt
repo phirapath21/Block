@@ -88,7 +88,7 @@ val SocialViewModel.pinned get() = repo.pinned
 
 fun SocialViewModel.vote(poll: com.example.btcwidget.nostr.core.Poll, optionIds: List<String>, onResult: (Boolean) -> Unit) {
     var ok = false
-    act(tr("Couldn't vote"), finally = { onResult(ok) }) { repo.vote(poll, optionIds); ok = true }
+    act(tr("Couldn't vote"), finally = { onResult(ok) }) { repo.polls.vote(poll, optionIds); ok = true }
 }
 
 fun SocialViewModel.togglePin(note: Event) {

@@ -22,20 +22,20 @@ class MarketState(private val vm: SocialViewModel) {
         if (_loading.value) return
         _loading.value = true
         vm.viewModelScope.launch {
-            runCatching { repo.listings() }.onSuccess { _listings.value = it }
+            runCatching { repo.market.latest() }.onSuccess { _listings.value = it }
             if (_listings.value == null) _listings.value = emptyList()
             _loading.value = false
         }
     }
 
-    suspend fun shopListings(seller: String) = runCatching { repo.listings(sellers = listOf(seller)) }.getOrDefault(emptyList())
-    suspend fun listing(address: String) = runCatching { repo.listing(address) }.getOrNull()
+    suspend fun shopListings(seller: String) = runCatching { repo.market.latest(sellers = listOf(seller)) }.getOrDefault(emptyList())
+    suspend fun listing(address: String) = runCatching { repo.market.listing(address) }.getOrNull()
 
     /** Publishes a listing (new or edited); [onResult] gets it, or null on failure. */
     fun publishListing(unsigned: UnsignedEvent, onResult: (Listing?) -> Unit) {
         var result: Listing? = null
         vm.act(tr("Couldn't publish the listing"), finally = { onResult(result) }) {
-            result = repo.publishListing(unsigned)
+            result = repo.market.publish(unsigned)
             result?.let { l -> _listings.value = (listOf(l) + _listings.value.orEmpty().filter { it.address != l.address }) }
             vm.say(tr("Listing published"))
         }
@@ -43,7 +43,7 @@ class MarketState(private val vm: SocialViewModel) {
 
     fun deleteListing(listing: Listing, onDone: () -> Unit = {}) =
         vm.act(tr("Couldn't delete the listing"), finally = onDone) {
-            repo.deleteListing(listing)
+            repo.market.delete(listing)
             _listings.value = _listings.value?.filter { it.address != listing.address }
             vm.say(tr("Listing deleted"))
         }
@@ -65,10 +65,10 @@ class MarketState(private val vm: SocialViewModel) {
      */
     fun payLightning(seller: String, amountSat: Long, onInvoice: (String) -> Unit) =
         vm.act(tr("Couldn't pay")) {
-            val invoice = repo.lnurlPayInvoice(seller, amountSat)
-            if (repo.nwc.value != null) {
+            val invoice = repo.zaps.payInvoice(seller, amountSat)
+            if (repo.wallet.connection.value != null) {
                 vm.say(tr("⚡ Paying {0} sats…", amountSat))
-                repo.payWithNwc(invoice)
+                repo.wallet.pay(invoice)
                 vm.say(tr("⚡ Paid {0} sats", amountSat))
                 vm.wallet.refresh()
             } else {

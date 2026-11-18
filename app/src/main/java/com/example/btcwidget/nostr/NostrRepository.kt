@@ -111,6 +111,13 @@ class NostrRepository private constructor(private val context: Context) {
     val dms: DirectMessages by lazy { DirectMessages(this) }
     /** Communities, public chats and groups. */
     val spaces: Spaces by lazy { Spaces(this) }
+    val wallet: NwcWallet by lazy { NwcWallet(this) }
+    val linkPreviews: LinkPreviews by lazy { LinkPreviews(this) }
+    val market: MarketListings by lazy { MarketListings(this) }
+    val polls: Polls by lazy { Polls(this) }
+    val highlights: ArticleHighlights by lazy { ArticleHighlights(this) }
+    val badges: ProfileBadges by lazy { ProfileBadges(this) }
+    val zaps: ZapInvoices by lazy { ZapInvoices(this) }
 
     /** True once the account's lists were read from relays this session (not just the cache). */
     @Volatile private var accountFresh = false
@@ -298,7 +305,7 @@ class NostrRepository private constructor(private val context: Context) {
         _account.value = account
         (signer as? BunkerSigner)?.close()
         signer = NostrAccountStore.signer(context)
-        _nwc.value = NostrAccountStore.nwc(context)?.let { com.example.btcwidget.nostr.core.Nwc.parse(it) }
+        wallet.reload()
         _savedAccounts.value = NostrAccountStore.savedAccounts(context)
     }
 
@@ -335,7 +342,7 @@ class NostrRepository private constructor(private val context: Context) {
         (signer as? BunkerSigner)?.close()
         dms.reset()
         spaces.reset()
-        _nwc.value = null
+        wallet.forget()
         pool.setRelays(NostrAccountStore.relays(context) ?: RelayPool.DEFAULT_RELAYS)
         relayList = null
         mediaServerList = null
@@ -492,7 +499,6 @@ class NostrRepository private constructor(private val context: Context) {
 
     // ---- Outbox model (NIP-65): read people from the relays they write to ----
 
-
     /** Fetches relay lists (from the indexers and our relays) for authors we don't know yet. */
     private suspend fun loadWriteRelays(authors: Collection<String>) {
         val missing = authors.distinct().filter { !writeRelays.containsKey(it) }
@@ -545,7 +551,7 @@ class NostrRepository private constructor(private val context: Context) {
         buildTimeline(authoredEvents(authors, filterFor = filterFor))
 
     /** Events by [authors] from our relays, their write relays (outbox) and any [hints]. */
-    private suspend fun authoredEvents(authors: List<String>, hints: List<String> = emptyList(), filterFor: (List<String>) -> Filter): List<Event> =
+    internal suspend fun authoredEvents(authors: List<String>, hints: List<String> = emptyList(), filterFor: (List<String>) -> Filter): List<Event> =
         coroutineScope {
             val ours = async { pool.query(listOf(filterFor(authors))) }
             val theirs = async {
@@ -1040,169 +1046,6 @@ class NostrRepository private constructor(private val context: Context) {
         return list
     }
 
-    // ---- Marketplace (NIP-99 listings, NIP-15 products read-only) ----
-
-    /**
-     * Listings for sale, newest first: by [sellers] when given, else from everyone on your relays
-     * and the indexers. Muted and untrusted sellers are left out; what's already stored on the
-     * phone shows too, so the store fills in before the relays answer.
-     */
-    suspend fun listings(sellers: List<String>? = null, until: Long? = null): List<com.example.btcwidget.nostr.core.Listing> {
-        val kinds = com.example.btcwidget.nostr.core.Marketplace.KINDS
-        val local = withContext(Dispatchers.IO) {
-            runCatching { events.query(listOf(Filter(authors = sellers, kinds = kinds, until = until, limit = 300))) }.getOrDefault(emptyList())
-        }
-        val remote = runCatching {
-            if (sellers != null) authoredEvents(sellers) { Filter(authors = it, kinds = kinds, until = until, limit = 200) }
-            else queryEverywhere(listOf(Filter(kinds = kinds, until = until, limit = 200)), timeoutMs = 6_000)
-        }.getOrDefault(emptyList())
-        remote.forEach { remember(it) }
-        val list = com.example.btcwidget.nostr.core.Marketplace.latest(local + remote)
-            .filter { !hidden(it.event) && (sellers != null || trusted(it.pubkey)) }
-            .sortedByDescending { it.publishedAt }
-        loadProfiles(list.map { it.pubkey }.distinct())
-        return list
-    }
-
-    /** The newest version of the listing at [address] ("kind:pubkey:d"). */
-    suspend fun listing(address: String): com.example.btcwidget.nostr.core.Listing? {
-        val parts = address.split(':', limit = 3)
-        val kind = parts.getOrNull(0)?.toIntOrNull() ?: return null
-        val pubkey = parts.getOrNull(1) ?: return null
-        val d = parts.getOrNull(2).orEmpty()
-        val filter = { authors: List<String> -> Filter(authors = authors, kinds = listOf(kind), tags = mapOf("d" to listOf(d)), limit = 5) }
-        val local = withContext(Dispatchers.IO) { runCatching { events.query(listOf(filter(listOf(pubkey)))) }.getOrDefault(emptyList()) }
-        val remote = runCatching { authoredEvents(listOf(pubkey)) { filter(it) } }.getOrDefault(emptyList())
-        remote.forEach { remember(it) }
-        val latest = (local + remote).filter { it.pubkey == pubkey && it.kind == kind && it.firstTag("d")?.get(1).orEmpty() == d }
-            .maxByOrNull { it.createdAt } ?: return null
-        loadProfiles(listOf(pubkey))
-        return com.example.btcwidget.nostr.core.Marketplace.parse(latest)
-    }
-
-    /** Signs and publishes a NIP-99 listing (new or edited, by its d tag). */
-    suspend fun publishListing(unsigned: UnsignedEvent): com.example.btcwidget.nostr.core.Listing? =
-        com.example.btcwidget.nostr.core.Marketplace.parse(publish(unsigned))
-
-    /** Asks relays to delete the listing (NIP-09 by address and id). */
-    suspend fun deleteListing(listing: com.example.btcwidget.nostr.core.Listing) {
-        val me = pubkey ?: throw IllegalStateException("Log in to Nostr first")
-        publish(UnsignedEvent(me, System.currentTimeMillis() / 1000, Kind.DELETION,
-            listOf(listOf("e", listing.event.id), listOf("a", listing.address), listOf("k", listing.kind.toString())), ""))
-    }
-
-    // ---- Nostr Wallet Connect (NIP-47) ----
-
-    private val _nwc = MutableStateFlow(NostrAccountStore.nwc(context)?.let { com.example.btcwidget.nostr.core.Nwc.parse(it) })
-    /** The connected wallet, or null: zaps then open a wallet app instead. */
-    val nwc: StateFlow<com.example.btcwidget.nostr.core.Nwc.Connection?> = _nwc.asStateFlow()
-
-    /** Saves a `nostr+walletconnect://` string (encrypted). Throws if it isn't one. */
-    fun connectNwc(uri: String) {
-        val c = com.example.btcwidget.nostr.core.Nwc.parse(uri) ?: throw IllegalArgumentException("That isn't a nostr+walletconnect:// link")
-        NostrAccountStore.setNwc(context, uri.trim())
-        _nwc.value = c
-    }
-
-    fun disconnectNwc() {
-        NostrAccountStore.setNwc(context, null)
-        _nwc.value = null
-    }
-
-    /**
-     * Sends a NIP-47 request to the connected wallet's relay and waits for its response event.
-     */
-    private suspend fun requestNwc(
-        timeoutMs: Long = 30_000,
-        buildRequest: (com.example.btcwidget.nostr.core.Nwc.Connection, Boolean) -> Event
-    ): Pair<com.example.btcwidget.nostr.core.Nwc.Connection, Event> {
-        val c = _nwc.value ?: error("No wallet connected")
-        val nwc = com.example.btcwidget.nostr.core.Nwc
-        val walletPool = RelayPool().also { it.setRelays(c.relays) }
-        try {
-            val info = walletPool.query(listOf(Filter(authors = listOf(c.walletPubkey), kinds = listOf(nwc.INFO), limit = 1)), 4_000).firstOrNull()
-            val request = buildRequest(c, nwc.supportsNip44(info))
-            val answer = kotlinx.coroutines.CompletableDeferred<Event>()
-            val stop = walletPool.subscribe(
-                listOf(Filter(authors = listOf(c.walletPubkey), kinds = listOf(nwc.RESPONSE), tags = mapOf("e" to listOf(request.id)))),
-                { e, _ -> answer.complete(e) }
-            )
-            try {
-                val sent = walletPool.publish(request)
-                if (sent.none { it.accepted }) error(sent.firstOrNull { it.message.isNotBlank() }?.message ?: "The wallet's relay didn't accept the request")
-                val response = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { answer.await() } ?: error("The wallet didn't answer in time")
-                return c to response
-            } finally {
-                stop()
-            }
-        } finally {
-            walletPool.closeAll()
-        }
-    }
-
-    /**
-     * Pays [invoice] through the connected wallet: sends the request to the wallet's relay
-     * and waits up to 45 s for its answer. Returns the preimage; throws the wallet's error.
-     */
-    suspend fun payWithNwc(invoice: String): String {
-        val nwc = com.example.btcwidget.nostr.core.Nwc
-        val (c, response) = requestNwc(timeoutMs = 45_000) { conn, nip44 -> nwc.payInvoiceRequest(conn, invoice, nip44) }
-        return nwc.parseResponse(c, response).getOrThrow()
-    }
-
-    /** Reads the wallet balance in millisatoshis via NIP-47 `get_balance`. */
-    suspend fun nwcBalance(): Long {
-        val nwc = com.example.btcwidget.nostr.core.Nwc
-        val (c, response) = requestNwc(timeoutMs = 20_000) { conn, nip44 -> nwc.getBalanceRequest(conn, nip44) }
-        return nwc.parseBalance(c, response).getOrThrow()
-    }
-
-    /** Creates a BOLT11 invoice for [amountSat] sats via NIP-47 `make_invoice`. */
-    suspend fun nwcMakeInvoice(amountSat: Long, description: String = ""): String {
-        val nwc = com.example.btcwidget.nostr.core.Nwc
-        val (c, response) = requestNwc(timeoutMs = 25_000) { conn, nip44 -> nwc.makeInvoiceRequest(conn, amountSat, description, nip44) }
-        return nwc.parseMakeInvoice(c, response).getOrThrow()
-    }
-
-    /** Lists recent wallet transactions via NIP-47 `list_transactions`. */
-    suspend fun nwcTransactions(limit: Int = 20): List<com.example.btcwidget.nostr.core.Nwc.Transaction> {
-        val nwc = com.example.btcwidget.nostr.core.Nwc
-        val (c, response) = requestNwc(timeoutMs = 25_000) { conn, nip44 -> nwc.listTransactionsRequest(conn, limit, nip44) }
-        return nwc.parseTransactions(c, response).getOrThrow()
-    }
-
-    // ---- Link previews ----
-
-    /** url → preview (null = page has none); newest 300 kept. */
-    private val previews = object : LinkedHashMap<String, com.example.btcwidget.nostr.core.LinkPreview?>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, com.example.btcwidget.nostr.core.LinkPreview?>?) = size > 300
-    }
-    private val previewLock = kotlinx.coroutines.sync.Mutex()
-
-    /**
-     * The card for [url], fetched once: only HTML pages, only the first 256 KB, and only
-     * https. Null if the page has no title or can't be read.
-     */
-    suspend fun linkPreview(url: String): com.example.btcwidget.nostr.core.LinkPreview? {
-        if (!url.startsWith("https://")) return null
-        previewLock.withLock { if (previews.containsKey(url)) return previews[url] }
-        val preview = withContext(Dispatchers.IO) {
-            runCatching {
-                val request = Request.Builder().url(url).header("Accept", "text/html").header("User-Agent", "Mozilla/5.0 (Linux; Android) Block").build()
-                RelayPool.defaultClient.newCall(request).execute().use { r ->
-                    val type = r.header("Content-Type").orEmpty()
-                    if (!r.isSuccessful || !type.contains("html", ignoreCase = true)) return@use null
-                    val source = r.body.source()
-                    source.request(256 * 1024L)
-                    val html = source.buffer.readUtf8(minOf(source.buffer.size, 256 * 1024L))
-                    com.example.btcwidget.nostr.core.LinkPreview.parse(html, r.request.url.toString())
-                }
-            }.getOrNull()
-        }
-        previewLock.withLock { previews[url] = preview }
-        return preview
-    }
-
     // ---- Who engaged with a note ----
 
     /** Who reposted, liked (with their reaction) and zapped a note. */
@@ -1391,7 +1234,7 @@ class NostrRepository private constructor(private val context: Context) {
         if (batch.isNotEmpty()) _profiles.update { it + batch }
     }
 
-    private fun remember(e: Event, save: Boolean = true) {
+    internal fun remember(e: Event, save: Boolean = true) {
         when (e.kind) {
             Kind.METADATA -> {
                 val old = profileEvents[e.pubkey]
@@ -1519,43 +1362,6 @@ class NostrRepository private constructor(private val context: Context) {
         saveAccount()
     }
 
-    // ---- Polls (NIP-88) ----
-
-    /** Votes on [poll], from the relays it names and ours. */
-    suspend fun pollTally(poll: com.example.btcwidget.nostr.core.Poll): com.example.btcwidget.nostr.core.Poll.Tally {
-        val filter = Filter(kinds = listOf(Kind.POLL_RESPONSE), tags = mapOf("e" to listOf(poll.event.id)), limit = 500)
-        val responses = coroutineScope {
-            val ours = async { pool.query(listOf(filter), 5_000, graceMs = 700) }
-            val theirs = async {
-                val urls = poll.relays.filter { it !in pool.urls }.take(4).toSet()
-                if (urls.isEmpty()) emptyList() else runCatching {
-                    outbox.addRelays(urls)
-                    outbox.query(listOf(filter), timeoutMs = 5_000, only = urls)
-                }.getOrDefault(emptyList())
-            }
-            (ours.await() + theirs.await()).distinctBy { it.id }.filter { it.verify() }
-        }
-        return poll.tally(responses, pubkey)
-    }
-
-    /** Votes for [optionIds]; sent to our relays and the ones the poll reads from. */
-    suspend fun vote(poll: com.example.btcwidget.nostr.core.Poll, optionIds: List<String>) {
-        val signed = requireSigner().sign(com.example.btcwidget.nostr.core.Poll.response(requireMe(), poll, optionIds))
-        val extra = poll.relays.filter { it !in pool.urls }.take(4).toSet()
-        val results = coroutineScope {
-            val ours = async { pool.publish(signed) }
-            val theirs = async {
-                if (extra.isEmpty()) emptyList() else runCatching { outbox.addRelays(extra); outbox.publish(signed, only = extra) }.getOrDefault(emptyList())
-            }
-            ours.await() + theirs.await()
-        }
-        if (results.none { it.accepted }) throw IllegalStateException("No relay accepted the vote")
-    }
-
-    /** Publishes a poll; votes are collected on our relays. */
-    suspend fun createPoll(question: String, options: List<String>, multipleChoice: Boolean, endsAt: Long?): Event =
-        publish(com.example.btcwidget.nostr.core.Poll.create(requireMe(), question, options, multipleChoice, endsAt, pool.urls.take(4).toList()))
-
     /**
      * Uploads [image] to the user's Blossom servers in order, with the public default as fallback.
      * Signing the upload permission goes through the user's signer.
@@ -1630,7 +1436,6 @@ class NostrRepository private constructor(private val context: Context) {
             publishToInbox(e, listOf(note.pubkey))
         }.onFailure { bump(note.id) { s -> s.copy(likes = (s.likes - 1).coerceAtLeast(0), likedByMe = false, myReaction = null) }; throw it }
     }
-
 
     private fun withPendingFollows(base: Set<String>): Set<String> =
         base + pendingFollows.filterValues { it }.keys - pendingFollows.filterValues { !it }.keys
@@ -1838,7 +1643,7 @@ class NostrRepository private constructor(private val context: Context) {
     }
 
     /** Hidden by the mute list. [threadMuteApplies] is false inside a thread the user opened on purpose. */
-    private fun hidden(e: Event, threadMuteApplies: Boolean = true): Boolean {
+    internal fun hidden(e: Event, threadMuteApplies: Boolean = true): Boolean {
         if (e.pubkey in _muted.value) return true
         val rules = _mutes.value
         return if (threadMuteApplies) rules.hides(e) else rules.copy(threads = emptySet()).hides(e)
@@ -1947,30 +1752,6 @@ class NostrRepository private constructor(private val context: Context) {
 
     // ---- Badges (NIP-58) ----
 
-    /** Badges [pubkey] shows on their profile, verified against the issuers' awards. */
-    suspend fun badgesOf(pubkey: String): List<com.example.btcwidget.nostr.core.Badges.Definition> {
-        val profile = queryEverywhere(listOf(Filter(authors = listOf(pubkey), kinds = listOf(com.example.btcwidget.nostr.core.Badges.PROFILE), tags = mapOf("d" to listOf(com.example.btcwidget.nostr.core.Badges.PROFILE_D)), limit = 2)))
-            .maxByOrNull { it.createdAt }
-        val shown = com.example.btcwidget.nostr.core.Badges.shown(profile).take(30)
-        if (shown.isEmpty()) return emptyList()
-        val (awards, definitions) = coroutineScope {
-            val a = async { queryEverywhere(listOf(Filter(ids = shown.map { it.second }))) }
-            val d = async {
-                queryEverywhere(listOf(Filter(
-                    authors = shown.map { it.first.issuer }.distinct(), kinds = listOf(com.example.btcwidget.nostr.core.Badges.DEFINITION),
-                    tags = mapOf("d" to shown.map { it.first.id }.distinct())
-                )))
-            }
-            a.await() to d.await()
-        }
-        val awardById = awards.associateBy { it.id }
-        val defs = definitions.mapNotNull { com.example.btcwidget.nostr.core.Badges.Definition.of(it) }.groupBy { it.ref }.mapValues { it.value.first() }
-        return shown.mapNotNull { (ref, awardId) ->
-            val award = awardById[awardId] ?: return@mapNotNull null
-            if (!com.example.btcwidget.nostr.core.Badges.isValidAward(award, ref, pubkey)) null else defs[ref]
-        }
-    }
-
     fun setWotFilter(on: Boolean) {
         NostrAccountStore.setWotFilter(context, on)
         if (!on) {
@@ -2031,20 +1812,6 @@ class NostrRepository private constructor(private val context: Context) {
         (ours.await() + indexed.await()).distinctBy { it.id }.filter { !hidden(it) }
             .groupingBy { it.pubkey }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
     }
-
-    // ---- Highlights (NIP-84) ----
-
-    /** Highlights of [article] by anyone, newest first (muted people's left out). */
-    suspend fun highlightsOf(article: com.example.btcwidget.nostr.core.Article): List<com.example.btcwidget.nostr.core.Highlights.Highlight> {
-        val address = "${Kind.ARTICLE}:${article.pubkey}:${article.identifier}"
-        val events = queryEverywhere(listOf(Filter(kinds = listOf(Kind.HIGHLIGHT), tags = mapOf("a" to listOf(address)), limit = 100)), timeoutMs = 5_000)
-        return events.filter { !hidden(it) }.sortedByDescending { it.createdAt }
-            .mapNotNull { com.example.btcwidget.nostr.core.Highlights.parse(it) }
-            .also { list -> loadProfilesLater(list.map { it.event.pubkey }) }
-    }
-
-    suspend fun highlight(article: com.example.btcwidget.nostr.core.Article, text: String, comment: String?): Event =
-        publish(com.example.btcwidget.nostr.core.Highlights.of(requireMe(), text, article, comment, relayHint()))
 
     // ---- Lists of people (NIP-51 kind 30000) ----
 
@@ -2158,51 +1925,7 @@ class NostrRepository private constructor(private val context: Context) {
         publish(UnsignedEvent(requireMe(), Events.now(), 1984, listOf(listOf("e", note.id, reason), listOf("p", note.pubkey)), ""))
     }
 
-    // ---- Zaps ----
-
-    /**
-     * Gets a Lightning invoice zapping [amountSat] to the author of [note] (or to [recipient]).
-     * The caller hands it to a wallet app.
-     */
-    suspend fun zapInvoice(recipient: String, amountSat: Long, note: Event? = null, comment: String = "", address: String? = null): String = withContext(Dispatchers.IO) {
-        val me = requireMe()
-        val profile = _profiles.value[recipient] ?: refreshProfile(recipient)
-            ?: error("Couldn't load their profile")
-        val endpoint = Zaps.payEndpoint(profile) ?: error("They haven't set up a Lightning address")
-        val info = Zaps.parsePayInfo(httpGet(endpoint)) ?: error("Their Lightning address didn't answer")
-        val msat = amountSat * 1000
-        if (msat < info.minSendableMsat || msat > info.maxSendableMsat) {
-            error("Amount must be between ${info.minSendableMsat / 1000} and ${info.maxSendableMsat / 1000} sats")
-        }
-        val lnurl = Zaps.encodeLnurl(endpoint)
-        if (!info.allowsNostr) {
-            // Plain LNURL payment: still pays, but no zap receipt will appear.
-            return@withContext Zaps.parseInvoice(httpGet(info.callback + (if ('?' in info.callback) "&" else "?") + "amount=$msat")).getOrThrow()
-        }
-        val request = requireSigner().sign(
-            Zaps.request(me, recipient, msat, lnurl, pool.urls.toList(), note?.id, note?.kind, comment, address)
-        )
-        Zaps.parseInvoice(httpGet(Zaps.callbackUrl(info, msat, request, lnurl))).getOrThrow()
-    }
-
-    /**
-     * Gets a plain Lightning invoice (LNURL-pay, no zap request) for [amountSat] to [recipient]'s
-     * Lightning address. Unlike a zap nothing is signed and no public receipt is published, so
-     * paying for a Store order doesn't tell everyone who bought what.
-     */
-    suspend fun lnurlPayInvoice(recipient: String, amountSat: Long): String = withContext(Dispatchers.IO) {
-        val profile = _profiles.value[recipient] ?: refreshProfile(recipient)
-            ?: error("Couldn't load their profile")
-        val endpoint = Zaps.payEndpoint(profile) ?: error("They haven't set up a Lightning address")
-        val info = Zaps.parsePayInfo(httpGet(endpoint)) ?: error("Their Lightning address didn't answer")
-        val msat = amountSat * 1000
-        if (msat < info.minSendableMsat || msat > info.maxSendableMsat) {
-            error("Amount must be between ${info.minSendableMsat / 1000} and ${info.maxSendableMsat / 1000} sats")
-        }
-        Zaps.parseInvoice(httpGet(info.callback + (if ('?' in info.callback) "&" else "?") + "amount=$msat")).getOrThrow()
-    }
-
-    private fun httpGet(url: String): String {
+    internal fun httpGet(url: String): String {
         require(url.startsWith("https://")) { "Refusing non-HTTPS request" }
         RelayPool.defaultClient.newCall(Request.Builder().url(url).header("Accept", "application/json").build()).execute().use { r ->
             if (!r.isSuccessful) error("HTTP ${r.code}")
@@ -2213,8 +1936,8 @@ class NostrRepository private constructor(private val context: Context) {
         }
     }
 
-    private fun requireMe(): String = pubkey ?: throw IllegalStateException("Log in to Nostr first")
-    private fun relayHint(): String = pool.urls.firstOrNull().orEmpty()
+    internal fun requireMe(): String = pubkey ?: throw IllegalStateException("Log in to Nostr first")
+    internal fun relayHint(): String = pool.urls.firstOrNull().orEmpty()
 
     private fun bump(id: String, change: (NoteStats) -> NoteStats) =
         _stats.update { it + (id to change(it[id] ?: NoteStats())) }

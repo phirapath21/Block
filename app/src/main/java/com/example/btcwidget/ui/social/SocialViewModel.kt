@@ -628,7 +628,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         var ok = false
         act(tr("Couldn't post the poll"), finally = { onResult(ok) }) {
             val endsAt = durationSeconds?.let { System.currentTimeMillis() / 1000 + it }
-            val event = repo.createPoll(question, options, multipleChoice, endsAt)
+            val event = repo.polls.create(question, options, multipleChoice, endsAt)
             _home.update { it.copy(items = listOf(FeedItem(event)) + it.items) }
             ok = true
         }
@@ -644,10 +644,10 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun zap(recipient: String, amountSat: Long, note: Event?, comment: String, address: String? = null, onInvoice: (String) -> Unit) {
         act(tr("Couldn't zap")) {
-            val invoice = repo.zapInvoice(recipient, amountSat, note, comment, address)
-            if (repo.nwc.value != null) {
+            val invoice = repo.zaps.invoice(recipient, amountSat, note, comment, address)
+            if (repo.wallet.connection.value != null) {
                 say(tr("⚡ Paying {0} sats…", amountSat))
-                repo.payWithNwc(invoice)
+                repo.wallet.pay(invoice)
                 say(tr("⚡ Zapped {0} sats", amountSat))
                 note?.let { n -> runCatching { repo.loadStats(listOf(n.id)) } }
                 wallet.refresh()
