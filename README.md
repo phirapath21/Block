@@ -9,7 +9,7 @@
 
 Block is an Android app with two halves:
 
-- **Bitcoin widgets and dashboard.** Home-screen widgets inspired by desk blockclocks: price, sats per dollar or baht, block height, fees, halving countdown, hashrate, your stack's value and more.
+- **Bitcoin widgets.** Home-screen widgets inspired by desk blockclocks: price, sats per dollar or baht, block height, fees, halving countdown, hashrate, your stack's value and more.
 - **A Nostr social client.** A timeline, replies, reposts, likes and zaps, private messages, a Lightning wallet, lists and search, laid out like X, with a Bitcoin-orange accent.
 
 No account or server of ours is involved: market data comes from public APIs, social data from Nostr relays, and your keys stay on your phone or in your signer app.
@@ -19,7 +19,7 @@ No account or server of ours is involved: market data comes from public APIs, so
 ## Contents
 
 - [Bitcoin widgets](#bitcoin-widgets)
-- [Dashboard](#dashboard)
+- [Bitcoin settings](#bitcoin-settings)
 - [Nostr social](#nostr-social)
 - [Privacy and security](#privacy-and-security)
 - [Building](#building)
@@ -59,12 +59,11 @@ Four resizable home-screen widgets (2×1 by default):
 
 **Refresh:** every 15, 30 or 60 minutes with WorkManager (only when online, Doze-friendly, survives reboots). If a source fails, its value keeps the last good number and a red dot marks it stale; other sources carry on.
 
-## Dashboard
+## Bitcoin settings
 
-The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees) and a BTC price chart (24H / 7D / 30D / 1Y; drag to read a sample). Pull down to refresh.
+Settings › Bitcoin and widgets. The Widgets page in the side bar shows every panel and which ones the widget cycles through.
 
-- **Share:** sends the hero panel as an image plus a one-line post (`Bitcoin: $74,455 (+1.2% in 24h) · block 925,000 #bitcoin`) through Android's share sheet. Your stack is never offered for sharing.
-- **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change. Tap the Stack hero panel to hide or reveal it.
+- **Your stack:** enter what you hold, in BTC or sats, for the Stack widget. It's stored only on the phone and shown in USD or THB with its 24h change.
 - **Data sources:** BTC price from Coinbase or Kraken; THB converted or from Bitkub.
 - **Mempool:** use a custom mempool.space-compatible HTTPS URL in Bitcoin settings, or leave it blank for mempool.space.
 
@@ -222,7 +221,7 @@ app/src/main/java/com/example/btcwidget/
 ├── PriceData.kt, PriceSources.kt          market and network data, merged per field
 ├── PriceRefreshWorker.kt                  background refresh, Nostr notifications
 ├── Navigation.kt, NavigationKeys.kt       screens (Navigation 3)
-├── ui/main/                               Bitcoin dashboard, widgets page, settings
+├── ui/main/                               main screen and bars, widgets page, Bitcoin settings
 ├── ui/social/                             Nostr screens and the social view model
 └── nostr/
     ├── core/                              plain Kotlin: events, NIPs, crypto, relay protocol

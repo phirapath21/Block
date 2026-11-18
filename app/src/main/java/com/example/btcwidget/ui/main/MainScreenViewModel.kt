@@ -7,11 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.btcwidget.AppPrefs
 import com.example.btcwidget.AppTheme
 import com.example.btcwidget.BlockclockMetrics
-import com.example.btcwidget.ChartRange
 import com.example.btcwidget.DataSources
 import com.example.btcwidget.MetricCategory
 import com.example.btcwidget.PriceData
-import com.example.btcwidget.PricePoint
 import com.example.btcwidget.PriceRepository
 import com.example.btcwidget.StackUnit
 import com.example.btcwidget.WidgetRefreshScheduler
@@ -25,7 +23,6 @@ import kotlinx.coroutines.launch
 
 /** Everything the user can change, as shown on screen. Persisted through [AppPrefs]. */
 data class SettingsState(
-    val heroMetric: String,
     val currency: String,
     val theme: AppTheme,
     val refreshInterval: Int,
@@ -35,7 +32,6 @@ data class SettingsState(
     val collapsedCategories: Set<MetricCategory>,
     val stackSats: Long,
     val stackUnit: StackUnit,
-    val stackHidden: Boolean,
     val dataSources: DataSources,
     val mempoolUrl: String
 ) {
@@ -43,7 +39,7 @@ data class SettingsState(
 }
 
 /**
- * State and actions for the main screen. Owns market data (fetching, history) and the
+ * State and actions for the main screen. Owns market data (for the widgets page) and the
  * user's settings: each action persists the change and applies its side effects
  * (redrawing widgets, rescheduling refreshes), so the UI only renders state and
  * forwards events. The UI keeps only what needs an Activity: the selected tab and the
@@ -60,15 +56,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     /** True while a fetch is running; drives the pull-to-refresh indicator. */
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _history = MutableStateFlow<List<PricePoint>>(emptyList())
-    private val _historyLoading = MutableStateFlow(false)
-    val historyLoading: StateFlow<Boolean> = _historyLoading.asStateFlow()
-
-    /** Hourly and daily BTC/USD closes (oldest first), for the dashboard chart. */
-    val history: StateFlow<List<PricePoint>> = _history.asStateFlow()
-    private var historyFetchedAt = 0L
-    private var historyRangeFetched = ChartRange.DAY
-    private var pendingHistoryRange: ChartRange? = null
 
     private val _settings = MutableStateFlow(readSettings())
     val settings: StateFlow<SettingsState> = _settings.asStateFlow()
@@ -85,7 +72,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun readSettings() = SettingsState(
-        heroMetric = AppPrefs.heroMetric(appContext),
         currency = AppPrefs.currency(appContext),
         theme = AppPrefs.theme(appContext),
         refreshInterval = AppPrefs.refreshInterval(appContext),
@@ -94,7 +80,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         collapsedCategories = AppPrefs.collapsedCategories(appContext),
         stackSats = AppPrefs.stackSats(appContext),
         stackUnit = AppPrefs.stackUnit(appContext),
-        stackHidden = AppPrefs.stackHidden(appContext),
         dataSources = AppPrefs.dataSources(appContext),
         mempoolUrl = AppPrefs.mempoolUrl(appContext)
     )
@@ -109,11 +94,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // ---- Settings actions ----
-
-    fun selectHero(key: String) {
-        AppPrefs.setHeroMetric(appContext, key)
-        _settings.update { it.copy(heroMetric = key) }
-    }
 
     fun setCurrency(currency: String) {
         AppPrefs.setCurrency(appContext, currency)
@@ -169,12 +149,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         WidgetUpdater.updateAllWidgets(appContext)
     }
 
-    fun toggleStackHidden() {
-        val hidden = !_settings.value.stackHidden
-        AppPrefs.setStackHidden(appContext, hidden)
-        _settings.update { it.copy(stackHidden = hidden) }
-    }
-
     fun setDataSources(sources: DataSources) {
         AppPrefs.setDataSources(appContext, sources)
         _settings.update { it.copy(dataSources = sources) }
@@ -191,44 +165,8 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     // ---- Market data ----
 
-    /**
-     * Shows the cached history, then fetches a fresh year unless one was fetched in the
-     * last [HISTORY_MAX_AGE_MS] (hourly candles change slowly). [force] skips that check.
-     */
-    fun loadHistory(force: Boolean = false) = loadHistory(ChartRange.YEAR, force)
-
-    fun loadHistory(range: ChartRange, force: Boolean = false) {
-        if (_history.value.isEmpty()) _history.value = AppPrefs.history(appContext)
-        val needsLonger = range.hours > historyRangeFetched.hours
-        val now = System.currentTimeMillis()
-        if (!force && !needsLonger && now - historyFetchedAt < HISTORY_MAX_AGE_MS) return
-        if (_historyLoading.value) {
-            if (range.hours > (pendingHistoryRange ?: historyRangeFetched).hours) pendingHistoryRange = range
-            return
-        }
-        historyFetchedAt = now
-        _historyLoading.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val fresh = runCatching { PriceRepository.fetchHistory(range.hours) }.getOrNull()
-                if (fresh != null && fresh.size >= 2) {
-                    _history.value = (_history.value + fresh).distinctBy { it.time to it.resolutionSeconds }.sortedBy { it.time }
-                    historyRangeFetched = if (range.hours > historyRangeFetched.hours) range else historyRangeFetched
-                    AppPrefs.setHistory(appContext, _history.value)
-                } else {
-                    historyFetchedAt = 0L
-                }
-            } finally {
-                _historyLoading.value = false
-                val pending = pendingHistoryRange
-                pendingHistoryRange = null
-                if (pending != null && pending.hours > historyRangeFetched.hours) loadHistory(pending)
-            }
-        }
-    }
     /** Shows cached data immediately and refreshes in the background if it is old. */
     private fun loadInitialData() {
-        loadHistory()
         val cached = PriceRepository.getFromPrefs(appContext)
         if (cached == null) {
             refreshData()
@@ -248,7 +186,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         // One fetch at a time: a pull while one is running just waits for it.
         if (_isRefreshing.value) return
         _isRefreshing.value = true
-        loadHistory(force = true)
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (_uiState.value !is MainScreenUiState.Success) {
@@ -272,7 +209,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private companion object {
         const val REFRESH_ON_OPEN_AFTER_MS = 60_000L
-        const val HISTORY_MAX_AGE_MS = 10 * 60_000L
     }
 }
 

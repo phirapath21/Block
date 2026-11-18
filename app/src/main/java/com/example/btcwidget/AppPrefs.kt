@@ -17,7 +17,6 @@ object AppPrefs {
 
     private const val CURRENCY = "currency"
     private const val REFRESH_INTERVAL = "refresh_interval"
-    private const val HERO_METRIC = "hero_metric"
     private const val THEME = "app_theme"
     private const val MODE_ORDER = "mode_order"
     private const val COLLAPSED = "collapsed_categories"
@@ -25,7 +24,6 @@ object AppPrefs {
     private const val THB_SOURCE = "thb_source"
     private const val STACK_SATS = "stack_sats"
     private const val STACK_UNIT = "stack_unit"
-    private const val STACK_HIDDEN = "stack_hidden"
     private const val HISTORY = "history_cache"
     private const val HISTORY_AT = "history_fetched_at"
     private const val MEMPOOL_URL = "mempool_url"
@@ -58,11 +56,12 @@ object AppPrefs {
     private val OBSOLETE = listOf(
         "haptic_enabled", "blockclock_theme",
         // The app lock (removed): its PIN hash and salt, failures and choices.
-        "app_pin_salt", "app_pin_hash", "app_pin_length", "app_pin_failures", "app_pin_locked_until", "app_biometric_lock", "app_lock_preference", "app_lock_scope", "app_lock_after_ms"
+        "app_pin_salt", "app_pin_hash", "app_pin_length", "app_pin_failures", "app_pin_locked_until", "app_biometric_lock", "app_lock_preference", "app_lock_scope", "app_lock_after_ms",
+        // The Bitcoin dashboard (removed): its large panel and whether the stack was hidden there.
+        "hero_metric", "stack_hidden"
     )
 
     const val DEFAULT_REFRESH_MINUTES = 30
-    private const val DEFAULT_HERO = "BLOCK"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -170,9 +169,6 @@ object AppPrefs {
     /** Colors and effects for widgets, from [theme]. */
     fun palette(context: Context): Palette = theme(context).palette
 
-    fun heroMetric(context: Context): String = prefs(context).getString(HERO_METRIC, DEFAULT_HERO) ?: DEFAULT_HERO
-    fun setHeroMetric(context: Context, key: String) = edit(context) { putString(HERO_METRIC, key) }
-
     // ---- Metrics on the widget ----
 
     fun isModeEnabled(context: Context, mode: Int): Boolean = prefs(context).getBoolean(modeEnabled(mode), true)
@@ -236,10 +232,6 @@ object AppPrefs {
         putLong(STACK_SATS, sats.coerceAtLeast(0))
         putString(STACK_UNIT, unit.name)
     }
-
-    /** Whether stack amounts are hidden on the Bitcoin dashboard (off by default). */
-    fun stackHidden(context: Context): Boolean = prefs(context).getBoolean(STACK_HIDDEN, false)
-    fun setStackHidden(context: Context, hidden: Boolean) = edit(context) { putBoolean(STACK_HIDDEN, hidden) }
 
     /** Forgets settings from features that were removed (the stack's cost basis, for P/L). */
     fun dropRetiredSettings(context: Context) {

@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -36,21 +35,17 @@ class MainScreenTest {
 
     private fun setContent(currency: String = "USD") {
         composeTestRule.setContent {
-            var tab by remember { mutableStateOf(MainTab.DASHBOARD) }
-            var hero by remember { mutableStateOf("PRICE") }
+            var tab by remember { mutableStateOf(MainTab.HOME) }
             MainScreenContent(
                 state = MainScreenUiState.Success(sample),
                 selectedTab = tab,
-                heroMetric = hero,
                 modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
                 currencySetting = currency,
                 onCurrencySelected = {},
                 refreshInterval = 30,
                 onRefreshIntervalSelected = {},
-                onHeroMetricSelected = { hero = it },
                 onTabSelected = { tab = it },
                 onModeToggle = { _, _ -> },
-                onRefresh = {},
                 onItemClick = {},
                 settingsContent = { com.example.btcwidget.ui.social.SettingsHome(accountName = null, onOpen = { openedSettings = it }) }
             )
@@ -59,28 +54,15 @@ class MainScreenTest {
 
     private var openedSettings: com.example.btcwidget.ui.social.SettingsPage? = null
 
-    /** The hero chip; the dashboard's title is also "BLOCK", but isn't clickable. */
-    private val blockChip = hasText("BLOCK") and hasClickAction()
-
-    @Test
-    fun dashboard_showsHeroPanelForSelectedMetric() {
-        setContent()
-        composeTestRule.onNode(blockChip).assertExists()
-        composeTestRule.onNodeWithContentDescription("BTC USD \$74455. Market price of bitcoin").assertExists()
-
-        composeTestRule.onNode(blockChip).performClick()
-        composeTestRule.onNodeWithContentDescription("BLOCK HGHT 925000. Bitcoin block height").assertExists()
-    }
-
     @Test
     fun bottomBar_hasFiveTabsWithWalletAndNewPostFloats() {
         setContent()
         listOf("Home", "Search", "Wallet", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
-        // "New post" floats over the social pages, not the Bitcoin page this opens on.
-        composeTestRule.onNodeWithTag("compose_button").assertDoesNotExist()
-        // Profile, Live, the Bitcoin page and Settings are in the side panel.
+        // "New post" floats at the bottom right of Home.
+        composeTestRule.onNodeWithTag("compose_button").assertExists()
+        // Profile, Live, Widgets and Settings are in the side panel.
         composeTestRule.onNodeWithContentDescription("Settings").assertDoesNotExist()
     }
 
@@ -93,10 +75,10 @@ class MainScreenTest {
             }
             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalConfiguration provides wide) {
                 MainScreenContent(
-                    state = MainScreenUiState.Success(sample), selectedTab = MainTab.HOME, heroMetric = "PRICE",
+                    state = MainScreenUiState.Success(sample), selectedTab = MainTab.HOME,
                     modeStates = List(BlockclockMetrics.MODE_COUNT) { true }, currencySetting = "USD", onCurrencySelected = {},
-                    refreshInterval = 30, onRefreshIntervalSelected = {}, onHeroMetricSelected = {}, onTabSelected = {},
-                    onModeToggle = { _, _ -> }, onRefresh = {}, onItemClick = {}
+                    refreshInterval = 30, onRefreshIntervalSelected = {}, onTabSelected = {},
+                    onModeToggle = { _, _ -> }, onItemClick = {}
                 )
             }
         }
@@ -163,16 +145,13 @@ class MainScreenTest {
             MainScreenContent(
                 state = MainScreenUiState.Success(sample),
                 selectedTab = MainTab.WIDGETS,
-                heroMetric = "PRICE",
                 modeStates = states,
                 currencySetting = "USD",
                 onCurrencySelected = {},
                 refreshInterval = 30,
                 onRefreshIntervalSelected = {},
-                onHeroMetricSelected = {},
                 onTabSelected = {},
                 onModeToggle = { index, on -> states[index] = on },
-                onRefresh = {},
                 onItemClick = {}
             )
         }
@@ -200,16 +179,13 @@ class MainScreenTest {
             MainScreenContent(
                 state = MainScreenUiState.Success(sample),
                 selectedTab = MainTab.WIDGETS,
-                heroMetric = "PRICE",
                 modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
                 currencySetting = "USD",
                 onCurrencySelected = {},
                 refreshInterval = 30,
                 onRefreshIntervalSelected = {},
-                onHeroMetricSelected = {},
                 onTabSelected = {},
                 onModeToggle = { _, _ -> },
-                onRefresh = {},
                 onItemClick = {},
                 collapsedCategories = collapsed,
                 onToggleCategory = { c -> collapsed = if (c in collapsed) collapsed - c else collapsed + c }
@@ -220,15 +196,5 @@ class MainScreenTest {
         scrollWidgetsTo(hasText("Market"))
         composeTestRule.onNodeWithText("Market").performClick()
         composeTestRule.onNodeWithContentDescription(sats).assertDoesNotExist()
-    }
-
-    @Test
-    fun dashboard_hasNoMetricPanels() {
-        setContent()
-        // Only the hero shows on the dashboard; metric panels live in the Widgets tab.
-        composeTestRule.onNodeWithContentDescription(sats).assertDoesNotExist()
-        openFromSideBar("Widgets")
-        scrollWidgetsTo(hasContentDescription(sats))
-        composeTestRule.onNodeWithContentDescription(sats).assertExists()
     }
 }

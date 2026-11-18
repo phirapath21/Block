@@ -1,10 +1,10 @@
 Block is two things in one app: Bitcoin at a glance on your home screen, and a Nostr social client for the people who talk about it.
 
-<b>Bitcoin widgets and dashboard</b>
+<b>Bitcoin widgets</b>
 <ul>
 <li>Home-screen widgets in a desk-blockclock style: price, sats per dollar or baht, block height, fees, hash rate, difficulty, halving countdown, Lightning capacity, Strategy (MSTR) and Strive (ASST) holdings, and the value of your stack.</li>
 <li>Price chart widget (24H / 7D / 30D / 1Y), halving countdown and Bitcoin quotes. Every widget is resizable.</li>
-<li>Dashboard with a large panel for the number you care about, and USD or THB with your choice of price source.</li>
+<li>USD or THB, with your choice of price source.</li>
 </ul>
 
 <b>Nostr social</b>
