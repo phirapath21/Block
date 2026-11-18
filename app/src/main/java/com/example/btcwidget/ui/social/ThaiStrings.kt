@@ -5,6 +5,7 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "Look for it on njump.me ›" to "ลองหาใน njump.me ›",
     "This note couldn't be found on your relays or its author's." to "ไม่พบโพสต์นี้ทั้งใน relay ของคุณและของผู้เขียน",
     "Already in your relays" to "มีอยู่ใน relay ของคุณแล้ว",
     "{0}'s relays" to "Relay ของ {0}",

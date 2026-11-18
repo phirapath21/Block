@@ -296,3 +296,24 @@ object Content {
         return out
     }
 }
+
+/**
+ * Where to look for a note quoted in [quoting]: the relays and author its nostr: link gives,
+ * plus what the quoting note's own tags say about the same id. NIP-18 "q" tags carry
+ * [id, relay, pubkey], NIP-10 "e" tags [id, relay, marker, pubkey], even when the text only
+ * has a bare note1 link with no hints.
+ */
+object QuoteHints {
+    data class Hints(val relays: List<String>, val author: String?)
+
+    fun of(quoting: Event, id: String, linkRelays: List<String> = emptyList(), linkAuthor: String? = null): Hints {
+        val tags = quoting.tags.filter { it.size >= 2 && (it[0] == "q" || it[0] == "e") && it[1] == id }
+        val relays = (linkRelays + tags.mapNotNull { it.getOrNull(2) })
+            .map { it.trim() }.filter { it.startsWith("wss://") }.distinct()
+        val author = linkAuthor ?: tags.firstNotNullOfOrNull { t ->
+            val pk = if (t[0] == "q") t.getOrNull(3) else t.getOrNull(4)
+            pk?.takeIf { it.length == 64 && it.all { c -> c in '0'..'9' || c in 'a'..'f' } }
+        }
+        return Hints(relays, author)
+    }
+}

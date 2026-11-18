@@ -689,7 +689,13 @@ class NostrRepository private constructor(private val context: Context) {
     }
 
     /** A note by id, from cache or relays. */
-    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null): Event? {
+    /**
+     * A note by id, from cache or relays. When our relays don't have it: the relays the link
+     * or quote tags name ([relays]), its [author]'s write relays (NIP-65), the write relays of
+     * whoever quoted it ([via]: they saw it there), then the search relays, which aggregate
+     * many others.
+     */
+    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null, via: String? = null): Event? {
         notes[id]?.let { return it }
         withContext(Dispatchers.IO) { events.query(listOf(Filter(ids = listOf(id)))) }.firstOrNull()?.let {
             remember(it, save = false)
@@ -708,6 +714,10 @@ class NostrRepository private constructor(private val context: Context) {
                     }.getOrNull()
                 }
             }
+            ?: via?.takeIf { it != author }?.let { quoter ->
+                runCatching { authoredEvents(listOf(quoter)) { Filter(ids = listOf(id)) }.firstOrNull { it.id == id } }.getOrNull()
+            }
+            ?: runCatching { searchPool.query(listOf(Filter(ids = listOf(id))), 6_000).firstOrNull { it.id == id } }.getOrNull()
         return found?.also {
             remember(it)
             enrich(listOf(it.pubkey) + mentionedIn(it), emptyList())

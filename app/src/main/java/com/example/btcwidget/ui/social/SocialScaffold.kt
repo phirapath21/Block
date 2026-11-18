@@ -117,7 +117,10 @@ fun SocialScaffold(
             openEngagement = { n, tab -> navigateState.value(com.example.btcwidget.EngagementKey(n.id, tab)) },
             profileOf = { profilesState.value[it] },
             resolveNote = { vm.note(it) },
-            resolveNoteRef = { vm.note(it.id, it.relays, it.author) },
+            resolveQuote = { ref, quoting ->
+                val hints = com.example.btcwidget.nostr.core.QuoteHints.of(quoting, ref.id, ref.relays, ref.author)
+                vm.note(ref.id, hints.relays, hints.author, via = quoting.pubkey)
+            },
             loadProfiles = { vm.loadProfiles(it) },
             react = { n, content, url -> signedIn { vm.react(n, content, url) } },
             muteThread = { n -> signedIn { vm.muteThread(n) } },

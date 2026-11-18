@@ -96,8 +96,11 @@ class NoteActions(
     val isFollowing: (String) -> Boolean,
     val profileOf: (String) -> Profile?,
     val resolveNote: suspend (String) -> Event?,
-    /** A note from a nostr: link, also asking the relays it names and its author's relays. */
-    val resolveNoteRef: suspend (Content.Segment.NoteRef) -> Event? = { resolveNote(it.id) },
+    /**
+     * A note quoted in another (the [Event]): also asks the relays its link and the quoting
+     * note's tags name, its author's relays, the quoter's relays and the search relays.
+     */
+    val resolveQuote: suspend (Content.Segment.NoteRef, Event) -> Event? = { ref, _ -> resolveNote(ref.id) },
     /** Fetches profiles not loaded yet (people @mentioned in a note). */
     val loadProfiles: (Collection<String>) -> Unit = {},
     /** Hides the conversation this note belongs to (NIP-51 mute list, by its root note). */
@@ -401,7 +404,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
     }
     if (depth == 0) {
         segments.filterIsInstance<Content.Segment.NoteRef>().distinctBy { it.id }.take(2).forEach { ref ->
-            QuotedNote(ref, actions)
+            QuotedNote(ref, note, actions)
         }
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.Kind.ARTICLE }
             .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ArticleCard(it.address, actions) }
@@ -636,9 +639,9 @@ private fun ListingInlineCard(address: com.example.btcwidget.nostr.core.Nip19.Ad
 
 /** A quoted note, boxed, as in a quote post. */
 @Composable
-private fun QuotedNote(ref: Content.Segment.NoteRef, actions: NoteActions) {
+private fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: NoteActions) {
     // null: still looking; then the note, or nothing when no relay has it.
-    val lookup by produceState<Result<Event?>?>(null, ref.id) { value = runCatching { actions.resolveNoteRef(ref) } }
+    val lookup by produceState<Result<Event?>?>(null, ref.id) { value = runCatching { actions.resolveQuote(ref, quoting) } }
     val quoted = lookup?.getOrNull()
     Column(
         modifier = Modifier
@@ -655,6 +658,17 @@ private fun QuotedNote(ref: Content.Segment.NoteRef, actions: NoteActions) {
                 if (lookup == null) tr("Loading quoted note…") else tr("This note couldn't be found on your relays or its author's."),
                 color = EInk.Caption, fontSize = 13.sp
             )
+            // Not found anywhere Block asked: njump.me looks across more relays, in the browser.
+            if (lookup != null) {
+                val hints = remember(ref.id, quoting.id) { com.example.btcwidget.nostr.core.QuoteHints.of(quoting, ref.id, ref.relays, ref.author) }
+                Text(
+                    tr("Look for it on njump.me ›"),
+                    color = SettingsAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 6.dp).clickable {
+                        actions.openLink("https://njump.me/" + com.example.btcwidget.nostr.core.Nip19.nevent(ref.id, hints.relays.take(2), hints.author), quoting)
+                    }
+                )
+            }
         } else {
             val author = actions.profileOf(q.pubkey)
             Row(verticalAlignment = Alignment.CenterVertically) {

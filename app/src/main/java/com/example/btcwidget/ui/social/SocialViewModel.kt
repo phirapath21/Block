@@ -622,8 +622,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     suspend fun thread(id: String) = runCatching { repo.thread(id) }.getOrNull()
-    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null) =
-        runCatching { repo.note(id, relays, author) }.getOrNull()
+    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null, via: String? = null) =
+        runCatching { repo.note(id, relays, author, via) }.getOrNull()
 
     /** [pubkey]'s published relays (NIP-65), for their profile. */
     suspend fun relayListOf(pubkey: String) = runCatching { repo.relayListOf(pubkey) }.getOrDefault(emptyList())
