@@ -5,6 +5,8 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "Image {0} of {1}" to "รูปที่ {0} จาก {1}",
+    "Image {0} of {1}, {2} more" to "รูปที่ {0} จาก {1} และอีก {2} รูป",
     "+{0} more transactions" to "+อีก {0} ธุรกรรม",
     "Bitcoin in posts" to "Bitcoin ในโพสต์",
     "Block cards" to "การ์ดบล็อก",

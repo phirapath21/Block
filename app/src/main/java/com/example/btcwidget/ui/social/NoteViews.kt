@@ -24,6 +24,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -394,7 +395,9 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
     if (note.kind == com.example.btcwidget.nostr.core.Kind.POLL) {
         com.example.btcwidget.nostr.core.Poll.of(note)?.let { PollView(it, actions) }
     }
-    segments.filterIsInstance<Content.Segment.Image>().take(4).forEach { img -> NoteImage(note, img.url, actions) }
+    // One photo at its own shape; several as an album grid (X / Facebook style).
+    val photos = segments.filterIsInstance<Content.Segment.Image>().map { it.url }.distinct()
+    if (photos.size == 1) NoteImage(note, photos[0], actions) else if (photos.size > 1) NoteAlbum(note, photos, actions)
     segments.filterIsInstance<Content.Segment.Video>().take(2).forEach { VideoPlayer(it.url, note, actions) }
     // A card for the first web link (not for posts that already show photos, video or a quote).
     if (depth == 0 && segments.none { it is Content.Segment.Image || it is Content.Segment.Video || it is Content.Segment.NoteRef || it is Content.Segment.AddressRef }) {
@@ -561,6 +564,61 @@ private fun NoteImage(note: Event, url: String, actions: NoteActions) {
             .border(0.5.dp, EInk.BodyStroke, shape)
             .clickable(onClickLabel = tr("View image")) { actions.openImage(url, note) }
     )
+}
+
+/**
+ * Several photos as one album ([AlbumLayout]): a rounded box split into tiles with thin gaps,
+ * each photo cropped to its tile over its blurhash, the fifth showing "+N" for the rest.
+ * Tapping a tile opens the viewer at that photo, where every one can be swiped through.
+ */
+@Composable
+private fun NoteAlbum(note: Event, urls: List<String>, actions: NoteActions) {
+    val layout = remember(urls.size) { AlbumLayout.of(urls.size) }
+    val shape = RoundedCornerShape(14.dp)
+    val gap = 2.dp
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .aspectRatio(layout.aspect)
+            .clip(shape)
+            .border(0.5.dp, EInk.BodyStroke, shape)
+    ) {
+        val w = maxWidth
+        val h = maxHeight
+        layout.tiles.forEachIndexed { i, t ->
+            val url = urls[i]
+            // Half a gap on each inner edge, none on the album's own edges.
+            val left = if (t.x > 0f) gap / 2 else 0.dp
+            val top = if (t.y > 0f) gap / 2 else 0.dp
+            val right = if (t.x + t.w < 0.999f) gap / 2 else 0.dp
+            val bottom = if (t.y + t.h < 0.999f) gap / 2 else 0.dp
+            val blur = rememberBlurhashPainter(remember(note.id, url) { com.example.btcwidget.nostr.core.Imeta.blurhash(note, url) })
+            val last = i == layout.tiles.lastIndex && layout.more > 0
+            Box(
+                Modifier
+                    .offset(x = w * t.x + left, y = h * t.y + top)
+                    .size(width = w * t.w - left - right, height = h * t.h - top - bottom)
+                    .background(EInk.Body)
+                    .clickable(onClickLabel = tr("View image")) { actions.openImage(url, note) }
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = if (last) tr("Image {0} of {1}, {2} more", i + 1, urls.size, layout.more)
+                        else tr("Image {0} of {1}", i + 1, urls.size)
+                    }
+            ) {
+                AsyncImage(
+                    model = url, contentDescription = null, contentScale = ContentScale.Crop, placeholder = blur,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (last) Box(
+                    Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+${layout.more}", color = androidx.compose.ui.graphics.Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }
 
 /** Taller than 4:5 portrait or wider than 3:1 is trimmed; everything else shows whole. */
