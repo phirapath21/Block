@@ -23,8 +23,6 @@ media3 = "1.8.0"
 zxing = "3.5.3"
 cameraX = "1.6.2"
 biometric = "1.1.0"
-mlkitTranslate = "17.0.3"
-mlkitLanguageId = "17.0.6"
 
 [libraries]
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
@@ -41,8 +39,6 @@ androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.r
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraX" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraX" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
-mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
-mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkitLanguageId" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidxFragment" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }

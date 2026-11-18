@@ -1,6 +1,6 @@
 # Block Privacy Policy
 
-**Effective date:** 17 November 2026
+**Effective date:** 18 November 2026
 
 Block ("the app") is a client for Nostr, an open social network, with Bitcoin market and network data, home-screen widgets and alerts. This policy explains what the app does with information. In short: **the developer runs no servers and collects no personal data; there are no ads, analytics or tracking.** What you post on Nostr is public, and it goes to the Nostr relays you use, not to the developer.
 
@@ -85,7 +85,6 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **QR codes:** your profile's QR code is drawn on the phone. Scanning a code uses Block's own scanner: it asks for the camera permission the first time you scan, shows the camera only while the scan screen is open, and reads the code on the phone (ZXing). Camera frames are never saved or sent anywhere, and no Google Play services are involved.
 
-**Translation:** tapping Translate on a note translates it on your phone with Google's ML Kit. The note's text is not sent to any server. The first time you translate from or to a language, the app downloads that language's model from Google (about 30 MB), which, like any download, shows Google your IP address; ML Kit may also send Google basic information about how it runs (such as device type, app version and performance), never the text. See Google's ML Kit terms and privacy information.
 
 **Store (Marketplace):** listings (NIP-99 classified listings, and NIP-15 products from other apps) are read from your relays and are public. A listing you post, with its title, description, price, photos, location and shipping note, is public and signed by your key; photos are uploaded as described in Photos you post, and marking it sold or deleting it works like editing or deleting a note. When you check out, the order note (what you're buying, the price and any shipping address you type) is sent to the seller as an encrypted private message, if you choose to. Paying with Lightning is a plain payment to the seller's Lightning address, not a zap: the app asks the seller's Lightning provider (the domain in their Lightning address) for an invoice for the amount, which shows that provider your IP address and the amount, and then your wallet app (or your connected NWC wallet) pays it. Nothing is signed with your key and no public receipt is published, so others can't see that you bought something. Block never holds funds and is not part of the sale.
 
@@ -129,7 +128,7 @@ Requests run when you open or refresh the app and in the background at the inter
 
 - No accounts on any developer server: your Nostr key is yours, and the developer cannot see, recover or reset it.
 - No advertising or advertising identifiers.
-- No analytics, crash-reporting or tracking SDKs. If the app crashes, the next launch shows the saved report (phone model, Android version, app version and the error's stack trace), kept only on your phone. **Report on GitHub** opens a new issue on Block's public GitHub repository in your browser with that report filled in; nothing is sent unless you submit it there yourself, with your GitHub account, and the issue is public. Copy and Share hand the report to the app you choose; Continue deletes it. (Google's ML Kit, used only when you translate a note, reports its own usage information to Google as described above.)
+- No analytics, crash-reporting or tracking SDKs. If the app crashes, the next launch shows the saved report (phone model, Android version, app version and the error's stack trace), kept only on your phone. **Report on GitHub** opens a new issue on Block's public GitHub repository in your browser with that report filled in; nothing is sent unless you submit it there yourself, with your GitHub account, and the issue is public. Copy and Share hand the report to the app you choose; Continue deletes it.
 - No selling or sharing of personal data — the developer does not collect any.
 - No access to your contacts, location, microphone, files or other apps. The camera is used only while you scan a QR code.
 

@@ -131,9 +131,6 @@ dependencies {
   // Animated GIFs in notes, and video playback
   implementation(libs.coil.gif)
   implementation(libs.media3.exoplayer)
-  // On-device note translation; models download once and translation runs locally.
-  implementation(libs.mlkit.translate)
-  implementation(libs.mlkit.language.id)
   // Fingerprint / face prompt with compatibility down to Android 7.
   implementation(libs.androidx.biometric)
   // HLS (.m3u8) streams: the videos that offer several qualities to choose from
