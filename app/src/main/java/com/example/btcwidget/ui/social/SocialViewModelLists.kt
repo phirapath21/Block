@@ -26,13 +26,13 @@ val SocialViewModel.followedTags get() = repo.followedTags
 fun SocialViewModel.followHashtag(tag: String, follow: Boolean) =
     act(if (follow) tr("Couldn't follow #{0}", tag) else tr("Couldn't unfollow #{0}", tag)) { repo.setHashtagFollowed(tag, follow) }
 
-val SocialViewModel.lists get() = repo.lists
+val SocialViewModel.lists get() = repo.peopleLists.lists
 
-fun SocialViewModel.loadLists() { viewModelScope.launch { repo.pubkey?.let { runCatching { repo.peopleLists(it) } } } }
+fun SocialViewModel.loadLists() { viewModelScope.launch { repo.pubkey?.let { runCatching { repo.peopleLists.of(it) } } } }
 
-suspend fun SocialViewModel.listsBy(owner: String) = runCatching { repo.peopleLists(owner) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.listsBy(owner: String) = runCatching { repo.peopleLists.of(owner) }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.peopleList(owner: String, d: String) = runCatching { repo.peopleList(owner, d) }.getOrNull()
+suspend fun SocialViewModel.peopleList(owner: String, d: String) = runCatching { repo.peopleLists.get(owner, d) }.getOrNull()
 
 suspend fun SocialViewModel.listFeed(list: com.example.btcwidget.nostr.core.PeopleList) =
     runCatching { repo.feed(com.example.btcwidget.nostr.core.HomeFeed.People(list.owner, list.d, list.title)) }.getOrDefault(emptyList())
@@ -44,7 +44,7 @@ fun SocialViewModel.createList(title: String, firstMember: String? = null, onDon
     act(tr("Couldn't create the list")) {
         var list = com.example.btcwidget.nostr.core.PeopleList.create(me, name)
         if (firstMember != null) list = list.with(firstMember)
-        val saved = repo.updateList(list)
+        val saved = repo.peopleLists.update(list)
         say(tr("List created"))
         onDone(saved)
     }
@@ -52,7 +52,7 @@ fun SocialViewModel.createList(title: String, firstMember: String? = null, onDon
 
 fun SocialViewModel.setInList(list: com.example.btcwidget.nostr.core.PeopleList, pubkey: String, inList: Boolean) {
     act(tr("Couldn't update the list")) {
-        repo.updateList(list) { if (inList) it.with(pubkey) else it.without(pubkey) }
+        repo.peopleLists.update(list) { if (inList) it.with(pubkey) else it.without(pubkey) }
         say(if (inList) tr("Added to {0}", list.title) else tr("Removed from {0}", list.title))
     }
 }

@@ -118,6 +118,9 @@ class NostrRepository private constructor(private val context: Context) {
     val highlights: ArticleHighlights by lazy { ArticleHighlights(this) }
     val badges: ProfileBadges by lazy { ProfileBadges(this) }
     val zaps: ZapInvoices by lazy { ZapInvoices(this) }
+    val articles: Articles by lazy { Articles(this) }
+    val dvm: DvmFeeds by lazy { DvmFeeds(this) }
+    val peopleLists: PeopleLists by lazy { PeopleLists(this) }
 
     /** True once the account's lists were read from relays this session (not just the cache). */
     @Volatile private var accountFresh = false
@@ -156,7 +159,7 @@ class NostrRepository private constructor(private val context: Context) {
      * every note ever seen until the app was closed, so a long scroll through Global kept
      * growing it; older ones are still in the local database and are fetched again if needed.
      */
-    private val notes: MutableMap<String, Event> = java.util.Collections.synchronizedMap(
+    internal val notes: MutableMap<String, Event> = java.util.Collections.synchronizedMap(
         object : LinkedHashMap<String, Event>(256, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Event>?) = size > MAX_NOTES
         }
@@ -178,10 +181,6 @@ class NostrRepository private constructor(private val context: Context) {
     private val _followedTags = MutableStateFlow<Set<String>>(emptySet())
     /** Hashtags the user follows (lowercase), from the "t" tags of their contact list. */
     val followedTags: StateFlow<Set<String>> = _followedTags.asStateFlow()
-
-    private val _lists = MutableStateFlow<List<com.example.btcwidget.nostr.core.PeopleList>?>(null)
-    /** The user's lists of people (NIP-51 kind 30000); null until loaded. */
-    val lists: StateFlow<List<com.example.btcwidget.nostr.core.PeopleList>?> = _lists.asStateFlow()
 
     private val _bookmarks = MutableStateFlow<List<String>>(emptyList())
     /** Note ids the user bookmarked (NIP-51 kind 10003), newest first. */
@@ -211,7 +210,7 @@ class NostrRepository private constructor(private val context: Context) {
     val cacheReady: Job
 
     // Declared before init: the cached account is applied from a coroutine started there.
-    private val searchPool by lazy { RelayPool().also { it.setRelays(_searchRelays.value.ifEmpty { SEARCH_RELAYS }) } }
+    internal val searchPool by lazy { RelayPool().also { it.setRelays(_searchRelays.value.ifEmpty { SEARCH_RELAYS }) } }
 
     // ---- Relay lists: NIP-65 (read/write), search (10007) and blocked (10006) ----
 
@@ -357,7 +356,7 @@ class NostrRepository private constructor(private val context: Context) {
         muteEvent = null
         bookmarkEvent = null
         pinEvent = null
-        _lists.value = null
+        peopleLists.clear()
         privateMutes = null
         privateBookmarks = null
         _followedTags.value = emptySet()
@@ -476,12 +475,12 @@ class NostrRepository private constructor(private val context: Context) {
         is com.example.btcwidget.nostr.core.HomeFeed.Global -> globalFeed(feed.relay, until)
         is com.example.btcwidget.nostr.core.HomeFeed.Hashtag -> hashtagFeed(feed.tag, until)
         is com.example.btcwidget.nostr.core.HomeFeed.Media -> mediaFeed(feed, until)
-        is com.example.btcwidget.nostr.core.HomeFeed.People -> peopleList(feed.owner, feed.d)?.members.orEmpty().let { members ->
+        is com.example.btcwidget.nostr.core.HomeFeed.People -> peopleLists.get(feed.owner, feed.d)?.members.orEmpty().let { members ->
             if (members.isEmpty()) emptyList()
             else authoredTimeline(members) { Filter(authors = it, kinds = Kind.POSTS + Kind.REPOST, until = until, limit = 40) }
         }
         is com.example.btcwidget.nostr.core.HomeFeed.Dvm ->
-            if (until != null) emptyList() else dvmFeed(com.example.btcwidget.nostr.core.Dvm.Service(feed.pubkey, feed.dvmId, feed.name, null, null, false))
+            if (until != null) emptyList() else dvm.feed(com.example.btcwidget.nostr.core.Dvm.Service(feed.pubkey, feed.dvmId, feed.name, null, null, false))
     }
 
     /** Picture posts (kind 20) or video posts (21, 22): by the people you follow, or by everyone. */
@@ -578,32 +577,6 @@ class NostrRepository private constructor(private val context: Context) {
 
     // ---- Long-form articles (NIP-23) ----
 
-    /** The latest version of the article at [address]. */
-    suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address): com.example.btcwidget.nostr.core.Article? {
-        val events = authoredEvents(listOf(address.pubkey), address.relays) {
-            Filter(authors = it, kinds = listOf(address.kind), tags = mapOf("d" to listOf(address.identifier)), limit = 3)
-        }
-        val latest = events.filter { it.pubkey == address.pubkey && it.firstTag("d")?.get(1).orEmpty() == address.identifier }
-            .maxByOrNull { it.createdAt } ?: return null
-        enrich(listOf(latest.pubkey), listOf(latest.id))
-        return com.example.btcwidget.nostr.core.Article.of(latest)
-    }
-
-    /** Articles [pubkey] has written, newest first (one per identifier). */
-    suspend fun articlesBy(pubkey: String): List<com.example.btcwidget.nostr.core.Article> =
-        authoredEvents(listOf(pubkey)) { Filter(authors = it, kinds = listOf(Kind.ARTICLE), limit = 30) }
-            .filter { it.pubkey == pubkey }
-            .groupBy { it.firstTag("d")?.get(1).orEmpty() }
-            .mapNotNull { (_, versions) -> com.example.btcwidget.nostr.core.Article.of(versions.maxBy { it.createdAt }) }
-            .sortedByDescending { it.publishedAt }
-
-    /** Publishes a long-form article (NIP-23 kind 30023) and stores it locally. */
-    suspend fun publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent): com.example.btcwidget.nostr.core.Article? {
-        val signed = publish(unsigned)
-        store(signed)
-        return com.example.btcwidget.nostr.core.Article.of(signed)
-    }
-
     /**
      * Recent notes from everyone, for discovering people: from all our relays, or only from
      * [relay] (which needn't be one of ours).
@@ -663,7 +636,7 @@ class NostrRepository private constructor(private val context: Context) {
     private suspend fun timeline(vararg filters: Filter, source: RelayPool = pool): List<FeedItem> =
         buildTimeline(source.query(filters.toList()))
 
-    private suspend fun buildTimeline(events: List<Event>): List<FeedItem> {
+    internal suspend fun buildTimeline(events: List<Event>): List<FeedItem> {
         // Reposts carry the note as JSON; fetch the few that don't in one request.
         val embedded = events.filter { it.kind == Kind.REPOST }.associateWith { r ->
             runCatching { Event.fromJson(r.content) }.getOrNull()?.takeIf { it.kind in Kind.POSTS && it.verify() }
@@ -696,7 +669,7 @@ class NostrRepository private constructor(private val context: Context) {
             .mapNotNull { (it as? com.example.btcwidget.nostr.core.Content.Segment.ProfileRef)?.pubkey }
 
     /** Loads [pubkeys]' profiles and [noteIds]' counts in the background. */
-    private fun enrich(pubkeys: List<String>, noteIds: List<String>) {
+    internal fun enrich(pubkeys: List<String>, noteIds: List<String>) {
         scope.launch { runCatching { loadProfiles(pubkeys) } }
         scope.launch { runCatching { loadStats(noteIds) } }
     }
@@ -1014,36 +987,6 @@ class NostrRepository private constructor(private val context: Context) {
             (remote.await() + local.await()).distinctBy { it.id }
         }
         return buildTimeline(found)
-    }
-
-    /** Long-form articles matching [query] (NIP-50 on kind 30023 + local SQLite cache), newest version of each. */
-    suspend fun searchArticles(query: String): List<com.example.btcwidget.nostr.core.Article> {
-        val q = query.trim()
-        if (q.isEmpty()) return emptyList()
-        val found = coroutineScope {
-            val remote = async { runCatching { searchPool.query(listOf(Filter(kinds = listOf(Kind.ARTICLE), search = q, limit = 40)), 6_000) }.getOrDefault(emptyList()) }
-            val local = async(Dispatchers.IO) { events.search(q, kinds = listOf(Kind.ARTICLE), limit = 40) }
-            (remote.await() + local.await()).distinctBy { it.id }
-        }
-        return articlesFrom(found)
-    }
-
-    /** Recent articles: from the people you follow when [following], else from everyone on your relays. */
-    suspend fun recentArticles(following: Boolean, until: Long? = null): List<com.example.btcwidget.nostr.core.Article> {
-        val authors = if (following) homeAuthors().takeIf { it.isNotEmpty() } else null
-        val events = if (authors != null) authoredEvents(authors) { Filter(authors = it, kinds = listOf(Kind.ARTICLE), until = until, limit = 40) }
-            else queryEverywhere(listOf(Filter(kinds = listOf(Kind.ARTICLE), until = until, limit = 40)), timeoutMs = 6_000)
-        return articlesFrom(events)
-    }
-
-    private suspend fun articlesFrom(events: List<Event>): List<com.example.btcwidget.nostr.core.Article> {
-        val list = events.filter { it.kind == Kind.ARTICLE && !hidden(it) && trusted(it.pubkey) }
-            .groupBy { it.pubkey + ":" + it.firstTag("d")?.get(1).orEmpty() }
-            .mapNotNull { (_, v) -> com.example.btcwidget.nostr.core.Article.of(v.maxBy { it.createdAt }) }
-            .filter { it.content.isNotBlank() }
-            .sortedByDescending { it.publishedAt }
-        loadProfiles(list.map { it.pubkey })
-        return list
     }
 
     // ---- Who engaged with a note ----
@@ -1695,61 +1638,6 @@ class NostrRepository private constructor(private val context: Context) {
         return ranked.mapNotNull { (pk, n) -> _profiles.value[pk]?.let { it to n } }
     }
 
-    // ---- Feeds from DVMs (NIP-90) ----
-
-    /** Feed services (content-discovery DVMs) announced on relays. */
-    suspend fun feedServices(): List<com.example.btcwidget.nostr.core.Dvm.Service> {
-        val D = com.example.btcwidget.nostr.core.Dvm
-        val events = queryEverywhere(listOf(Filter(kinds = listOf(D.ANNOUNCEMENT), tags = mapOf("k" to listOf(D.FEED_REQUEST.toString())), limit = 80)), timeoutMs = 6_000)
-        return events.groupBy { it.pubkey + ":" + it.firstTag("d")?.get(1) }.values
-            .mapNotNull { v -> D.service(v.maxBy { it.createdAt }) }
-            .filter { it.pubkey !in _muted.value }
-            .sortedBy { it.name.lowercase() }
-    }
-
-    class FeedUnavailable(message: String) : Exception(message)
-
-    /**
-     * Asks [service] for its feed and returns the notes. The request is signed with a
-     * throwaway key, so the DVM doesn't learn who asked, unless the feed is personalized
-     * and the user is logged in.
-     */
-    suspend fun dvmFeed(service: com.example.btcwidget.nostr.core.Dvm.Service): List<FeedItem> {
-        val D = com.example.btcwidget.nostr.core.Dvm
-        val useAccount = service.personalized && pubkey != null
-        val request = if (useAccount) {
-            requireSigner().sign(D.request(pubkey!!, service.pubkey, pool.urls.toList()))
-        } else {
-            val k = com.example.btcwidget.nostr.core.Schnorr.newSecretKey()
-            val u = D.request(com.example.btcwidget.nostr.core.Schnorr.publicKey(k), service.pubkey, pool.urls.toList())
-            u.signed(com.example.btcwidget.nostr.core.Schnorr.sign(u.id, k))
-        }
-        val answer = kotlinx.coroutines.CompletableDeferred<Event>()
-        val stop = pool.subscribe(
-            listOf(Filter(kinds = listOf(D.FEED_RESULT, D.FEEDBACK), tags = mapOf("e" to listOf(request.id)))),
-            { e, _ ->
-                if (e.pubkey != service.pubkey) return@subscribe
-                if (e.kind == D.FEED_RESULT) answer.complete(e)
-                else if (e.firstTag("status")?.get(1) in setOf("error", "payment-required")) answer.completeExceptionally(
-                    FeedUnavailable(if (e.firstTag("status")?.get(1) == "payment-required") "This feed asks for payment" else e.firstTag("status")?.getOrNull(2)?.take(120) ?: "The feed reported an error")
-                )
-            }
-        )
-        try {
-            if (pool.publish(request).none { it.accepted }) throw FeedUnavailable("No relay took the request")
-            val result = kotlinx.coroutines.withTimeoutOrNull(25_000) { answer.await() } ?: throw FeedUnavailable("The feed didn't answer in time")
-            val ids = D.noteIds(result).take(100)
-            if (ids.isEmpty()) return emptyList()
-            val missing = ids.filter { !notes.containsKey(it) }
-            val fetched = if (missing.isEmpty()) emptyList() else queryEverywhere(listOf(Filter(ids = missing)), timeoutMs = 6_000)
-            val all = ids.mapNotNull { notes[it] ?: fetched.firstOrNull { e -> e.id == it } }
-            val order = ids.withIndex().associate { it.value to it.index }
-            return buildTimeline(all).sortedBy { order[it.note.id] ?: Int.MAX_VALUE }
-        } finally {
-            stop()
-        }
-    }
-
     // ---- Badges (NIP-58) ----
 
     fun setWotFilter(on: Boolean) {
@@ -1811,70 +1699,6 @@ class NostrRepository private constructor(private val context: Context) {
         val indexed = async { runCatching { searchPool.query(listOf(f), timeoutMs = 4_000) }.getOrDefault(emptyList()) }
         (ours.await() + indexed.await()).distinctBy { it.id }.filter { !hidden(it) }
             .groupingBy { it.pubkey }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
-    }
-
-    // ---- Lists of people (NIP-51 kind 30000) ----
-
-    /** [owner]'s lists, newest version of each; the user's own are kept in [lists]. */
-    suspend fun peopleLists(owner: String): List<com.example.btcwidget.nostr.core.PeopleList> {
-        val events = queryEverywhere(listOf(Filter(authors = listOf(owner), kinds = listOf(com.example.btcwidget.nostr.core.PeopleList.KIND), limit = 100)), timeoutMs = 5_000)
-        val found = com.example.btcwidget.nostr.core.PeopleList.latest(events)
-        if (owner == pubkey) {
-            // Keep edits made while this was loading (they're newer than what relays sent).
-            val local = _lists.value.orEmpty().associateBy { it.d }
-            val merged = (found.map { f -> local[f.d]?.takeIf { it.createdAt > f.createdAt } ?: f } + local.values.filter { l -> found.none { it.d == l.d } && l.createdAt > 0 })
-                .filter { it.title.isNotBlank() }.sortedBy { it.title.lowercase() }
-            _lists.value = merged
-            return merged
-        }
-        return found
-    }
-
-    /** One list: the user's own from memory when loaded, else from relays. */
-    suspend fun peopleList(owner: String, d: String): com.example.btcwidget.nostr.core.PeopleList? {
-        if (owner == pubkey) _lists.value?.firstOrNull { it.d == d }?.let { return it }
-        val events = queryEverywhere(listOf(Filter(authors = listOf(owner), kinds = listOf(com.example.btcwidget.nostr.core.PeopleList.KIND), tags = mapOf("d" to listOf(d)))), timeoutMs = 5_000)
-        return com.example.btcwidget.nostr.core.PeopleList.latest(events).firstOrNull()
-    }
-
-    private val listLock = kotlinx.coroutines.sync.Mutex()
-
-    /**
-     * Changes one of the user's lists (or saves a new one): shown at once, then published.
-     * Edits go out one at a time, each built on the latest version, so quick taps on several
-     * people don't overwrite each other. [change] must be safe to apply twice (add, remove, rename).
-     */
-    suspend fun updateList(
-        list: com.example.btcwidget.nostr.core.PeopleList,
-        change: (com.example.btcwidget.nostr.core.PeopleList) -> com.example.btcwidget.nostr.core.PeopleList = { it }
-    ): com.example.btcwidget.nostr.core.PeopleList {
-        val me = requireMe()
-        require(list.owner == me) { "Not your list" }
-        fun put(l: com.example.btcwidget.nostr.core.PeopleList) {
-            _lists.value = (_lists.value.orEmpty().filter { it.d != l.d } + l).sortedBy { it.title.lowercase() }
-        }
-        put(change(_lists.value?.firstOrNull { it.d == list.d } ?: list))
-        return listLock.withLock {
-            val next = change(_lists.value?.firstOrNull { it.d == list.d } ?: list)
-            try {
-                val signed = publish(next.toEvent(System.currentTimeMillis() / 1000), fast = true)
-                // Keep later edits already on screen; record what's now on the relays.
-                val latest = _lists.value?.firstOrNull { it.d == list.d } ?: next
-                latest.copy(createdAt = signed.createdAt, source = signed).also { put(it) }
-            } catch (e: Exception) {
-                runCatching { peopleLists(me) } // back to what the relays have
-                throw e
-            }
-        }
-    }
-
-    /** Deletes a list: an empty replacement (relays keep only the newest) and a deletion request. */
-    suspend fun deleteList(list: com.example.btcwidget.nostr.core.PeopleList) {
-        val me = requireMe()
-        val now = System.currentTimeMillis() / 1000
-        _lists.value = _lists.value.orEmpty().filter { it.d != list.d }
-        publish(com.example.btcwidget.nostr.core.UnsignedEvent(me, maxOf(now, list.createdAt + 1), com.example.btcwidget.nostr.core.PeopleList.KIND, listOf(listOf("d", list.d)), ""), fast = true)
-        runCatching { publish(com.example.btcwidget.nostr.core.PeopleList.deletion(list, now), fast = true) }
     }
 
     /** The bookmarked notes, in bookmark order (newest first). */

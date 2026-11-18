@@ -28,10 +28,10 @@ suspend fun SocialViewModel.starterPeople(): List<Profile> = runCatching {
     known.mapNotNull { k -> profiles[k.pubkey]?.takeIf { p -> k.matches(p) } }
 }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.feedServices() = runCatching { repo.feedServices() }.getOrDefault(emptyList())
+suspend fun SocialViewModel.feedServices() = runCatching { repo.dvm.services() }.getOrDefault(emptyList())
 
 /** The feed, or the reason it couldn't load. */
-suspend fun SocialViewModel.dvmFeed(service: com.example.btcwidget.nostr.core.Dvm.Service): Result<List<FeedItem>> = runCatching { repo.dvmFeed(service) }
+suspend fun SocialViewModel.dvmFeed(service: com.example.btcwidget.nostr.core.Dvm.Service): Result<List<FeedItem>> = runCatching { repo.dvm.feed(service) }
 
 suspend fun SocialViewModel.followSuggestions() = runCatching { repo.followSuggestions() }.getOrDefault(emptyList())
 
@@ -41,7 +41,7 @@ suspend fun SocialViewModel.badgesOf(pubkey: String) = runCatching { repo.badges
 fun SocialViewModel.publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Article?) -> Unit) {
     var result: com.example.btcwidget.nostr.core.Article? = null
     act(tr("Couldn't publish the article"), finally = { onResult(result) }) {
-        result = repo.publishArticle(unsigned)
+        result = repo.articles.publish(unsigned)
         say(tr("Article published"))
     }
 }
@@ -53,7 +53,7 @@ suspend fun SocialViewModel.note(id: String, relays: List<String> = emptyList(),
 
 fun SocialViewModel.hashtagSuggestions(prefix: String) = repo.hashtagSuggestions(prefix)
 
-suspend fun SocialViewModel.articlesBy(pubkey: String) = runCatching { repo.articlesBy(pubkey) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.articlesBy(pubkey: String) = runCatching { repo.articles.byAuthor(pubkey) }.getOrDefault(emptyList())
 
 /** Video posts for Shorts: by the people you follow, or by everyone on your relays. */
 suspend fun SocialViewModel.videoFeed(everyone: Boolean, until: Long? = null) =

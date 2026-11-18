@@ -5,9 +5,9 @@ package com.example.btcwidget.ui.social
 
 suspend fun SocialViewModel.resolve(query: String) = runCatching { repo.resolve(query) }.getOrNull()
 
-suspend fun SocialViewModel.searchArticles(query: String) = runCatching { repo.searchArticles(query) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.searchArticles(query: String) = runCatching { repo.articles.search(query) }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.recentArticles(following: Boolean, until: Long? = null) = runCatching { repo.recentArticles(following, until) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.recentArticles(following: Boolean, until: Long? = null) = runCatching { repo.articles.recent(following, until) }.getOrDefault(emptyList())
 
 suspend fun SocialViewModel.searchPeople(query: String) = runCatching { repo.searchPeople(query) }.getOrDefault(emptyList())
 
