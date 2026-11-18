@@ -62,12 +62,12 @@ fun PublishStatusBar(vm: SocialViewModel, modifier: Modifier = Modifier) {
         exit = slideOutVertically { -it } + fadeOut(),
         modifier = modifier
     ) {
-        last[0]?.let { PublishCard(it) }
+        last[0]?.let { a -> PublishCard(a, onSkipPow = { vm.skipPow(a.id) }, onCancel = { vm.cancelPublish(a.id) }) }
     }
 }
 
 @Composable
-private fun PublishCard(a: SocialViewModel.PublishActivity) {
+private fun PublishCard(a: SocialViewModel.PublishActivity, onSkipPow: () -> Unit = {}, onCancel: () -> Unit = {}) {
     val color = when (a.state) {
         SocialViewModel.PublishActivity.State.WORKING -> Accent
         SocialViewModel.PublishActivity.State.DONE -> Green
@@ -104,6 +104,12 @@ private fun PublishCard(a: SocialViewModel.PublishActivity) {
                 Text(a.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(a.status, color = EInk.Caption, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
+        }
+        // Mining proof of work: speed, time, and a way out.
+        AnimatedVisibility(visible = a.mining != null && a.state == SocialViewModel.PublishActivity.State.WORKING) {
+            val m = remember { arrayOfNulls<SocialViewModel.PublishActivity.Mining>(1) }
+            a.mining?.let { m[0] = it }
+            m[0]?.let { MiningPanel(it, onSkip = onSkipPow, onCancel = onCancel) }
         }
         // The accent bar along the bottom: fills as relays answer; slides while signing.
         val barModifier = Modifier.fillMaxWidth().height(3.dp)

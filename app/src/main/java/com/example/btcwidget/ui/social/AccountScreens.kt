@@ -303,6 +303,15 @@ fun ComposeScreen(
     var scheduleAt by remember { mutableStateOf<Long?>(null) }
     var schedulePicker by remember { mutableStateOf(false) }
     var draftsSheet by remember { mutableStateOf(false) }
+    // Proof of work for this post: null follows the setting.
+    val powDefault by vm.powDifficulty.collectAsState()
+    val powRate by vm.powHashRate.collectAsState()
+    var powChoice by remember { mutableStateOf<Int?>(null) }
+    var powSheet by remember { mutableStateOf(false) }
+    val powMatchRelays by vm.powMatchRelays.collectAsState()
+    // Ready before Post is tapped: this phone's speed for the estimate, the relays' asks for the work.
+    LaunchedEffect(powDefault, powChoice) { if ((powChoice ?: powDefault) > 0) vm.benchmarkPow() }
+    LaunchedEffect(powMatchRelays, account?.pubkey) { if (powMatchRelays && account != null) vm.checkRelayPow() }
     var savedDrafts by remember(account?.pubkey) { mutableStateOf(com.example.btcwidget.nostr.Drafts.savedList(context, account?.pubkey)) }
     // "@name" picked from suggestions → pubkey; turned into nostr:npub links when sending.
     var mentions by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -347,6 +356,10 @@ fun ComposeScreen(
         onDismiss = { schedulePicker = false },
         onClear = { scheduleAt = null; schedulePicker = false },
         onPick = { scheduleAt = it; schedulePicker = false }
+    )
+    if (powSheet) PowPostSheet(
+        selected = powChoice ?: powDefault, default = powDefault, rate = powRate,
+        onPick = { powChoice = it }, onDismiss = { powSheet = false }
     )
     if (draftsSheet) DraftsSheet(
         drafts = savedDrafts,
@@ -395,9 +408,16 @@ fun ComposeScreen(
             }
             return
         }
-        vm.send(body, replyTo?.let { target }, quote?.let { target }, images, if (sensitive) "Sensitive content" else null, extraTags) { ok ->
+        // Long proof of work closes the composer and carries on in the status bar; the text
+        // stays saved as a draft until the post is out.
+        var closed = false
+        vm.send(
+            body, replyTo?.let { target }, quote?.let { target }, images, if (sensitive) "Sensitive content" else null, extraTags,
+            pow = powChoice ?: powDefault,
+            onQueued = { closed = true; onBack() }
+        ) { ok ->
             // Success closes the screen; a failure re-enables the button.
-            if (ok) { com.example.btcwidget.nostr.Drafts.remove(context, draftKey); onBack() } else sending = false
+            if (ok) { com.example.btcwidget.nostr.Drafts.remove(context, draftKey); if (!closed) onBack() } else sending = false
         }
     }
     val newPost = replyTo == null && quote == null
@@ -521,7 +541,12 @@ fun ComposeScreen(
         }
 
         // What this post will do, each with ✕ to undo it.
-        val chips = scheduleAt != null || sensitive || images.any { it.isVideo } || (attachBlockStamp && blockStamp != null)
+        // Proof of work applies to notes sent now (not polls or scheduled posts).
+        val relayPow by vm.relayPow.collectAsState()
+        val relayAsks = if (powMatchRelays && relayPow.first in 1..24) relayPow.first else 0
+        val powBits = maxOf(powChoice ?: powDefault, relayAsks)
+        val powOn = powBits > 0 && !poll && scheduleAt == null
+        val chips = powOn || scheduleAt != null || sensitive || images.any { it.isVideo } || (attachBlockStamp && blockStamp != null)
         if (chips) Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)
@@ -540,6 +565,13 @@ fun ComposeScreen(
                     onClear = { scheduleAt = null }
                 )
             }
+            if (powOn) ComposeStatusChip(
+                Glyphs.Pickaxe,
+                tr("Proof of work {0} bits", powBits) + (if (powRate > 0) " · ≈ " + powTimeText(com.example.btcwidget.nostr.core.Pow.expectedSeconds(powBits, powRate)) else "") +
+                    (if (relayAsks >= powBits && relayAsks > (powChoice ?: powDefault)) " · " + tr("your relays ask for it") else ""),
+                // What the relays ask for can't be cleared here (Settings → Proof of work).
+                onClear = if (relayAsks > 0 && relayAsks >= powBits) null else ({ powChoice = 0 })
+            )
             if (sensitive) ComposeStatusChip(Glyphs.Warning, tr("Sensitive: shown behind a warning"), onClear = { sensitive = false }, alert = true)
             if (images.any { it.isVideo }) ComposeStatusChip(Glyphs.Info, tr("Videos keep any location saved in the file"))
         }
@@ -553,6 +585,7 @@ fun ComposeScreen(
             if (newPost) ComposeToolButton(Glyphs.Calendar, tr("Schedule"), enabled = !poll, on = scheduleAt != null) { schedulePicker = true }
             if (blockStamp != null) ComposeToolButton(Glyphs.BlockCube, tr("Proof of Blockheight"), on = attachBlockStamp) { attachBlockStamp = !attachBlockStamp }
             ComposeToolButton(Glyphs.Warning, if (sensitive) tr("Unmark sensitive") else tr("Mark as sensitive"), on = sensitive) { sensitive = !sensitive }
+            if (!poll && scheduleAt == null) ComposeToolButton(Glyphs.Pickaxe, tr("Proof of work"), on = powOn) { powSheet = true }
             Spacer(Modifier.weight(1f))
             if (text.isNotEmpty()) Text("${text.length}", color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(end = 10.dp))
         }

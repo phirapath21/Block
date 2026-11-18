@@ -928,6 +928,10 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         images: List<Attachment> = emptyList(),
         contentWarning: String? = null,
         extraTags: List<List<String>> = emptyList(),
+        /** Proof of work bits for this post; null uses the setting. */
+        pow: Int? = null,
+        /** Called once if mining runs long, so the composer can close while it carries on. */
+        onQueued: (() -> Unit)? = null,
         onResult: (Boolean) -> Unit
     ) {
         var ok = false
@@ -936,7 +940,13 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             quote != null -> "Quoting" to "Quoted"
             else -> "Posting" to "Posted"
         }
-        tracked(working, done, tr("Couldn't post"), finally = { onResult(ok) }) {
+        val queued = java.util.concurrent.atomic.AtomicBoolean(onQueued == null)
+        tracked(working, done, tr("Couldn't post"), finally = { onResult(ok) }, onStage = { stage ->
+            if (stage is com.example.btcwidget.nostr.PublishTracker.Stage.Mining && stage.elapsedMs >= QUEUE_AFTER_MS && queued.compareAndSet(false, true)) {
+                viewModelScope.launch { onQueued?.invoke() }
+            }
+        }) {
+            val bits = powFor(pow ?: _powDifficulty.value)
             // Image URLs go in the text (so every client shows them) with imeta tags (NIP-92).
             val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
             val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
@@ -944,13 +954,78 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 listOfNotNull(contentWarning?.let { listOf("content-warning", it) }) +
                 extraTags
             val event = when {
-                replyTo != null -> repo.reply(body, replyTo, tags)
-                quote != null -> repo.quote(body, quote, tags)
-                else -> repo.post(body, tags)
+                replyTo != null -> repo.reply(body, replyTo, tags, bits)
+                quote != null -> repo.quote(body, quote, tags, bits)
+                else -> repo.post(body, tags, bits)
             }
             if (replyTo == null) _home.update { it.copy(items = listOf(FeedItem(event)) + it.items) }
             ok = true
         }
+    }
+
+    // ---- Proof of work (NIP-13) ----
+
+    private val _powDifficulty = MutableStateFlow(com.example.btcwidget.AppPrefs.powDifficulty(application))
+    /** Bits of proof of work mined into new posts, replies and quotes (0 = off). */
+    val powDifficulty: StateFlow<Int> = _powDifficulty.asStateFlow()
+    fun setPowDifficulty(bits: Int) {
+        val b = bits.coerceIn(0, com.example.btcwidget.nostr.core.Pow.MAX_DIFFICULTY)
+        com.example.btcwidget.AppPrefs.setPowDifficulty(getApplication(), b)
+        _powDifficulty.value = b
+    }
+
+    private val _powMatchRelays = MutableStateFlow(com.example.btcwidget.AppPrefs.powMatchRelays(application))
+    /** Mine at least what the relays a post goes to ask for (NIP-11). */
+    val powMatchRelays: StateFlow<Boolean> = _powMatchRelays.asStateFlow()
+    fun setPowMatchRelays(match: Boolean) {
+        com.example.btcwidget.AppPrefs.setPowMatchRelays(getApplication(), match)
+        _powMatchRelays.value = match
+    }
+
+    private val _powHashRate = MutableStateFlow(com.example.btcwidget.AppPrefs.powHashRate(application).toDouble())
+    /** This phone's hashes per second (0 until measured), for "≈ N s" estimates. */
+    val powHashRate: StateFlow<Double> = _powHashRate.asStateFlow()
+    private fun rememberHashRate(rate: Double) {
+        if (rate <= 0 || !rate.isFinite()) return
+        _powHashRate.value = rate
+        com.example.btcwidget.AppPrefs.setPowHashRate(getApplication(), rate.toFloat())
+    }
+
+    private val _powBenchmarking = MutableStateFlow(false)
+    val powBenchmarking: StateFlow<Boolean> = _powBenchmarking.asStateFlow()
+
+    /** Measures this phone's mining speed for a moment (skipped when it's known unless [force]). */
+    fun benchmarkPow(force: Boolean = false) {
+        if (_powBenchmarking.value || (!force && _powHashRate.value > 0)) return
+        _powBenchmarking.value = true
+        viewModelScope.launch {
+            try { rememberHashRate(com.example.btcwidget.nostr.core.Pow.benchmark()) } finally { _powBenchmarking.value = false }
+        }
+    }
+
+    private val _relayPow = MutableStateFlow<Pair<Int, String?>>(0 to null)
+    /** The most proof of work any of your relays asks for, and which relay (0 = none known). */
+    val relayPow: StateFlow<Pair<Int, String?>> = _relayPow.asStateFlow()
+    fun checkRelayPow() = viewModelScope.launch { _relayPow.value = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null) }
+
+    /** [chosen] bits, raised to what the relays ask for (when that's on and within reach). */
+    private suspend fun powFor(chosen: Int): Int {
+        if (!_powMatchRelays.value) return chosen
+        val (asked, _) = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null).also { _relayPow.value = it }
+        return if (asked in 1..RELAY_POW_LIMIT) maxOf(chosen, asked) else chosen
+    }
+
+    /** Stops mining the publish [id] and sends it without proof of work. */
+    fun skipPow(id: Long) {
+        val tracker = trackers[id] ?: return
+        tracker.skipPow.set(true)
+        _activity.update { if (it?.id == id) it.copy(status = "Sending without proof of work…", mining = null) else it }
+    }
+
+    /** Stops the publish [id] before it's signed: nothing is sent. */
+    fun cancelPublish(id: Long) {
+        cancelledByUser.add(id)
+        jobs[id]?.cancel()
     }
 
     // ---- Scheduled posts ----
@@ -1248,9 +1323,18 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         val status: String,
         /** 0..1, or null while waiting with no way to tell how long (signing). */
         val progress: Float?,
-        val state: State
+        val state: State,
+        /** Set while proof of work is being mined: the card shows speed, time and Skip / Cancel. */
+        val mining: Mining? = null
     ) {
         enum class State { WORKING, DONE, FAILED }
+
+        data class Mining(val difficulty: Int, val hashes: Long, val hashesPerSecond: Double, val elapsedMs: Long) {
+            /** Average time this difficulty takes at the current speed. */
+            val expectedSeconds: Double get() = com.example.btcwidget.nostr.core.Pow.expectedSeconds(difficulty, hashesPerSecond)
+            /** How likely it would have been found by now (mining has no fixed length). */
+            val chanceDone: Double get() = com.example.btcwidget.nostr.core.Pow.chanceDone(hashes, difficulty)
+        }
     }
 
     private val _activity = MutableStateFlow<PublishActivity?>(null)
@@ -1262,14 +1346,38 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
      * Runs [block] like [act], showing its progress in the status bar: signing (and with which
      * signer), then relays answering, then [done] with a tick, or [failure] in red.
      */
-    private fun tracked(working: String, done: String, failure: String, finally: () -> Unit = {}, block: suspend () -> Unit) {
+    private val trackers = java.util.concurrent.ConcurrentHashMap<Long, com.example.btcwidget.nostr.PublishTracker>()
+    private val jobs = java.util.concurrent.ConcurrentHashMap<Long, kotlinx.coroutines.Job>()
+    private val cancelledByUser = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+
+    private fun tracked(
+        working: String,
+        done: String,
+        failure: String,
+        finally: () -> Unit = {},
+        onStage: (com.example.btcwidget.nostr.PublishTracker.Stage) -> Unit = {},
+        block: suspend () -> Unit
+    ) {
         val id = nextActivity.incrementAndGet()
         // A newer action replaces an older one in the bar; an older one never covers a newer.
         fun show(a: PublishActivity) = _activity.update { cur -> if (cur == null || cur.id <= id) a else cur }
         fun clearLater(ms: Long) = viewModelScope.launch { delay(ms); _activity.update { if (it?.id == id) null else it } }
         val finishedFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+        // The last long-enough mining report: its speed is saved once, when the publish ends.
+        val lastMining = java.util.concurrent.atomic.AtomicReference<com.example.btcwidget.nostr.PublishTracker.Stage.Mining?>(null)
         val tracker = com.example.btcwidget.nostr.PublishTracker { stage ->
+            onStage(stage)
             when (stage) {
+                is com.example.btcwidget.nostr.PublishTracker.Stage.Mining -> {
+                    if (stage.elapsedMs >= 1_000) lastMining.set(stage)
+                    val rate = stage.hashesPerSecond.takeIf { stage.elapsedMs >= 300 } ?: _powHashRate.value
+                    val m = PublishActivity.Mining(stage.difficulty, stage.hashes, rate, stage.elapsedMs)
+                    if (!finishedFlag.get() && trackers[id]?.skipPow?.get() != true) show(PublishActivity(
+                        id, working, "Mining proof of work · ${stage.difficulty} bits",
+                        // Most of the bar is the work; signing and sending fill the rest.
+                        (0.75 * m.chanceDone).toFloat().coerceAtMost(0.75f), PublishActivity.State.WORKING, m
+                    ))
+                }
                 is com.example.btcwidget.nostr.PublishTracker.Stage.Signing -> if (!finishedFlag.get()) show(
                     PublishActivity(id, working, when (stage.signer) {
                         com.example.btcwidget.nostr.SignerType.AMBER -> "Waiting for your signer app…"
@@ -1294,14 +1402,19 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         show(PublishActivity(id, working, "Preparing…", null, PublishActivity.State.WORKING))
-        viewModelScope.launch {
+        trackers[id] = tracker
+        jobs[id] = viewModelScope.launch {
             try {
                 withContext(tracker) { block() }
                 finishedFlag.set(true)
                 show(PublishActivity(id, "$done ✓", "Sent", 1f, PublishActivity.State.DONE))
                 clearLater(1_800)
             } catch (e: CancellationException) {
-                _activity.update { if (it?.id == id) null else it }
+                finishedFlag.set(true)
+                if (cancelledByUser.remove(id)) {
+                    show(PublishActivity(id, tr("Cancelled"), tr("Nothing was sent. Your text is kept as a draft."), 1f, PublishActivity.State.FAILED))
+                    clearLater(3_000)
+                } else _activity.update { if (it?.id == id) null else it }
                 throw e
             } catch (e: SignerRejected) {
                 finishedFlag.set(true)
@@ -1313,6 +1426,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 show(PublishActivity(id, failure, e.message ?: "Check your connection and try again.", 1f, PublishActivity.State.FAILED))
                 clearLater(4_000)
             } finally {
+                lastMining.get()?.let { rememberHashRate(it.hashesPerSecond) }
+                trackers.remove(id)
+                jobs.remove(id)
                 finally()
             }
         }
@@ -1335,3 +1451,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 }
+
+/** Mining longer than this lets the composer close while the post carries on in the status bar. */
+private const val QUEUE_AFTER_MS = 700L
+
+/** Relays asking for more proof of work than this aren't matched automatically (it'd take minutes). */
+private const val RELAY_POW_LIMIT = 24

@@ -69,6 +69,7 @@ enum class SettingsPage(val title: String, val summary: String, val icon: () -> 
     PRIVACY("Privacy and safety", "Muted words, web of trust, private lists", { Glyphs.Shield }),
     DISPLAY("Display and language", "Language, videos, where links open", { Glyphs.Eye }),
     RELAYS("Relays and servers", "Where your notes, messages and media go", { Glyphs.Server }),
+    POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
     BITCOIN("Bitcoin and widgets", "Your stack, currency, price sources, refresh", { NavIcons.Bitcoin.outline }),
     SECURITY("App lock", "Protect Block with a PIN and biometrics", { Glyphs.Lock }),
@@ -91,6 +92,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
     "Relays" to SettingsPage.RELAYS, "Message inbox relays" to SettingsPage.RELAYS, "Media servers" to SettingsPage.RELAYS,
     "Wallet (NWC)" to SettingsPage.WALLET,
+    "Proof of work" to SettingsPage.POW, "Difficulty" to SettingsPage.POW, "Match what my relays ask for" to SettingsPage.POW,
     "Storage and cache" to SettingsPage.STORAGE, "Event database" to SettingsPage.STORAGE, "Media cache" to SettingsPage.STORAGE,
     "App lock" to SettingsPage.SECURITY, "PIN" to SettingsPage.SECURITY, "Fingerprint or face unlock" to SettingsPage.SECURITY,
     "Your stack" to SettingsPage.BITCOIN, "Currency" to SettingsPage.BITCOIN, "Widget theme" to SettingsPage.BITCOIN,
@@ -156,6 +158,7 @@ fun SettingsPageScreen(
                 SettingsPage.PRIVACY -> PrivacyPage(vm, navigate)
                 SettingsPage.DISPLAY -> DisplayPage(vm)
                 SettingsPage.RELAYS -> RelaysPage(vm, navigate)
+                SettingsPage.POW -> PowSettingsPage(vm)
                 SettingsPage.WALLET -> WalletPage(vm)
                 SettingsPage.BITCOIN -> bitcoin()
                 SettingsPage.SECURITY -> SecurityPage()

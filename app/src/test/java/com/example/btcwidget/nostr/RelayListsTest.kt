@@ -46,5 +46,12 @@ class RelayListsTest {
         assertTrue(info.paymentRequired)
         assertEquals("https://relay.example/x", RelayInfo.httpUrl("wss://relay.example/x"))
         assertNull(RelayInfo.parse("<html>"))
+        assertEquals(0, info.minPowDifficulty)
+    }
+
+    @Test
+    fun nip11AskedProofOfWork() {
+        assertEquals(20, RelayInfo.parse("""{"limitation":{"min_pow_difficulty":20}}""")!!.minPowDifficulty)
+        assertEquals(0, RelayInfo.parse("""{"limitation":{"min_pow_difficulty":-3}}""")!!.minPowDifficulty)
     }
 }
