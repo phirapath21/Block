@@ -330,16 +330,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     "home-tabs-v2", tr("Tap Home again to jump back to the top. Long-press your picture at the top left to switch accounts."),
                     Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 84.dp, bottom = 16.dp)
                 )
-                // Compose: bottom right, shrinking away with the bars while you scroll down.
-                val fab by androidx.compose.animation.core.animateFloatAsState(if (barsVisible) 1f else 0f, label = "fab")
-                if (fab > 0.01f) FloatingActionButton(
-                    onClick = { navigate(ComposeKey()) },
-                    containerColor = EInk.Accent,
-                    contentColor = EInk.OnAccent,
-                    shape = CircleShape,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(56.dp)
-                        .graphicsLayer { alpha = fab; scaleX = 0.6f + 0.4f * fab; scaleY = 0.6f + 0.4f * fab }
-                ) { Text("+", fontSize = 26.sp, fontWeight = FontWeight.Bold) }
+                // New posts start from the "+" in the middle of the bottom bar (as on Threads).
             }
         }
     }

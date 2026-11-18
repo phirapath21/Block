@@ -5,6 +5,9 @@ package com.example.btcwidget.ui.social
  * isn't here shows in English. Placeholders {0}, {1}… must match the English.
  */
 internal val THAI: Map<String, String> = hashMapOf(
+    "Stream details" to "รายละเอียดไลฟ์",
+    "Started {0}" to "เริ่มเมื่อ {0}",
+    "About this stream" to "เกี่ยวกับไลฟ์นี้",
     "Whole app" to "ทั้งแอป",
     "Block asks each time it opens" to "Block จะถามทุกครั้งที่เปิด",
     "Only private things" to "เฉพาะส่วนส่วนตัว",
