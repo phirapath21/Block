@@ -93,7 +93,8 @@ internal fun ChoicePill(label: String, selected: Boolean, icon: ImageVector? = n
     ) {
         val ink = if (selected) EInk.OnAccent else EInk.Value
         if (icon != null) Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.padding(end = 6.dp).size(15.dp))
-        Text(label, color = ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        // One line always: a pill that wraps loses its shape.
+        Text(label, color = ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
     }
 }
 
@@ -110,7 +111,7 @@ internal fun ReplyParent(note: Event, author: Profile?) {
         }
         Column(Modifier.weight(1f).padding(start = 12.dp, bottom = 14.dp)) {
             NameLine(note, author)
-            Text(note.content.trim().take(500), color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp, maxLines = 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+            Text(TextTidy.tidy(note.content).take(500), color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp, maxLines = 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
         }
     }
 }
@@ -138,7 +139,7 @@ internal fun QuotePreview(note: Event, author: Profile?) {
             .border(1.dp, EInk.BodyStroke, RoundedCornerShape(16.dp)).padding(12.dp)
     ) {
         NameLine(note, author, small = true)
-        Text(note.content.trim().take(500), color = EInk.Value, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+        Text(TextTidy.tidy(note.content).take(500), color = EInk.Value, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
     }
 }
 

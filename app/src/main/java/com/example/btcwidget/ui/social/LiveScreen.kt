@@ -72,7 +72,7 @@ private fun RoundControl(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     ) { Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp)) }
 }
 
-/** Streams live now (most watched first) and coming up, for the Communities page's LIVE tab. */
+/** Streams live now (most watched first) and coming up: the Live page in the side panel. */
 @Composable
 internal fun LiveList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val profiles by vm.profiles.collectAsState()
