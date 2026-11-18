@@ -73,6 +73,8 @@ fun RelaysScreen(vm: SocialViewModel, onBack: () -> Unit) {
 private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
     var status by remember { mutableStateOf(vm.relayStatus()) }
     var showOthers by remember { mutableStateOf(false) }
+    var checkup by remember { mutableStateOf(false) }
+    if (checkup) RelayCheckupSheet(vm, onDismiss = { checkup = false })
     LaunchedEffect(Unit) {
         while (true) { status = vm.relayStatus(); delay(1_000) }
     }
@@ -94,6 +96,7 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                         color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp)
                     )
                     Text(tr("Tap a relay to see what it says about itself."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+                    PillButton(tr("Check and tidy relays"), filled = up < mine.size, modifier = Modifier.padding(top = 12.dp)) { checkup = true }
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             }
@@ -146,4 +149,118 @@ private fun RelayRow(s: RelayStatus, onInfo: () -> Unit, onRetry: () -> Unit) {
         )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
+}
+
+/**
+ * Check and tidy relays: tests a fresh connection to each of the user's relays, shows which
+ * work (and how fast), which are slow and which can't be reached, with the unreachable ones
+ * ticked for removal. Nothing changes until "Remove" is tapped; at least two relays stay, and
+ * if none answer (the phone is offline) nothing is offered. Below, relays most of the people
+ * the user follows write to, tested the same way, each with Add.
+ */
+@Composable
+internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
+    val mineUrls = remember { vm.myRelayUrls() }
+    var report by remember { mutableStateOf<com.example.btcwidget.nostr.core.RelayCheckup.Report?>(null) }
+    var ticked by remember { mutableStateOf(emptySet<String>()) }
+    var removed by remember { mutableStateOf(emptySet<String>()) }
+    var suggestions by remember { mutableStateOf<List<Pair<com.example.btcwidget.nostr.core.RelayCheckup.Probe, Int>>?>(null) }
+    var added by remember { mutableStateOf(emptySet<String>()) }
+    val haptics = rememberHaptics()
+    LaunchedEffect(Unit) {
+        val r = com.example.btcwidget.nostr.core.RelayCheckup.report(vm.probeRelays(mineUrls))
+        report = r; ticked = r.suggestedRemovals
+        if (r.offline) { suggestions = emptyList(); return@LaunchedEffect }
+        val counts = vm.suggestedRelays()
+        val probes = vm.probeRelays(counts.map { it.first }).associateBy { it.url }
+        // Only ones that answered, the most used first, then the fastest.
+        suggestions = counts.mapNotNull { (url, n) -> probes[url]?.takeIf { it.connectMs != null }?.let { it to n } }
+            .sortedWith(compareBy({ -it.second }, { it.first.connectMs ?: Long.MAX_VALUE })).take(5)
+    }
+    BlockSheet(onDismiss) {
+        Text(tr("Check your relays"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+        val r = report
+        if (r == null) {
+            Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                Text(tr("Testing {0} relays…", mineUrls.size), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
+            }
+            return@BlockSheet
+        }
+        if (r.offline) {
+            Text(tr("None of your relays answered. Check your internet connection and try again: nothing was changed."),
+                color = Red, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        } else {
+            val ok = r.probes.count { it.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.DOWN }
+            Text(tr("{0} of {1} answered. Tick the ones to remove.", ok, r.probes.size), color = EInk.Caption, fontSize = 14.sp,
+                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 6.dp))
+        }
+        r.probes.forEach { p ->
+            val gone = p.url in removed
+            val (color, detail) = when (p.health) {
+                com.example.btcwidget.nostr.core.RelayCheckup.Health.OK -> Green to tr("{0} ms", p.connectMs ?: 0)
+                com.example.btcwidget.nostr.core.RelayCheckup.Health.SLOW -> Orange to tr("Slow · {0} ms", p.connectMs ?: 0)
+                com.example.btcwidget.nostr.core.RelayCheckup.Health.DOWN -> Red to (p.error?.let { tr("Can't connect · {0}", it.take(60)) } ?: tr("Can't connect"))
+            }
+            Row(
+                Modifier.fillMaxWidth()
+                    .clickable(enabled = !gone && !r.offline && p.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.OK) {
+                        haptics.tick(); ticked = if (p.url in ticked) ticked - p.url else ticked + p.url
+                    }
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(if (gone) EInk.Track else color))
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(p.url.removePrefix("wss://"), color = if (gone) EInk.Caption else EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (gone) tr("Removed") else detail, color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (!gone && !r.offline && p.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.OK) androidx.compose.material3.Checkbox(
+                    checked = p.url in ticked, onCheckedChange = { ticked = if (it) ticked + p.url else ticked - p.url },
+                    colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = SettingsAccent, checkmarkColor = Color.Black, uncheckedColor = EInk.Caption)
+                )
+            }
+        }
+        val toRemove = ticked - removed
+        val remaining = mineUrls.filter { it !in removed }
+        if (!r.offline && toRemove.isNotEmpty()) {
+            val allowed = com.example.btcwidget.nostr.core.RelayCheckup.canRemove(remaining, toRemove)
+            if (!allowed) Text(tr("Keep at least two relays."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            PillButton(
+                tr("Remove {0}", toRemove.size), filled = allowed,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).fillMaxWidth()
+            ) {
+                if (allowed) { haptics.confirm(); vm.removeRelays(toRemove); removed = removed + toRemove; ticked = emptySet() }
+            }
+        }
+        // Suggestions: what the people you follow use, that answered just now.
+        if (!r.offline) {
+            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(top = 10.dp))
+            Text(tr("Suggested relays"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp).padding(top = 12.dp))
+            Text(tr("Where most of the people you follow post. Adding one helps their posts reach you."), color = EInk.Caption, fontSize = 13.sp,
+                lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 4.dp))
+            val list = suggestions
+            when {
+                list == null -> Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                    Text(tr("Finding relays…"), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
+                }
+                list.isEmpty() -> Text(tr("No suggestions right now."), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
+                else -> list.forEach { (p, n) ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(10.dp).clip(CircleShape).background(if ((p.connectMs ?: 0) > com.example.btcwidget.nostr.core.RelayCheckup.SLOW_MS) Orange else Green))
+                        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            Text(p.url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(tr("Used by {0} you follow · {1} ms", n, p.connectMs ?: 0), color = EInk.Caption, fontSize = 12.sp, maxLines = 1)
+                        }
+                        if (p.url in added) Text(tr("Added"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        else PillButton(tr("Add"), filled = false) { haptics.tick(); vm.addRelayToMine(p.url); added = added + p.url }
+                    }
+                }
+            }
+        }
+        androidx.compose.foundation.layout.Spacer(Modifier.size(16.dp))
+    }
 }
