@@ -129,37 +129,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         if (select) selectFeed(feed)
     }
 
-    /**
-     * People who post about [tags] lately (for onboarding): authors of recent notes with
-     * those hashtags, most active first. Real accounts from relays; nothing hand-picked.
-     */
-    suspend fun topicPeople(tags: List<String>): List<Profile> = runCatching {
-        val me = repo.pubkey
-        // One quick query for recent notes with any of the topics (not a full hashtag search each).
-        val ranked = repo.topicAuthors(tags.take(6)).filter { it != me && it !in repo.muted.value }.take(30)
-        repo.loadProfiles(ranked)
-        ranked.mapNotNull { repo.profiles.value[it] }.take(20)
-    }.getOrDefault(emptyList())
-
-    /** Well-known Bitcoin and Nostr people (each shown only if their profile matches who we expect). */
-    suspend fun starterPeople(): List<Profile> = runCatching {
-        val known = com.example.btcwidget.nostr.core.StarterPeople.LIST
-        repo.loadProfiles(known.map { it.pubkey })
-        val profiles = repo.profiles.value
-        known.mapNotNull { k -> profiles[k.pubkey]?.takeIf { p -> k.matches(p) } }
-    }.getOrDefault(emptyList())
-
-    /** Saves the new account's profile, showing its progress; [onDone] gets whether it was saved. */
-    fun saveProfile(name: String, about: String, picture: String?, onDone: (Boolean) -> Unit) {
-        val me = repo.pubkey ?: return onDone(false)
-        var ok = false
-        tracked(tr("Saving your profile"), tr("Profile saved"), tr("Couldn't save your profile"), finally = { onDone(ok) }) {
-            val current = repo.profiles.value[me] ?: Profile(me)
-            repo.updateProfile(current.copy(name = name.trim().ifEmpty { current.name }, about = about.trim().ifEmpty { current.about }, picture = picture ?: current.picture))
-            ok = true
-        }
-    }
-
     fun removeFeed(feed: com.example.btcwidget.nostr.core.HomeFeed) {
         val next = _homeFeeds.value - feed
         if (next.isEmpty()) return
@@ -315,7 +284,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     // ---- Unread state and phone notifications ----
 
     private val store = com.example.btcwidget.nostr.NostrAccountStore
-    private val app get() = getApplication<Application>()
+    internal val app get() = getApplication<Application>()
 
     private val _notifSeen = MutableStateFlow(store.notificationsSeen(application))
     private val _dmRead = MutableStateFlow(store.dmRead(application))
@@ -343,72 +312,14 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Safety: muted words, hashtags, threads; web of trust ----
 
-    val mutes get() = repo.mutes
-
-    fun muteEntry(type: String, value: String, mute: Boolean) =
-        act(tr("Couldn't update mutes")) { repo.setMuteEntry(type, value, mute); if (mute) say(tr("Muted")) }
-
-    fun unmuteAllThreads() = act(tr("Couldn't update mutes")) { repo.unmuteAllThreads() }
-
-    /** Mutes the conversation [note] belongs to (its root note). */
-    fun muteThread(note: Event) = muteEntry("e", com.example.btcwidget.nostr.core.ThreadRef.of(note).root ?: note.id, true)
-
     private val _wot = MutableStateFlow(store.wotFilter(application))
     val wotFilter: StateFlow<Boolean> = _wot.asStateFlow()
-    val trustSize get() = repo.trustSize
 
     fun setWotFilter(on: Boolean) {
         repo.setWotFilter(on)
         _wot.value = on
         if (on) act(tr("Couldn't load your network")) { repo.loadTrust(); say(tr("Showing replies and mentions from your network only")) }
     }
-
-    // ---- Communities, public chats, groups ----
-
-    val spaces get() = repo.spaces
-
-    suspend fun communities() = runCatching { repo.spaces.communities() }.getOrDefault(emptyList())
-    suspend fun community(coordinate: String) = runCatching { repo.spaces.community(coordinate) }.getOrNull()
-    suspend fun communityPosts(c: com.example.btcwidget.nostr.core.Communities.Community, includePending: Boolean, until: Long? = null) =
-        runCatching { repo.spaces.posts(c, includePending, until) }.getOrDefault(emptyList())
-
-    fun postToCommunity(c: com.example.btcwidget.nostr.core.Communities.Community, text: String, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't post"), finally = { onResult(ok) }) { repo.spaces.post(c, text); ok = true; say(tr("Posted. It shows here once a moderator approves it.")) }
-    }
-
-    fun setCommunityJoined(c: com.example.btcwidget.nostr.core.Communities.Community, join: Boolean) =
-        act(if (join) tr("Couldn't join") else tr("Couldn't leave")) { repo.spaces.setJoined(c, join) }
-
-    suspend fun channels() = runCatching { repo.spaces.channels() }.getOrDefault(emptyList())
-    suspend fun channel(id: String) = runCatching { repo.spaces.channel(id) }.getOrNull()
-
-    fun sendToChannel(channel: com.example.btcwidget.nostr.core.PublicChat.Channel, text: String, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send"), finally = { onResult(ok) }) { repo.spaces.sendToChannel(channel, text); ok = true }
-    }
-
-    suspend fun liveStreams() = runCatching { repo.spaces.liveStreams() }.getOrDefault(emptyList())
-    suspend fun liveStream(address: String) = runCatching { repo.spaces.liveStream(address) }.getOrNull()
-    fun sendLiveChat(live: com.example.btcwidget.nostr.core.LiveStreams.Live, text: String, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send"), finally = { onResult(ok) }) { repo.spaces.sendLiveChat(live, text); ok = true }
-    }
-
-    suspend fun group(address: com.example.btcwidget.nostr.core.RelayGroups.Address) = runCatching { repo.spaces.group(address) }.getOrNull()
-
-    /** [onResult] gets null when sent, or the relay's reason. */
-    fun sendToGroup(address: com.example.btcwidget.nostr.core.RelayGroups.Address, text: String, onResult: (String?) -> Unit) {
-        var error: String? = "Couldn't send"
-        act(tr("Couldn't send"), finally = { onResult(error) }) { error = repo.spaces.sendToGroup(address, text) }
-    }
-
-    fun joinGroup(address: com.example.btcwidget.nostr.core.RelayGroups.Address) =
-        act(tr("Couldn't ask to join")) { val e = repo.spaces.joinGroup(address); say(e ?: tr("Asked to join")) }
-
-    suspend fun feedServices() = runCatching { repo.feedServices() }.getOrDefault(emptyList())
-    /** The feed, or the reason it couldn't load. */
-    suspend fun dvmFeed(service: com.example.btcwidget.nostr.core.Dvm.Service): Result<List<FeedItem>> = runCatching { repo.dvmFeed(service) }
 
     // ---- Video autoplay (a device setting, in AppPrefs) ----
 
@@ -445,26 +356,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         _videoAutoplay.value = mode
     }
 
-    suspend fun followSuggestions() = runCatching { repo.followSuggestions() }.getOrDefault(emptyList())
-    suspend fun badgesOf(pubkey: String) = runCatching { repo.badgesOf(pubkey) }.getOrDefault(emptyList())
-
-    fun mediaServers(): List<String> = repo.mediaServerUrls()
-    fun setMediaServers(urls: List<String>, onDone: () -> Unit) =
-        act(tr("Couldn't save media servers")) { repo.setMediaServers(urls); say(tr("Media servers saved")); onDone() }
-
-    fun storageStats(onResult: (com.example.btcwidget.nostr.StorageStats) -> Unit) {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val stats = repo.storageStats()
-            withContext(kotlinx.coroutines.Dispatchers.Main) { onResult(stats) }
-        }
-    }
-
-    fun eventRetentionDays(): Int = repo.eventRetentionDays()
-
-    fun setEventRetentionDays(days: Int) {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { repo.setEventRetentionDays(days) }
-    }
-
     fun clearMediaCache(onDone: (Boolean) -> Unit) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val imageCleared = com.example.btcwidget.BlockApp.clearImageCache(app)
@@ -472,9 +363,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             withContext(kotlinx.coroutines.Dispatchers.Main) { onDone(imageCleared && videoCleared) }
         }
     }
-
-    fun setDmInbox(urls: List<String>, onDone: () -> Unit) =
-        act(tr("Couldn't save inbox relays")) { repo.dms.setUpInbox(urls); say(tr("Inbox relays saved")); onDone() }
 
     /** Notifications newer than the last time the tab was open. */
     val unreadNotifications: StateFlow<Int> = combine(_notifications, _notifSeen) { n, seen ->
@@ -544,8 +432,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Multiple accounts ----
 
-    val savedAccounts get() = repo.savedAccounts
-
     fun switchAccount(pubkey: String) {
         forgetScroll()
         try {
@@ -562,8 +448,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun removeSavedAccount(pubkey: String) = repo.removeSavedAccount(pubkey)
-
     fun logout() {
         forgetScroll()
         repo.logout()
@@ -572,11 +456,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         _newPosts.value = emptyList()
         _home.value = Paged()
         _notifications.value = Paged()
-    }
-
-    fun setRelays(urls: List<String>?) {
-        repo.setRelays(urls)
-        refreshHome()
     }
 
     // ---- Reading for detail screens ----
@@ -612,57 +491,11 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         say(if (exists) tr("Removed from Reading List") else tr("Saved to Reading List (available offline)"))
     }
 
-    /** Publishes a long-form article (NIP-23 kind 30023); [onResult] gets the published Article or null. */
-    fun publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Article?) -> Unit) {
-        var result: com.example.btcwidget.nostr.core.Article? = null
-        act(tr("Couldn't publish the article"), finally = { onResult(result) }) {
-            result = repo.publishArticle(unsigned)
-            say(tr("Article published"))
-        }
-    }
-
-    suspend fun thread(id: String) = runCatching { repo.thread(id) }.getOrNull()
-    suspend fun note(id: String, relays: List<String> = emptyList(), author: String? = null, via: String? = null) =
-        runCatching { repo.note(id, relays, author, via) }.getOrNull()
-
-    // ---- Check and tidy relays ----
-
-    fun myRelayUrls() = repo.myRelayUrls()
-    suspend fun probeRelays(urls: List<String>) = runCatching { repo.probeRelays(urls) }.getOrDefault(emptyList())
-    suspend fun suggestedRelays() = runCatching { repo.suggestedRelays() }.getOrDefault(emptyList())
-    fun removeRelays(urls: Collection<String>) =
-        tracked(tr("Removing relays"), tr("Relays removed"), tr("Couldn't update your relays")) { repo.removeRelays(urls) }
-
-    /** [pubkey]'s published relays (NIP-65), for their profile. */
-    suspend fun relayListOf(pubkey: String) = runCatching { repo.relayListOf(pubkey) }.getOrDefault(emptyList())
-
-    /**
-     * Adds [url] to the user's relay list (NIP-65, read and write) and publishes it. With no
-     * list published yet, it starts from the relays Block uses now, so none are dropped.
-     */
-    fun addRelayToMine(url: String) {
-        val current = repo.relayEntries.value.ifEmpty {
-            repo.currentRelayUrls().map { com.example.btcwidget.nostr.core.RelayLists.Entry(it, read = true, write = true) }
-        }
-        // Relays set by hand in Settings are what Block connects to: the new one goes there too.
-        repo.addToLocalRelays(url)
-        if (current.any { it.url.trimEnd('/') == url.trimEnd('/') }) { say(tr("Already in your relays")); return }
-        saveRelayList(current + com.example.btcwidget.nostr.core.RelayLists.Entry(url, read = true, write = true))
-    }
-    fun hashtagSuggestions(prefix: String) = repo.hashtagSuggestions(prefix)
     suspend fun article(address: com.example.btcwidget.nostr.core.Nip19.Address): com.example.btcwidget.nostr.core.Article? {
         val key = "${address.kind}:${address.pubkey}:${address.identifier}"
         return runCatching { repo.article(address) }.getOrNull()
             ?: _savedArticles.value.firstOrNull { it.address == key }
     }
-    suspend fun articlesBy(pubkey: String) = runCatching { repo.articlesBy(pubkey) }.getOrDefault(emptyList())
-    /** Video posts for Shorts: by the people you follow, or by everyone on your relays. */
-    suspend fun videoFeed(everyone: Boolean, until: Long? = null) =
-        runCatching { repo.mediaFeed(com.example.btcwidget.nostr.core.HomeFeed.Media(videos = true, everyone = everyone), until) }.getOrDefault(emptyList())
-
-    suspend fun profileFeed(pubkey: String, until: Long? = null) = runCatching { repo.profileFeed(pubkey, until) }.getOrDefault(emptyList())
-    suspend fun hashtagFeed(tag: String) = runCatching { repo.hashtagFeed(tag) }.getOrDefault(emptyList())
-    suspend fun trendingHashtags() = runCatching { repo.trendingHashtags() }.getOrDefault(emptyList())
 
     // The side panel (wide screens) is on every page: ask the relays now and then, not on each one.
     private var trendsCache: Pair<Long, List<com.example.btcwidget.nostr.NostrRepository.Trend>>? = null
@@ -675,9 +508,6 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         livesCache?.let { (at, l) -> if (System.currentTimeMillis() - at < 2 * 60_000) return l }
         return liveStreams().also { livesCache = System.currentTimeMillis() to it }
     }
-    suspend fun refreshProfile(pubkey: String) = runCatching { repo.refreshProfile(pubkey) }.getOrNull()
-    suspend fun followingOf(pubkey: String) = runCatching { repo.followingOf(pubkey) }.getOrDefault(emptySet())
-    fun loadProfiles(pubkeys: Collection<String>) = viewModelScope.launch { runCatching { repo.loadProfiles(pubkeys) } }
 
     // ---- Store (NIP-99 marketplace) ----
 
@@ -752,173 +582,18 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         val isVideo get() = mime.startsWith("video/")
     }
 
-    /** Uploads a picked video as-is (up to 100 MB). */
-    fun uploadVideo(uri: android.net.Uri, onResult: (Attachment?) -> Unit) {
-        var result: Attachment? = null
-        act(tr("Couldn't upload the video"), finally = { onResult(result) }) {
-            val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                com.example.btcwidget.nostr.VideoPrep.prepare(getApplication(), uri)
-            }
-            val blob = repo.uploadVideo(prepared)
-            result = Attachment(blob.url, prepared.mime, blob.sha256, prepared.width, prepared.height)
-        }
-    }
-
-    /** Prepares (strips metadata) and uploads a picked image; [onResult] gets it, or null on failure. */
-    fun uploadImage(uri: android.net.Uri, onResult: (Attachment?) -> Unit) {
-        var result: Attachment? = null
-        act(tr("Couldn't upload the image"), finally = { onResult(result) }) {
-            val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                com.example.btcwidget.nostr.ImagePrep.prepare(getApplication(), uri)
-            }
-            val blob = repo.uploadImage(prepared)
-            result = Attachment(blob.url, prepared.mime, blob.sha256, prepared.width, prepared.height, prepared.blurhash)
-        }
-    }
-
-    // ---- Direct messages (NIP-17) ----
-
-    val dmConversations get() = repo.dms.conversations
-    val dmMessages get() = repo.dms.messages
-    val dmLoading get() = repo.dms.loading
-    val dmLocked get() = repo.dms.locked
-    val dmInbox get() = repo.dms.inbox
-    val dmUnsentIds get() = repo.dms.unsentIds
-
-    fun startDms() { if (repo.pubkey != null) viewModelScope.launch { runCatching { repo.dms.start() } } }
-
-    /** Sends a private message; [onResult] gets whether it was delivered. */
-    fun sendDm(peers: List<String>, text: String, replyTo: String? = null, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send the message"), finally = { onResult(ok) }) { repo.dms.send(peers, text, replyTo); ok = true }
-    }
-
-    fun reactDm(peers: List<String>, target: com.example.btcwidget.nostr.core.Nip17.Message, emoji: String) =
-        act(tr("Couldn't react")) { repo.dms.react(peers, target, emoji) }
-
-    fun deleteDmForMe(messageId: String) {
-        repo.dms.deleteForMe(messageId)
-        say(tr("Message deleted for you"))
-    }
-
-    fun unsendDm(peers: List<String>, target: com.example.btcwidget.nostr.core.Nip17.Message) =
-        act(tr("Couldn't unsend the message")) {
-            repo.dms.unsend(peers, target)
-            say(tr("Message unsent"))
-        }
-
-    /** Sends a photo, encrypted on the phone (location data removed first). */
-    fun sendDmImage(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send the photo"), finally = { onResult(ok) }) {
-            val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                com.example.btcwidget.nostr.ImagePrep.prepare(getApplication(), uri)
-            }
-            repo.dms.sendImage(peers, prepared, replyTo)
-            ok = true
-        }
-    }
-
-    /** Sends an encrypted video (NIP-17 kind 15, AES-GCM encrypted up to 25 MB). */
-    fun sendDmVideo(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send the video"), finally = { onResult(ok) }) {
-            val (bytes, mime, dims) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val prep = com.example.btcwidget.nostr.VideoPrep.prepare(getApplication(), uri)
-                try {
-                    if (prep.size > com.example.btcwidget.nostr.DirectMessages.MAX_FILE) {
-                        error(tr("Videos in encrypted chats can be up to 25 MB"))
-                    }
-                    Triple(prep.file.readBytes(), prep.mime, prep.width to prep.height)
-                } finally {
-                    prep.file.delete()
-                }
-            }
-            repo.dms.sendFile(peers, bytes, mime, fileName = null, width = dims.first, height = dims.second, replyTo = replyTo)
-            ok = true
-        }
-    }
-
-    /** Sends any encrypted file, audio, or document (NIP-17 kind 15, AES-GCM encrypted up to 25 MB). */
-    fun sendDmFile(peers: List<String>, uri: android.net.Uri, replyTo: String? = null, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't send the file"), finally = { onResult(ok) }) {
-            val (bytes, mime, fileName) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val app = getApplication<android.app.Application>()
-                val resolver = app.contentResolver
-                val type = resolver.getType(uri) ?: "application/octet-stream"
-                var name: String? = null
-                runCatching {
-                    resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                        if (c.moveToFirst()) name = c.getString(0)
-                    }
-                }
-                val raw = (resolver.openInputStream(uri) ?: error(tr("Couldn't open the file"))).use { input ->
-                    val out = java.io.ByteArrayOutputStream()
-                    val buf = ByteArray(64 * 1024)
-                    var total = 0L
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        total += n
-                        if (total > com.example.btcwidget.nostr.DirectMessages.MAX_FILE) {
-                            error(tr("Files in encrypted chats can be up to 25 MB"))
-                        }
-                        out.write(buf, 0, n)
-                    }
-                    out.toByteArray()
-                }
-                Triple(raw, type, name)
-            }
-            repo.dms.sendFile(peers, bytes, mime, fileName = fileName, replyTo = replyTo)
-            ok = true
-        }
-    }
-
-    suspend fun openDmFile(info: com.example.btcwidget.nostr.core.DmFile.Info): ByteArray? =
-        runCatching { repo.dms.openFile(info) }.getOrNull()
-
-    fun unlockDms() = act(tr("Couldn't open messages")) { repo.dms.unlock() }
-    fun setUpDmInbox() = act(tr("Couldn't set up your inbox")) { repo.dms.setUpInbox(); say(tr("Inbox ready: people can message you")) }
-
-    suspend fun linkPreview(url: String) = repo.linkPreview(url)
-
-    suspend fun engagement(noteId: String) = runCatching { repo.engagement(noteId) }.getOrNull()
-
-    // ---- Follow lists ----
-
-    suspend fun followersOf(pubkey: String) = runCatching { repo.followersOf(pubkey) }.getOrDefault(emptyList())
-
-    suspend fun globalFeed(relay: String?, until: Long? = null) = runCatching { repo.globalFeed(relay, until) }.getOrDefault(emptyList())
-    val relays: List<String> get() = repo.pool.urls.toList().sorted()
-
-    // ---- Search ----
-
-    suspend fun resolve(query: String) = runCatching { repo.resolve(query) }.getOrNull()
-    suspend fun searchArticles(query: String) = runCatching { repo.searchArticles(query) }.getOrDefault(emptyList())
-    suspend fun recentArticles(following: Boolean, until: Long? = null) = runCatching { repo.recentArticles(following, until) }.getOrDefault(emptyList())
-    suspend fun searchPeople(query: String) = runCatching { repo.searchPeople(query) }.getOrDefault(emptyList())
-    suspend fun searchNotes(query: String) = runCatching { repo.searchNotes(query) }.getOrDefault(emptyList())
-
     // ---- Actions ----
 
-    fun like(note: Event) = act(tr("Couldn't like")) { repo.like(note) }
-    fun react(note: Event, content: String, emojiUrl: String?) = act(tr("Couldn't react")) { repo.react(note, content, emojiUrl) }
-    val emojis get() = repo.emojis
-    fun repost(note: Event) = tracked(tr("Reposting"), tr("Reposted"), tr("Couldn't repost")) { repo.repost(note) }
-    fun follow(pubkey: String, follow: Boolean) = act(if (follow) tr("Couldn't follow") else tr("Couldn't unfollow")) { repo.setFollowing(pubkey, follow) }
     fun mute(pubkey: String, mute: Boolean) = act(tr("Couldn't update mutes")) {
         repo.setMuted(pubkey, mute)
         if (mute) _home.update { s -> s.copy(items = s.items.filter { it.note.pubkey != pubkey && it.repostedBy != pubkey }) }
         say(if (mute) tr("Muted") else tr("Unmuted"))
     }
-    fun report(note: Event, reason: String) = act(tr("Couldn't send the report")) { repo.report(note, reason); say(tr("Reported")) }
     fun delete(note: Event) = act(tr("Couldn't delete")) {
         repo.delete(note)
         _home.update { s -> s.copy(items = s.items.filter { it.note.id != note.id }) }
         say(tr("Deletion requested"))
     }
-    fun updateProfile(profile: Profile, onDone: () -> Unit) = act(tr("Couldn't save your profile")) { repo.updateProfile(profile); onDone() }
 
     /** Posts a note, reply or quote with any uploaded images; [onResult] gets whether it was published. */
     fun send(
@@ -1105,63 +780,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared()
     }
 
-    // ---- Bookmarks ----
-
-    val bookmarks get() = repo.bookmarks
-
-    fun toggleBookmark(note: Event) {
-        val on = note.id !in repo.bookmarks.value
-        act(if (on) tr("Couldn't bookmark") else tr("Couldn't remove the bookmark")) {
-            repo.setBookmarked(note, on)
-            say(if (on) tr("Bookmarked") else tr("Bookmark removed"))
-        }
-    }
-
-    val pinned get() = repo.pinned
-
     // ---- Lists of people (NIP-51) ----
-
-    suspend fun followPacks() = runCatching { repo.followPacks() }.getOrDefault(emptyList())
-    suspend fun followPack(address: String) = runCatching { repo.followPack(address) }.getOrNull()
-    fun followAll(pubkeys: Collection<String>) = act(tr("Couldn't follow them")) {
-        repo.followAll(pubkeys)
-        say(tr("Following {0} people", pubkeys.size))
-    }
-
-    suspend fun highlightsOf(article: com.example.btcwidget.nostr.core.Article) = runCatching { repo.highlightsOf(article) }.getOrDefault(emptyList())
-    fun highlight(article: com.example.btcwidget.nostr.core.Article, text: String, comment: String?, onDone: () -> Unit) =
-        tracked(tr("Highlighting"), tr("Highlighted"), tr("Couldn't highlight"), finally = onDone) { repo.highlight(article, text, comment) }
-
-    val followedTags get() = repo.followedTags
-    fun followHashtag(tag: String, follow: Boolean) =
-        act(if (follow) tr("Couldn't follow #{0}", tag) else tr("Couldn't unfollow #{0}", tag)) { repo.setHashtagFollowed(tag, follow) }
-
-    val lists get() = repo.lists
-    fun loadLists() { viewModelScope.launch { repo.pubkey?.let { runCatching { repo.peopleLists(it) } } } }
-    suspend fun listsBy(owner: String) = runCatching { repo.peopleLists(owner) }.getOrDefault(emptyList())
-    suspend fun peopleList(owner: String, d: String) = runCatching { repo.peopleList(owner, d) }.getOrNull()
-    suspend fun listFeed(list: com.example.btcwidget.nostr.core.PeopleList) =
-        runCatching { repo.feed(com.example.btcwidget.nostr.core.HomeFeed.People(list.owner, list.d, list.title)) }.getOrDefault(emptyList())
-
-    /** Makes a new list, optionally with someone in it already; [onDone] gets it once saved. */
-    fun createList(title: String, firstMember: String? = null, onDone: (com.example.btcwidget.nostr.core.PeopleList) -> Unit = {}) {
-        val me = repo.pubkey ?: return
-        val name = title.trim().ifBlank { return }
-        act(tr("Couldn't create the list")) {
-            var list = com.example.btcwidget.nostr.core.PeopleList.create(me, name)
-            if (firstMember != null) list = list.with(firstMember)
-            val saved = repo.updateList(list)
-            say(tr("List created"))
-            onDone(saved)
-        }
-    }
-
-    fun setInList(list: com.example.btcwidget.nostr.core.PeopleList, pubkey: String, inList: Boolean) {
-        act(tr("Couldn't update the list")) {
-            repo.updateList(list) { if (inList) it.with(pubkey) else it.without(pubkey) }
-            say(if (inList) tr("Added to {0}", list.title) else tr("Removed from {0}", list.title))
-        }
-    }
 
     fun renameList(list: com.example.btcwidget.nostr.core.PeopleList, title: String, description: String?) {
         val name = title.trim().ifBlank { return }
@@ -1183,36 +802,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         act(tr("Couldn't delete the list")) { repo.deleteList(list); say(tr("List deleted")) }
     }
 
-    /** Adds the list to Home's feed menu and switches to it. */
-    fun showListOnHome(list: com.example.btcwidget.nostr.core.PeopleList) =
-        addFeed(com.example.btcwidget.nostr.core.HomeFeed.People(list.owner, list.d, list.title))
-
-    // ---- Relay lists (NIP-65, search, blocked) and relay info (NIP-11) ----
-
-    val relayEntries get() = repo.relayEntries
-    val searchRelays get() = repo.searchRelays
-    val blockedRelays get() = repo.blockedRelays
-    suspend fun relayInfo(url: String) = repo.relayInfo(url)
-    fun saveRelayList(entries: List<com.example.btcwidget.nostr.core.RelayLists.Entry>) =
-        tracked(tr("Saving your relays"), tr("Relays saved"), tr("Couldn't save your relays")) { repo.saveRelayList(entries) }
-    fun saveSearchRelays(urls: List<String>) =
-        tracked(tr("Saving search relays"), tr("Search relays saved"), tr("Couldn't save search relays")) { repo.saveSearchRelays(urls) }
-    fun saveBlockedRelays(urls: List<String>) =
-        tracked(tr("Saving blocked relays"), tr("Blocked relays saved"), tr("Couldn't save blocked relays")) { repo.saveBlockedRelays(urls) }
-
-    // ---- Relay status ----
-
-    fun relayStatus() = repo.pool.status()
-    fun retryRelay(url: String) = repo.pool.retry(url)
-
     // ---- Polls (NIP-88) ----
-
-    suspend fun pollTally(poll: com.example.btcwidget.nostr.core.Poll) = runCatching { repo.pollTally(poll) }.getOrNull()
-
-    fun vote(poll: com.example.btcwidget.nostr.core.Poll, optionIds: List<String>, onResult: (Boolean) -> Unit) {
-        var ok = false
-        act(tr("Couldn't vote"), finally = { onResult(ok) }) { repo.vote(poll, optionIds); ok = true }
-    }
 
     fun createPoll(question: String, options: List<String>, multipleChoice: Boolean, durationSeconds: Long?, onResult: (Boolean) -> Unit) {
         var ok = false
@@ -1224,14 +814,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun togglePin(note: Event) {
-        val on = note.id !in repo.pinned.value
-        act(if (on) tr("Couldn't pin") else tr("Couldn't unpin")) { repo.setPinned(note, on); say(if (on) tr("Pinned to your profile") else tr("Unpinned")) }
-    }
-
-    suspend fun pinnedNoteOf(pubkey: String) = runCatching { repo.pinnedNoteOf(pubkey) }.getOrNull()
-
-    suspend fun bookmarkedNotes() = runCatching { repo.bookmarkedNotes() }.getOrDefault(emptyList())
+    // ---- Wallet (NWC) and zaps ----
 
     val nwc get() = repo.nwc
 
@@ -1351,7 +934,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     private val jobs = java.util.concurrent.ConcurrentHashMap<Long, kotlinx.coroutines.Job>()
     private val cancelledByUser = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
 
-    private fun tracked(
+    internal fun tracked(
         working: String,
         done: String,
         failure: String,
@@ -1440,7 +1023,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun act(failure: String, finally: () -> Unit = {}, block: suspend () -> Unit) {
+    internal fun act(failure: String, finally: () -> Unit = {}, block: suspend () -> Unit) {
         viewModelScope.launch {
             try {
                 block()
