@@ -401,7 +401,7 @@ class NostrRepository private constructor(private val context: Context) {
             if (NostrAccountStore.relays(context) == null) {
                 // NIP-65: add the user's relays to the defaults (a slow personal relay alone would slow everything).
                 val urls = list.tags.filter { it.size >= 2 && it[0] == "r" }.mapNotNull { normalizeRelayUrl(it[1]) }
-                if (urls.isNotEmpty()) pool.setRelays((urls.take(5) + RelayPool.DEFAULT_RELAYS).distinct().take(8))
+                if (urls.isNotEmpty()) pool.setRelays(poolFor(urls))
             }
         }
         if (fromRelays) accountFresh = true
@@ -828,10 +828,25 @@ class NostrRepository private constructor(private val context: Context) {
         relayList = event
         _relayEntries.value = com.example.btcwidget.nostr.core.RelayLists.entries(event)
         if (NostrAccountStore.relays(context) == null) {
-            val urls = _relayEntries.value.map { it.url }
-            pool.setRelays((urls.take(5) + RelayPool.DEFAULT_RELAYS).distinct().take(8))
+            pool.setRelays(poolFor(_relayEntries.value.map { it.url }))
         }
         saveAccount()
+    }
+
+    /**
+     * The relays Block connects to from the user's NIP-65 list: all of theirs (up to
+     * [MAX_OWN_RELAYS]), then the defaults to make up at least 8. It used to keep only the
+     * first 5, so a relay added later was in the list but never connected.
+     */
+    private fun poolFor(urls: List<String>): List<String> {
+        val own = urls.mapNotNull { normalizeRelayUrl(it) }.distinct().take(MAX_OWN_RELAYS)
+        return (own + RelayPool.DEFAULT_RELAYS).distinct().take(maxOf(8, own.size))
+    }
+
+    /** Adds [url] to the relays the user set in Settings (when they set some), so Block connects to it. */
+    fun addToLocalRelays(url: String) {
+        val local = NostrAccountStore.relays(context) ?: return
+        if (local.none { it.trimEnd('/') == url.trimEnd('/') }) setRelays(local + url)
     }
 
     suspend fun saveSearchRelays(urls: List<String>) {
@@ -2111,6 +2126,7 @@ class NostrRepository private constructor(private val context: Context) {
         private const val MAX_NOTES = 5_000
         private const val MAX_STATS = 4_000
         /** Relays that index profiles, follow lists and relay lists (also used by Amethyst). */
+        const val MAX_OWN_RELAYS = 10
         val INDEXER_RELAYS = listOf("wss://purplepag.es", "wss://user.kindpag.es", "wss://indexer.coracle.social")
 
         private const val PROFILES_CACHE = "profiles"

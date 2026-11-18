@@ -636,6 +636,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         val current = repo.relayEntries.value.ifEmpty {
             repo.currentRelayUrls().map { com.example.btcwidget.nostr.core.RelayLists.Entry(it, read = true, write = true) }
         }
+        // Relays set by hand in Settings are what Block connects to: the new one goes there too.
+        repo.addToLocalRelays(url)
         if (current.any { it.url.trimEnd('/') == url.trimEnd('/') }) { say(tr("Already in your relays")); return }
         saveRelayList(current + com.example.btcwidget.nostr.core.RelayLists.Entry(url, read = true, write = true))
     }
