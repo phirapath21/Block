@@ -73,12 +73,13 @@ class MainScreenTest {
     }
 
     @Test
-    fun bottomBar_hasFiveTabsAndTheMenuIsTopLeft() {
+    fun bottomBar_hasFourTabsNewPostInTheMiddleAndTheMenuIsTopLeft() {
         setContent()
-        listOf("Home", "Search", "Communities", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
-        // Profile, Shorts, Store, the Bitcoin page and Settings are in the side panel.
+        // Profile, Shorts, Live, Communities, Store, the Bitcoin page and Settings are in the side panel.
+        composeTestRule.onNodeWithContentDescription("Communities").assertDoesNotExist()
         composeTestRule.onNodeWithContentDescription("Shorts").assertDoesNotExist()
         composeTestRule.onNodeWithContentDescription("Store").assertDoesNotExist()
         composeTestRule.onNodeWithContentDescription("Settings").assertDoesNotExist()
@@ -101,7 +102,7 @@ class MainScreenTest {
             }
         }
         composeTestRule.onNodeWithTag("side_rail").assertExists()
-        listOf("Home", "Search", "Communities", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
     }

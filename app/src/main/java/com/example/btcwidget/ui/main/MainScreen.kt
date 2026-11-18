@@ -1,6 +1,9 @@
 package com.example.btcwidget.ui.main
 
 import com.example.btcwidget.ui.social.tr
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import android.Manifest
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -330,7 +333,8 @@ fun MainScreenContent(
         menuOpen = drawerState.isOpen || selectedTab in DRAWER_PAGES,
         onMenu = { scope.launch { drawerState.open() } },
         onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null,
-        onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) }
+        onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) },
+        onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) }
     )
     // Shorts fills the whole screen, under the status bar too, with the bottom bar over it.
     val shorts = selectedTab == MainTab.SHORTS
@@ -485,6 +489,7 @@ fun MainScreenContent(
                 badges = badges,
                 overVideo = true,
                 onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) },
+                onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -499,7 +504,8 @@ fun MainScreenContent(
                 selectedTab = selectedTab,
                 badges = badges,
                 // The tab you're on: back to the top, or refresh when already there.
-                onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) }
+                onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) },
+                onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) }
             )
         }
     }
@@ -521,7 +527,7 @@ private val BOTTOM_BAR_HEIGHT = 56.dp
 
 /**
  * The tabs on a rail at the left, for wide screens: your avatar on top (opens the side bar,
- * long-press to switch accounts), then Home, Shorts, Bitcoin, Notifications, Messages with the
+ * long-press to switch accounts), then Home, Search, New post, Notifications, Messages with the
  * same icons and unread bubbles as the bottom bar.
  */
 @Composable
@@ -532,7 +538,8 @@ private fun SideRail(
     menuOpen: Boolean,
     onMenu: () -> Unit,
     onMenuLongPress: (() -> Unit)?,
-    onTab: (MainTab) -> Unit
+    onTab: (MainTab) -> Unit,
+    onCompose: (() -> Unit)? = null
 ) {
     val haptics = com.example.btcwidget.ui.social.rememberHaptics()
     Row(Modifier.fillMaxHeight().testTag("side_rail")) {
@@ -559,7 +566,19 @@ private fun SideRail(
                 ) { menuIcon() }
             }
             Spacer(Modifier.height(12.dp))
-            BAR_TABS.forEach { tab ->
+            BAR_TABS.forEachIndexed { i, tab ->
+                if (i == COMPOSE_AFTER && onCompose != null) Box(
+                    Modifier.size(56.dp).clip(CircleShape)
+                        .clickable(role = Role.Button) { haptics.tick(); onCompose() }
+                        .semantics { contentDescription = tr("New post") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        Modifier.size(width = 46.dp, height = 36.dp).clip(RoundedCornerShape(11.dp)).background(EInk.Body)
+                            .border(0.75.dp, EInk.BodyStroke, RoundedCornerShape(11.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(22.dp)) }
+                }
                 val count = badges[tab] ?: 0
                 val selected = selectedTab == tab
                 Box(
@@ -581,7 +600,7 @@ private fun SideRail(
 }
 
 /**
- * The bottom bar, as on X: Home, Shorts, Bitcoin, Notifications, Messages as icons only,
+ * The bottom bar: Home, Search, New post (as on Threads), Notifications, Messages as icons only,
  * outlined, the open page's filled; on the page's own background with a hairline above.
  * Unread counts sit on the icon in an orange bubble.
  */
@@ -592,6 +611,8 @@ private fun BottomBar(
     onTab: (MainTab) -> Unit,
     /** Over a video: see-through with a soft shade, white icons, no line above. */
     overVideo: Boolean = false,
+    /** The middle "new post" button; null hides it. */
+    onCompose: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -605,7 +626,8 @@ private fun BottomBar(
             Modifier.fillMaxWidth().navigationBarsPadding().height(BOTTOM_BAR_HEIGHT),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BAR_TABS.forEach { tab ->
+            BAR_TABS.forEachIndexed { i, tab ->
+                if (i == COMPOSE_AFTER && onCompose != null) ComposeSlot(overVideo, onCompose)
                 val count = badges[tab] ?: 0
                 val selected = selectedTab == tab
                 BarSlot(
@@ -619,6 +641,36 @@ private fun BottomBar(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * "New post" in the middle of the bar, as on Threads: a rounded square with a plus, filled
+ * with the page's surface colour so it reads as an action, not a page. A little press-in.
+ */
+@Composable
+private fun RowScope.ComposeSlot(overVideo: Boolean, onCompose: () -> Unit) {
+    val haptics = com.example.btcwidget.ui.social.rememberHaptics()
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.9f else 1f, label = "compose_press")
+    Box(
+        Modifier.weight(1f).fillMaxHeight()
+            .clickable(interactionSource = source, indication = null, role = Role.Button) { haptics.tick(); onCompose() }
+            .semantics { contentDescription = tr("New post") },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .size(width = 48.dp, height = 36.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(if (overVideo) Color.White.copy(alpha = 0.18f) else EInk.Body)
+                .border(0.75.dp, if (overVideo) Color.White.copy(alpha = 0.3f) else EInk.BodyStroke, RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = if (overVideo) Color.White else EInk.Value, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -749,9 +801,9 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
 }
 
 /**
- * Pages. The bottom bar holds Home, Search, Bitcoin, Notifications and Messages; the side bar
- * (your avatar at the top left) holds Profile, Lists, Bookmarks,
- * Communities, Widgets, Price alerts and Settings. [label] names the bar
+ * Pages. The bottom bar holds Home, Search, Notifications and Messages, with "new post" in the
+ * middle; the side bar (your avatar at the top left) holds Profile, Shorts, Live, Communities,
+ * the Store, Lists, Bookmarks, the Bitcoin page, Widgets, Price alerts and Settings. [label] names the bar
  * icon for TalkBack, [title] is shown in the top bar and side bar.
  */
 enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.NavIcon, val title: String = label) {
@@ -774,12 +826,15 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
 
 // Getters, not stored values: a top-level val that touches MainTab would initialize the
 // enum while this file's other top-level vals are still null (that crashed the app once).
-private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.COMMUNITIES, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
+private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
+
+/** The bar's middle, as on Threads: "new post" sits between the first and the last two tabs. */
+private const val COMPOSE_AFTER = 2
 
 /** Pages with sideways drags of their own, where a swipe must not open the side bar. */
 private val DRAG_PAGES get() = setOf(MainTab.DASHBOARD, MainTab.WIDGETS)
 // The Bitcoin page sits with the other Bitcoin pages (widgets, price alerts) in the side panel.
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.LIVE, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.LIVE, MainTab.COMMUNITIES, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
 private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.LIVE, MainTab.STORE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)
