@@ -275,16 +275,6 @@ sealed interface BitcoinEmbedRef {
     }
 }
 
-/** A block, as its card shows it. */
-@Immutable
-data class MempoolSummary(
-    val title: String,
-    val subtitle: String,
-    val primaryMetric: String,
-    val secondaryMetric: String,
-    val explorerUrl: String
-)
-
 object BitcoinContextDetector {
     /** The most transactions one note's card lists. */
     const val MAX_TXS = 12
@@ -310,7 +300,6 @@ object BitcoinContextDetector {
     private val txCache = ConcurrentHashMap<String, Cached>()
     private val txInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<TxDetails?>>()
     private val tipCache = ConcurrentHashMap<String, Pair<Int, Long>>()
-    private val blockCache = ConcurrentHashMap<String, MempoolSummary>()
     private val io = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
 
     /** How long a transaction that could still change (in the mempool, or under 6 blocks) is reused. */
@@ -354,25 +343,19 @@ object BitcoinContextDetector {
 
     // ---- Blocks ----
 
-    /** A block's card, or null if it couldn't be fetched (asked again next time). */
-    suspend fun block(ref: BitcoinEmbedRef.BlockRef, base: String): MempoolSummary? = withContext(Dispatchers.IO) {
-        val key = "$base ${ref.key}"
-        blockCache[key] ?: runCatching { fetchBlockSummary(ref, base) }.getOrNull()?.also { blockCache[key] = it }
-    }
+    private val blockCache = ConcurrentHashMap<String, com.example.btcwidget.BlockDetails>()
 
-    private fun fetchBlockSummary(ref: BitcoinEmbedRef.BlockRef, base: String): MempoolSummary {
-        val hash = if (ref.heightOrHash.length == 64) ref.heightOrHash else httpGet("$base/api/block-height/${ref.heightOrHash}").trim()
-        val json = JSONObject(httpGet("$base/api/block/$hash"))
-        val height = json.optInt("height", ref.heightOrHash.toIntOrNull() ?: 0)
-        val txCount = json.optInt("tx_count", 0)
-        val sizeMb = String.format(Locale.US, "%.2f MB", json.optInt("size", 0) / 1_000_000.0)
-        return MempoolSummary(
-            title = "Block #${"%,d".format(Locale.US, height)}",
-            subtitle = "Hash ${hash.take(10)}…${hash.takeLast(8)}",
-            primaryMetric = "${"%,d".format(Locale.US, txCount)} txs",
-            secondaryMetric = "Size: $sizeMb",
-            explorerUrl = ref.explorerUrl(base)
-        )
+    /**
+     * A block by height or hash, with mempool's extras (miner, fees, reward) when [base] has
+     * them; null if it couldn't be fetched (asked again next time). Kept for the session.
+     */
+    suspend fun block(ref: BitcoinEmbedRef.BlockRef, base: String): com.example.btcwidget.BlockDetails? = withContext(Dispatchers.IO) {
+        val key = "$base ${ref.key}"
+        blockCache[key] ?: runCatching {
+            val hash = if (ref.heightOrHash.length == 64) ref.heightOrHash else httpGet("$base/api/block-height/${ref.heightOrHash}").trim()
+            val json = runCatching { httpGet("$base/api/v1/block/$hash") }.getOrElse { httpGet("$base/api/block/$hash") }
+            com.example.btcwidget.BlockDetails.parse(json)
+        }.getOrNull()?.also { blockCache[key] = it }
     }
 
     private fun httpGet(url: String): String {

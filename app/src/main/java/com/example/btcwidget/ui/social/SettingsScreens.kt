@@ -68,7 +68,7 @@ enum class SettingsPage(val title: String, val summary: String, val icon: () -> 
     ACCOUNT("Your account", "Accounts on this phone, your key, scheduled posts, log out", { NavIcons.Profile.outline }),
     NOTIFICATIONS("Notifications", "What Block tells you about while it's closed", { NavIcons.Bell.outline }),
     PRIVACY("Privacy and safety", "Muted words, web of trust, private lists", { Glyphs.Shield }),
-    DISPLAY("Display and language", "Theme, language, videos, where links open", { Glyphs.Eye }),
+    DISPLAY("Display and language", "Theme, language, Bitcoin cards, videos, links", { Glyphs.Eye }),
     RELAYS("Relays and servers", "Where your notes, messages and media go", { Glyphs.Server }),
     POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
@@ -90,7 +90,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Zaps" to SettingsPage.NOTIFICATIONS, "Messages" to SettingsPage.NOTIFICATIONS,
     "Muted words and hashtags" to SettingsPage.PRIVACY, "Muted conversations" to SettingsPage.PRIVACY, "Web of trust" to SettingsPage.PRIVACY,
     "Private bookmarks and mutes" to SettingsPage.PRIVACY, "Community rules" to SettingsPage.PRIVACY,
-    "Theme" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
+    "Theme" to SettingsPage.DISPLAY, "Bitcoin in posts" to SettingsPage.DISPLAY, "Transaction cards" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
     "Relays" to SettingsPage.RELAYS, "Message inbox relays" to SettingsPage.RELAYS, "Media servers" to SettingsPage.RELAYS,
     "Wallet (NWC)" to SettingsPage.WALLET,
     "Proof of work" to SettingsPage.POW, "Difficulty" to SettingsPage.POW, "Match what my relays ask for" to SettingsPage.POW,
@@ -431,6 +431,9 @@ private fun DisplayPage(vm: SocialViewModel) {
     Lang.Choice.entries.forEach { c ->
         SettingsRadioRow(if (c == Lang.Choice.SYSTEM) tr(c.label) else c.label, selected = Lang.choice == c) { Lang.choose(context, c) }
     }
+
+    SettingsDivider()
+    BitcoinCardsSettings()
 
     SettingsDivider()
     SettingsHeader(tr("Open links in"))
