@@ -92,6 +92,8 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Long-form articles:** to open an article, the app asks your relays, the author's relays and any relay named in the link.
 
+**Quoted notes:** to show a note quoted in another that your relays don't have, the app also asks the relays named in the link or in the quoting note's tags, the write relays of its author and of whoever quoted it (their NIP-65 lists), and finally the search relays. Each sees your IP address and which note was asked for. If none has it, "Look for it on njump.me" opens that note's page on njump.me in the browser you chose, which then sees the same.
+
 **Verified addresses (NIP-05):** to show a ✓ next to a name@domain address, the app asks that domain whether the address belongs to the account.
 
 **Moderation:** you can mute accounts, words, hashtags and conversations (saved in your NIP-51 mute list; see Private lists below) and report notes (published as a NIP-56 report to your relays). The Community rules (in the app, and at docs/community-rules.md) say what isn't allowed. If you turn on the web-of-trust filter, the app downloads the follow lists of the people you follow from your relays and indexers, keeps a compact summary in memory only, and uses it to hide replies, mentions and search results from accounts outside that network.
