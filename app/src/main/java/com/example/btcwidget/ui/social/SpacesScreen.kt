@@ -66,7 +66,7 @@ import com.example.btcwidget.nostr.core.RelayGroups
 import com.example.btcwidget.ui.main.EInk
 import com.example.btcwidget.ui.main.EInkChip
 
-/** Communities (NIP-72), public chats (NIP-28) and groups (NIP-29), in the side bar. */
+/** Communities (NIP-72), public chats (NIP-28) and groups (NIP-29). */
 @Composable
 fun SpacesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
@@ -75,14 +75,14 @@ fun SpacesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf("COMMUNITIES", "CHANNELS", "GROUPS", "● LIVE").forEachIndexed { i, t -> EInkChip(text = t, selected = tab == i, onClick = { tab = i }) }
+            // Live streams have their own page in the side panel.
+            listOf("COMMUNITIES", "CHANNELS", "GROUPS").forEachIndexed { i, t -> EInkChip(text = t, selected = tab == i, onClick = { tab = i }) }
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         when (tab) {
             0 -> CommunityList(vm, navigate)
             1 -> ChannelList(vm, navigate)
-            2 -> GroupList(vm, navigate)
-            else -> LiveList(vm, navigate)
+            else -> GroupList(vm, navigate)
         }
     }
 }

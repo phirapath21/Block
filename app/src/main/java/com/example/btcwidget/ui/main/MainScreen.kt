@@ -193,6 +193,7 @@ fun MainScreen(
         homeContent = { com.example.btcwidget.ui.social.HomeScreen(social, onItemClick) },
         searchContent = { leadingMenu -> com.example.btcwidget.ui.social.SearchScreen(social, onItemClick, onBack = null, leadingMenu = leadingMenu) },
         shortsContent = { com.example.btcwidget.ui.social.ShortsScreen(social, startEveryone = false, navigate = onItemClick, onBack = { selectedTab = MainTab.HOME }) },
+        liveContent = { com.example.btcwidget.ui.social.LiveList(social, onItemClick) },
         storeContent = { com.example.btcwidget.ui.social.MarketplaceScreen(social, data = (state as? MainScreenUiState.Success)?.data, currency = settings.currency, navigate = onItemClick) },
         messagesContent = { com.example.btcwidget.ui.social.MessagesScreen(social, onItemClick) },
         bookmarksContent = { com.example.btcwidget.ui.social.BookmarksScreen(social, onItemClick) },
@@ -269,6 +270,7 @@ fun MainScreenContent(
     settingsContent: @Composable () -> Unit = {},
     /** Short videos, full screen, opened from the side bar. */
     shortsContent: @Composable () -> Unit = {},
+    liveContent: @Composable () -> Unit = {},
     /** Nostr Store (NIP-99 classifieds & NIP-15 products). */
     storeContent: @Composable () -> Unit = {},
     messagesContent: @Composable () -> Unit = {},
@@ -393,6 +395,7 @@ fun MainScreenContent(
                 MainTab.SHORTS -> androidx.compose.runtime.CompositionLocalProvider(
                     com.example.btcwidget.ui.social.LocalBottomOverlay provides if (wide) 0.dp else BOTTOM_BAR_HEIGHT
                 ) { shortsContent() }
+                MainTab.LIVE -> liveContent()
                 MainTab.STORE -> storeContent()
                 MainTab.MESSAGES -> messagesContent()
                 MainTab.BOOKMARKS -> bookmarksContent()
@@ -755,6 +758,7 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
     HOME("Home", com.example.btcwidget.ui.social.NavIcons.Home),
     SEARCH("Search", com.example.btcwidget.ui.social.NavIcons.Search),
     SHORTS("Shorts", com.example.btcwidget.ui.social.NavIcons.Shorts),
+    LIVE("Live", com.example.btcwidget.ui.social.NavIcons.Live),
     STORE("Store", com.example.btcwidget.ui.social.NavIcons.Store),
     DASHBOARD("Bitcoin", com.example.btcwidget.ui.social.NavIcons.Bitcoin),
     NOTIFICATIONS("Notifications", com.example.btcwidget.ui.social.NavIcons.Bell),
@@ -775,8 +779,8 @@ private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.COMMUN
 /** Pages with sideways drags of their own, where a swipe must not open the side bar. */
 private val DRAG_PAGES get() = setOf(MainTab.DASHBOARD, MainTab.WIDGETS)
 // The Bitcoin page sits with the other Bitcoin pages (widgets, price alerts) in the side panel.
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.SHORTS, MainTab.LIVE, MainTab.STORE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.ALERTS, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
-private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.STORE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)
+private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.LIVE, MainTab.STORE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS, MainTab.COMMUNITIES)
 

@@ -369,7 +369,18 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             ) { AsyncImage(model = e.url, contentDescription = ":" + e.code + ":", modifier = Modifier.fillMaxSize()) }
         }
     }
-    val shown = remember(text) { text.text.trim() }
+    // Without the blank lines the links shown as blocks below (photos, quotes) left behind.
+    val tidy: AnnotatedString = remember(text) {
+        val parts = TextTidy.keep(text.text)
+        if (parts.size == 1 && parts[0].first == 0 && parts[0].last == text.length - 1) text
+        else buildAnnotatedString {
+            parts.forEachIndexed { i, r ->
+                if (i > 0) append("\n\n")
+                append(text.subSequence(r.first, r.last + 1))
+            }
+        }
+    }
+    val shown = remember(tidy) { tidy.text }
     // Long notes are cut in timelines, profiles and quotes, with "Show more" under them.
     val maxLines = when {
         !collapse -> Int.MAX_VALUE
@@ -381,7 +392,7 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         // In a timeline the rest of the post opens in place (and stays open while you scroll).
         var expanded by androidx.compose.runtime.saveable.rememberSaveable(note.id) { mutableStateOf(false) }
         Text(
-            text = text,
+            text = tidy,
             inlineContent = emojiContent,
             color = EInk.Value,
             fontSize = fontSize.sp,
@@ -528,7 +539,7 @@ internal fun plainText(note: Event, actions: NoteActions): String =
             is Content.Segment.ProfileRef -> "@" + (actions.profileOf(seg.pubkey)?.bestName ?: Profile.shortNpub(seg.pubkey))
             else -> ""
         }
-    }.trim()
+    }.let(TextTidy::tidy)
 
 private val imageRatioCache = java.util.concurrent.ConcurrentHashMap<String, Float>()
 

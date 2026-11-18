@@ -91,6 +91,13 @@ object NavIcons {
         icon("Shorts", Part.Stroke(PHONE, 1.9f), Part.Fill(PLAY)),
         icon("ShortsFilled", Part.EvenOdd(PHONE + PLAY), Part.Stroke(PHONE, 1.9f))
     )
+    // Broadcasting: a dot with waves on both sides (drawn for Block).
+    private const val LIVE_WAVES = "M8.6,8.6a4.8,4.8 0,0 0,0 6.8M15.4,8.6a4.8,4.8 0,0 1,0 6.8M5.8,5.8a8.8,8.8 0,0 0,0 12.4M18.2,5.8a8.8,8.8 0,0 1,0 12.4"
+    private const val LIVE_DOT = "M12,9.9a2.1,2.1 0 1,0 0.001,0z"
+    val Live = NavIcon(
+        icon("Live", Part.Stroke(LIVE_WAVES, 1.9f), Part.Stroke(LIVE_DOT, 1.9f)),
+        icon("LiveFilled", Part.Stroke(LIVE_WAVES, 2.3f), Part.Fill(LIVE_DOT))
+    )
     // A shopping bag with a rounded handle (drawn for Block).
     private const val BAG = "M6,8h12a1.5,1.5 0,0 1,1.5 1.6l-1,9.5a2,2 0,0 1,-2 1.9H7.5a2,2 0,0 1,-2 -1.9l-1,-9.5A1.5,1.5 0,0 1,6 8z"
     private const val BAG_HANDLE = "M9,8V6.5a3,3 0,0 1,6 0V8"

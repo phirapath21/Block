@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,15 +67,22 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ChoicePill(
-                    label = if (ids.isEmpty()) tr("Notes") else tr("Notes ({0})", ids.size),
-                    selected = tab == 0
-                ) { tab = 0 }
-                ChoicePill(
-                    label = if (savedArticles.isEmpty()) tr("Reading List") else tr("Reading List ({0})", savedArticles.size),
-                    selected = tab == 1
-                ) { tab = 1 }
-                Spacer(Modifier.weight(1f))
+                // The tabs take what "Write article" leaves, scrolling if counts make them wide,
+                // so the button keeps its size however many bookmarks there are.
+                Row(
+                    Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ChoicePill(
+                        label = if (ids.isEmpty()) tr("Notes") else tr("Notes ({0})", ids.size),
+                        selected = tab == 0
+                    ) { tab = 0 }
+                    ChoicePill(
+                        label = if (savedArticles.isEmpty()) tr("Reading List") else tr("Reading List ({0})", savedArticles.size),
+                        selected = tab == 1
+                    ) { tab = 1 }
+                }
                 if (account != null) {
                     ChoicePill(
                         label = "+ " + tr("Write article"),
