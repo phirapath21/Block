@@ -109,24 +109,68 @@ object AppPin {
         AppPrefs.appPinLockedUntil(context).coerceAtMost(now + LONGEST_WAIT_MS)
 }
 
-/** Whether the lock screen is up, so what's under it can be hidden from screen readers. */
+/** The app lock's state, shared by the gate, the guard and settings. */
 object AppLockState {
+    /** Whether the lock screen is up, so what's under it can be hidden from screen readers. */
     var locked by mutableStateOf(false)
         internal set
+    /** Private things unlocked since Block last came back after the grace time. */
+    var unlockedThisSession by mutableStateOf(false)
+        internal set
+    /** A private thing waiting for the PIN: what it is (said on the lock screen), and what to do then. */
+    internal var request by mutableStateOf<Pair<String, () -> Unit>?>(null)
+    /** When Block went to the background (elapsed realtime), while it's there. */
+    internal var leftAt: Long? = null
+    var hasPin by mutableStateOf(false)
+        private set
+    var scope by mutableStateOf(LockScope.APP)
+        private set
+    var after by mutableStateOf(LockAfter.NOW)
+        private set
+
+    /** Reads the settings; call after changing them. */
+    fun load(context: Context) {
+        hasPin = AppPrefs.hasAppPin(context)
+        scope = LockScope.of(AppPrefs.appLockScope(context))
+        after = LockAfter.of(AppPrefs.appLockAfterMs(context))
+    }
 }
 
-/** Blocks the app after launch and each time it returns from the background. */
+/** Private things behind the app lock: the private key, wallet payments and zaps, messages. */
+object AppLock {
+    /** Whether opening a private thing would ask for the PIN (or face) now. */
+    fun needsUnlock(): Boolean = LockRules.needsUnlock(AppLockState.hasPin, AppLockState.scope, AppLockState.unlockedThisSession)
+
+    /**
+     * Runs [action] at once, or once the PIN (or face) is given when private things are locked.
+     * [reason] tells the user what's being unlocked ("Show your private key"). Cancelling the
+     * lock screen drops the action. Call on the main thread.
+     */
+    fun guard(reason: String, action: () -> Unit) {
+        if (!needsUnlock()) action() else AppLockState.request = reason to action
+    }
+}
+
+/**
+ * The lock screen: over the whole app after launch and each time it comes back from the
+ * background (when the whole app is locked and the grace time has run out), and over any
+ * private thing asked for through [AppLock.guard] (when only private things are locked).
+ */
 @Composable
 fun AppLockGate(activity: FragmentActivity?) {
     val context = LocalContext.current
-    var locked by remember { mutableStateOf(AppPrefs.hasAppPin(context)) }
+    remember { AppLockState.load(context) }
+    var locked by remember { mutableStateOf(LockRules.lockedAtStart(AppLockState.hasPin, AppLockState.scope)) }
+    val request = AppLockState.request
+    // Up for the whole app, or for one private thing.
+    val showing = locked || request != null
     // The PIN's length, so a wrong 4-digit PIN is told as soon as 4 digits are in (0: not known,
     // for PINs set before it was stored: then each length from 4 to 6 is tried).
-    val pinLength = remember(locked) { AppPrefs.appPinLength(context) }
+    val pinLength = remember(showing) { AppPrefs.appPinLength(context) }
     val maxDigits = if (pinLength in 4..6) pinLength else 6
     var waitUntil by remember { mutableStateOf(AppPin.lockedUntil(context)) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    androidx.compose.runtime.SideEffect { AppLockState.locked = locked }
+    androidx.compose.runtime.SideEffect { AppLockState.locked = showing }
     var pin by remember { mutableStateOf("") }
     var checking by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -137,17 +181,41 @@ fun AppLockGate(activity: FragmentActivity?) {
     val canUseBiometric = biometricConfigured &&
         BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
     val preferBiometric = AppPrefs.appLockPreference(context) == "BIOMETRIC" && canUseBiometric
-    var useBiometric by remember(locked, preferBiometric) { mutableStateOf(preferBiometric) }
+    var useBiometric by remember(showing, preferBiometric) { mutableStateOf(preferBiometric) }
 
+    // Leaving: note when, and with no grace time lock the whole app now (so Recents shows the lock).
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        if (AppPrefs.hasAppPin(context)) {
+        AppLockState.load(context)
+        AppLockState.leftAt = android.os.SystemClock.elapsedRealtime()
+        if (LockRules.lockOnLeave(AppLockState.hasPin, AppLockState.scope, AppLockState.after)) {
             locked = true
             pin = ""
             error = null
         }
+        if (AppLockState.after == LockAfter.NOW) AppLockState.unlockedThisSession = false
     }
-    if (!locked) return
-    BackHandler(enabled = true) { }
+    // Back: past the grace time, lock again (the whole app, or private things next time).
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        if (LockRules.expired(AppLockState.leftAt, android.os.SystemClock.elapsedRealtime(), AppLockState.after)) {
+            if (LockRules.lockedAtStart(AppLockState.hasPin, AppLockState.scope)) locked = true
+            AppLockState.unlockedThisSession = false
+        }
+        AppLockState.leftAt = null
+    }
+    if (!showing) return
+    // The whole app can't be backed out of; a private thing can (and isn't opened).
+    BackHandler(enabled = true) { if (!locked) AppLockState.request = null }
+
+    fun unlocked() {
+        AppPrefs.clearAppPinFailures(context)
+        locked = false
+        AppLockState.unlockedThisSession = true
+        pin = ""
+        error = null
+        val then = AppLockState.request
+        AppLockState.request = null
+        then?.second?.invoke()
+    }
     // Count down while a wait after wrong PINs is on.
     LaunchedEffect(waitUntil) {
         now = System.currentTimeMillis()
@@ -159,11 +227,8 @@ fun AppLockGate(activity: FragmentActivity?) {
         activity?.let { owner ->
             BiometricPrompt(owner, ContextCompat.getMainExecutor(context), object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    AppPrefs.clearAppPinFailures(context)
                     waitUntil = 0L
-                    locked = false
-                    pin = ""
-                    error = null
+                    unlocked()
                 }
                 override fun onAuthenticationError(code: Int, message: CharSequence) {
                     if (code == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
@@ -192,8 +257,8 @@ fun AppLockGate(activity: FragmentActivity?) {
         }.onFailure { error = it.message ?: tr("Biometric unlock unavailable") }
     }
 
-    LaunchedEffect(locked, preferBiometric) {
-        if (locked && preferBiometric) launchBiometric()
+    LaunchedEffect(showing, preferBiometric) {
+        if (showing && preferBiometric) launchBiometric()
     }
 
     LaunchedEffect(pin) {
@@ -207,12 +272,9 @@ fun AppLockGate(activity: FragmentActivity?) {
             if (pin != entered) return@LaunchedEffect
             checking = false
             if (valid) {
-                AppPrefs.clearAppPinFailures(context)
                 waitUntil = 0L
                 view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
-                locked = false
-                pin = ""
-                error = null
+                unlocked()
             } else if (pinLength in 4..6 || entered.length == 6) {
                 waitUntil = withContext(Dispatchers.IO) { AppPin.recordFailure(context) }
                 error = tr("Incorrect PIN")
@@ -260,7 +322,13 @@ fun AppLockGate(activity: FragmentActivity?) {
                             Icon(if (useBiometric) Glyphs.Person else Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(26.dp))
                         }
                     }
-                    Text(tr("Welcome back"), color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    // For one private thing: say what's being unlocked.
+                    val forThing = if (!locked) request?.first else null
+                    Text(
+                        if (forThing != null) tr("Unlock to continue") else tr("Welcome back"),
+                        color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold
+                    )
+                    if (forThing != null) Text(forThing, color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(
                         tr(if (useBiometric) "Unlock with fingerprint or face" else "Enter your PIN to continue"),
                         color = EInk.Caption, fontSize = 14.sp
@@ -336,6 +404,12 @@ fun AppLockGate(activity: FragmentActivity?) {
                     }
                 }
             }
+            if (!locked) Text(
+                tr("Cancel"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 14.dp).clip(RoundedCornerShape(50))
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { AppLockState.request = null }
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            )
             Text(tr("Your private data stays on this device."), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 18.dp))
         }
     }
@@ -368,6 +442,40 @@ private fun PinKey(label: String, icon: String? = null, enabled: Boolean = true,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(icon ?: label, color = EInk.Value, fontSize = if (icon == null) 22.sp else 20.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+/**
+ * A private screen (messages, wallet) behind the app lock when only private things are locked:
+ * a lock card with Unlock until the PIN (or face) is given this session, then [content].
+ * [askAtOnce] opens the lock screen straight away (a screen opened on purpose); off for
+ * screens that may be composed off-screen, such as a tab beside the one shown.
+ */
+@Composable
+fun PrivateContent(reason: String, askAtOnce: Boolean = false, content: @Composable () -> Unit) {
+    if (!AppLock.needsUnlock()) { content(); return }
+    if (askAtOnce) LaunchedEffect(Unit) { AppLock.guard(reason) {} }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.padding(32.dp).widthIn(max = 360.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(shape = CircleShape, color = EInk.Accent.copy(alpha = .14f), modifier = Modifier.size(64.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(28.dp)) }
+            }
+            Text(tr("Locked"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(reason, color = EInk.Caption, fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Surface(
+                shape = RoundedCornerShape(50), color = EInk.Accent,
+                modifier = Modifier.padding(top = 8.dp).height(48.dp).clip(RoundedCornerShape(50))
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { AppLock.guard(reason) {} }
+            ) {
+                Box(Modifier.padding(horizontal = 28.dp), contentAlignment = Alignment.Center) {
+                    Text(tr("Unlock"), color = EInk.OnAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

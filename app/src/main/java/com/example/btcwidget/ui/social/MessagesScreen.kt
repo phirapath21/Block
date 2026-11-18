@@ -120,6 +120,12 @@ import kotlinx.coroutines.withContext
 /** Conversations list (the Messages tab). */
 @Composable
 fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
+    // Behind the app lock when only private things are locked.
+    PrivateContent(tr("Your private messages")) { MessagesScreenContent(vm, navigate) }
+}
+
+@Composable
+private fun MessagesScreenContent(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val account by vm.account.collectAsState()
     val conversations by vm.dmConversations.collectAsState()
     val loading by vm.dmLoading.collectAsState()
@@ -974,6 +980,11 @@ private fun formatBubbleDetailTime(epochSec: Long): String {
 /** A conversation with [peers]: bubbles, newest at the bottom, and a modern composer. */
 @Composable
 fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> Unit, onBack: () -> Unit) {
+    PrivateContent(tr("Your private messages"), askAtOnce = true) { ChatScreenContent(vm, peers, navigate, onBack) }
+}
+
+@Composable
+private fun ChatScreenContent(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> Unit, onBack: () -> Unit) {
     val account by vm.account.collectAsState()
     val all by vm.dmMessages.collectAsState()
     val unsentIds by vm.dmUnsentIds.collectAsState()
