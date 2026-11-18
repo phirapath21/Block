@@ -9,7 +9,7 @@ Block ("the app") is a client for Nostr, an open social network, with Bitcoin ma
 The app keeps the following only on your device, in its private app storage:
 
 - **Your settings** — theme, display currency, refresh interval, data sources, which metrics the widget shows and their order, collapsed sections.
-- **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
+- **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth on the widget. It is never sent anywhere by the app.
 - **Your own mempool server**, if you set one in Settings, used instead of mempool.space (see Network requests).
 - **Cached market data** — the latest prices, network figures and hourly price history, so widgets and charts work offline.
 - **Widget state** — the mode, range or quote each placed widget shows.
@@ -25,7 +25,7 @@ The app keeps the following only on your device, in its private app storage:
 
 Uninstalling the app or clearing its storage deletes all of this.
 
-**Sharing:** when you tap Share on the dashboard, or make a share card from a note or a Bitcoin figure, the app draws the image on your phone, saves it in its cache and hands it, with a line of text, to the app you choose in Android's share sheet (for example a Nostr client). Block sends nothing itself; what happens next is up to the app you picked. Your stack is never offered for sharing.
+**Sharing:** when you make a share card from a note or an article, the app draws the image on your phone, saves it in its cache and hands it, with a line of text, to the app you choose in Android's share sheet (for example a Nostr client). Block sends nothing itself; what happens next is up to the app you picked.
 
 **Showing your key:** for an account whose key is on the phone, Settings › Nostr › More can show your nsec so you can back it up. It is shown only after a warning, with screenshots blocked, and copying marks it as sensitive so Android hides it from clipboard previews.
 

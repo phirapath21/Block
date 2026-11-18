@@ -60,9 +60,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,11 +83,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import com.example.btcwidget.AppTheme
 import com.example.btcwidget.PriceData
-import com.example.btcwidget.ShareCard
 import com.example.btcwidget.BlockclockMetrics
 import com.example.btcwidget.DataSources
 import com.example.btcwidget.MetricCategory
-import com.example.btcwidget.PricePoint
 import com.example.btcwidget.PriceSource
 import com.example.btcwidget.Stack
 import com.example.btcwidget.StackUnit
@@ -108,9 +103,6 @@ fun MainScreen(
     viewModel: MainScreenViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val history by viewModel.history.collectAsStateWithLifecycle()
-    val historyLoading by viewModel.historyLoading.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     val social: com.example.btcwidget.ui.social.SocialViewModel = viewModel()
@@ -139,11 +131,9 @@ fun MainScreen(
 
     LaunchedEffect(Unit) { viewModel.start() }
 
-    val context = LocalContext.current
     MainScreenContent(
         state = state,
         selectedTab = selectedTab,
-        heroMetric = settings.heroMetric,
         modeStates = settings.modeStates,
         currencySetting = settings.currency,
         theme = settings.theme,
@@ -151,32 +141,15 @@ fun MainScreen(
         onCurrencySelected = viewModel::setCurrency,
         refreshInterval = settings.refreshInterval,
         onRefreshIntervalSelected = viewModel::setRefreshInterval,
-        onHeroMetricSelected = viewModel::selectHero,
         onTabSelected = { selectedTab = it },
         collapsedCategories = settings.collapsedCategories,
         onToggleCategory = viewModel::toggleCategory,
         appVersion = viewModel.appVersion,
         stackSats = settings.stackSats,
         stackUnit = settings.stackUnit,
-        stackHidden = settings.stackHidden,
-        onToggleStackHidden = viewModel::toggleStackHidden,
-        onStackChange = viewModel::setStack,
         dataSources = settings.dataSources,
         onDataSourcesChange = viewModel::setDataSources,
-        history = history,
-        historyLoading = historyLoading,
-        onChartRangeSelected = viewModel::loadHistory,
-        onShare = { key, data -> ShareCard.share(context, key, data, settings.currency, EInk.theme.palette) },
-        onPostToNostr = { key ->
-            val data = (state as? MainScreenUiState.Success)?.data ?: return@MainScreenContent
-            val text = com.example.btcwidget.ShareText.forKey(key, data, settings.currency) ?: return@MainScreenContent
-            val image = runCatching { ShareCard.imageUri(context, key, data, settings.currency, EInk.theme.palette) }.getOrNull()
-            if (image != null) onItemClick(com.example.btcwidget.ComposeKey(initialText = text, initialImageUri = image.toString()))
-            else android.widget.Toast.makeText(context, tr("Couldn't prepare the Bitcoin card"), android.widget.Toast.LENGTH_SHORT).show()
-        },
         onModeToggle = viewModel::setModeEnabled,
-        onRefresh = viewModel::refreshData,
-        isRefreshing = isRefreshing,
         modeOrder = settings.modeOrder,
         onModeOrderChange = viewModel::setModeOrder,
         onItemClick = onItemClick,
@@ -216,7 +189,6 @@ fun MainScreen(
 fun MainScreenContent(
     state: MainScreenUiState,
     selectedTab: MainTab,
-    heroMetric: String,
     modeStates: List<Boolean>,
     currencySetting: String,
     onCurrencySelected: (String) -> Unit,
@@ -224,12 +196,9 @@ fun MainScreenContent(
     onThemeSelected: (AppTheme) -> Unit = {},
     refreshInterval: Int,
     onRefreshIntervalSelected: (Int) -> Unit,
-    onHeroMetricSelected: (String) -> Unit,
     onTabSelected: (MainTab) -> Unit,
     onModeToggle: (Int, Boolean) -> Unit,
-    onRefresh: () -> Unit,
     onItemClick: (NavKey) -> Unit,
-    isRefreshing: Boolean = false,
     modeOrder: List<String> = BlockclockMetrics.MODE_KEYS,
     onModeOrderChange: (List<String>) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -238,16 +207,8 @@ fun MainScreenContent(
     appVersion: String? = null,
     stackSats: Long = 0,
     stackUnit: StackUnit = StackUnit.BTC,
-    stackHidden: Boolean = false,
-    onToggleStackHidden: () -> Unit = {},
-    onStackChange: (Long, StackUnit) -> Unit = { _, _ -> },
     dataSources: DataSources = DataSources(PriceSource.COINBASE, ThbSource.CONVERTED),
     onDataSourcesChange: (DataSources) -> Unit = {},
-    history: List<PricePoint> = emptyList(),
-    historyLoading: Boolean = false,
-    onChartRangeSelected: (com.example.btcwidget.ChartRange) -> Unit = {},
-    onShare: (String, PriceData) -> Unit = { _, _ -> },
-    onPostToNostr: (String) -> Unit = {},
     homeContent: @Composable () -> Unit = {},
     searchContent: @Composable (leadingMenu: (@Composable () -> Unit)?) -> Unit = {},
     notificationsContent: @Composable () -> Unit = {},
@@ -345,11 +306,6 @@ fun MainScreenContent(
                 onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null
             )
         })
-        // Tap Bitcoin again: fetch fresh prices.
-        val refreshNow by androidx.compose.runtime.rememberUpdatedState(onRefresh)
-        androidx.compose.runtime.LaunchedEffect(Unit) {
-            com.example.btcwidget.ui.social.TabTaps.flow.collect { if (it == MainTab.DASHBOARD.name) refreshNow() }
-        }
         if (selectedTab != MainTab.SEARCH) androidx.compose.animation.AnimatedVisibility(
             visible = showBars,
             enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
@@ -380,59 +336,6 @@ fun MainScreenContent(
                 MainTab.LISTS -> listsContent()
                 MainTab.NOTIFICATIONS -> notificationsContent()
                 MainTab.PROFILE -> profileContent()
-                MainTab.DASHBOARD -> {
-                    // Pull down on the dashboard to fetch fresh data now.
-                    val pullState = rememberPullToRefreshState()
-                    PullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = onRefresh,
-                        state = pullState,
-                        modifier = Modifier.fillMaxSize(),
-                        indicator = {
-                            PullToRefreshDefaults.Indicator(
-                                state = pullState,
-                                isRefreshing = isRefreshing,
-                                containerColor = EInk.Body,
-                                color = Accent,
-                                modifier = Modifier.align(Alignment.TopCenter)
-                            )
-                        }
-                    ) {
-                        when (val currentState = state) {
-                            // The dashboard is its own scrolling grid (with drag-to-reorder).
-                            is MainScreenUiState.Success -> DashboardContent(
-                                data = currentState.data,
-                                heroMetric = heroMetric,
-                                onHeroMetricSelected = onHeroMetricSelected,
-                                currencySetting = currencySetting,
-                                stackSats = stackSats,
-                                stackUnit = stackUnit,
-                                stackHidden = stackHidden,
-                                onToggleStackHidden = onToggleStackHidden,
-                                onStackChange = onStackChange,
-                                onSetUpStack = { onTabSelected(MainTab.DASHBOARD) },
-                                history = history,
-                                historyLoading = historyLoading,
-                                onChartRangeSelected = onChartRangeSelected,
-                                onShare = { key -> onShare(key, currentState.data) },
-                                onPostToNostr = onPostToNostr
-                            )
-                            else -> Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = 12.dp)
-                            ) {
-                                HeaderSection(title = "Block", subtitle = tr("Bitcoin at a glance"))
-                                if (currentState is MainScreenUiState.Error) {
-                                    ErrorScreen(error = currentState.throwable, onRefresh = onRefresh)
-                                } else {
-                                    LoadingScreen()
-                                }
-                            }
-                        }
-                    }
-                }
                 MainTab.WIDGETS -> WidgetsScreen(
                     data = data,
                     currencySetting = currencySetting,
@@ -443,7 +346,7 @@ fun MainScreenContent(
                     collapsedCategories = collapsedCategories,
                     onToggleCategory = onToggleCategory,
                     stackSats = stackSats,
-                    onSetUpStack = { onTabSelected(MainTab.DASHBOARD) }
+                    onSetUpStack = { onItemClick(com.example.btcwidget.SettingsKey(com.example.btcwidget.ui.social.SettingsPage.BITCOIN.name)) }
                 )
                 MainTab.SETTINGS -> settingsContent()
             }
@@ -742,7 +645,7 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
 
 /**
  * Pages. The bottom bar holds Home, Search, Wallet, Notifications and Messages; the side bar
- * (your avatar at the top left) holds Profile, Live, Lists, Bookmarks, the Bitcoin page, Widgets
+ * (your avatar at the top left) holds Profile, Live, Lists, Bookmarks, Widgets
  * and Settings. [label] names the bar icon for TalkBack, [title] is shown in the top bar and side bar.
  */
 enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.NavIcon, val title: String = label) {
@@ -750,7 +653,6 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
     SEARCH("Search", com.example.btcwidget.ui.social.NavIcons.Search),
     LIVE("Live", com.example.btcwidget.ui.social.NavIcons.Live),
     WALLET("Wallet", com.example.btcwidget.ui.social.NavIcons.Wallet),
-    DASHBOARD("Bitcoin", com.example.btcwidget.ui.social.NavIcons.Bitcoin),
     NOTIFICATIONS("Notifications", com.example.btcwidget.ui.social.NavIcons.Bell),
     MESSAGES("Messages", com.example.btcwidget.ui.social.NavIcons.Messages),
     PROFILE("Profile", com.example.btcwidget.ui.social.NavIcons.Profile),
@@ -768,9 +670,8 @@ private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.WALLET
 private val COMPOSE_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.NOTIFICATIONS, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)
 
 /** Pages with sideways drags of their own, where a swipe must not open the side bar. */
-private val DRAG_PAGES get() = setOf(MainTab.DASHBOARD, MainTab.WIDGETS)
-// The Bitcoin page sits with the other Bitcoin page (widgets) in the side panel.
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LIVE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.DASHBOARD, MainTab.WIDGETS, MainTab.SETTINGS)
+private val DRAG_PAGES get() = setOf(MainTab.WIDGETS)
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LIVE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.WIDGETS, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
 private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.LIVE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)

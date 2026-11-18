@@ -31,17 +31,14 @@ fun MainScreenPreview() {
     BTCWidgetTheme {
         MainScreenContent(
             state = MainScreenUiState.Success(sampleData),
-            selectedTab = MainTab.DASHBOARD,
-            heroMetric = "BLOCK",
+            selectedTab = MainTab.WIDGETS,
             modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
             currencySetting = "USD",
             onCurrencySelected = {},
             refreshInterval = 30,
             onRefreshIntervalSelected = {},
-            onHeroMetricSelected = {},
             onTabSelected = {},
             onModeToggle = { _, _ -> },
-            onRefresh = {},
             onItemClick = {}
         )
     }
@@ -69,16 +66,13 @@ fun MainScreenSettingsPreview() {
         MainScreenContent(
             state = MainScreenUiState.Success(sampleData),
             selectedTab = MainTab.SETTINGS,
-            heroMetric = "BLOCK",
             modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
             currencySetting = "USD",
             onCurrencySelected = {},
             refreshInterval = 30,
             onRefreshIntervalSelected = {},
-            onHeroMetricSelected = {},
             onTabSelected = {},
             onModeToggle = { _, _ -> },
-            onRefresh = {},
             onItemClick = {}
         )
     }

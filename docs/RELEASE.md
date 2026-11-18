@@ -55,7 +55,7 @@ R8 shrinking is on for release builds, so test the release APK itself, not only 
 Install `app/build/outputs/apk/release/app-release.apk` on a phone and check:
 
 - [ ] **Bitcoin:**
-  - [ ] Dashboard: the large panel, the chips, the price chart, pull to refresh.
+  - [ ] Widgets page (side bar) and Settings › Bitcoin and widgets: your stack, currency, sources.
   - [ ] Add each widget, resize it and tap it.
 - [ ] **Log in** with each method: nsec, Amber, and a remote signer (bunker).
 - [ ] **Timeline:** scrolls smoothly, photo albums, videos, a quoted note, Bitcoin transaction rows and their sheet.
