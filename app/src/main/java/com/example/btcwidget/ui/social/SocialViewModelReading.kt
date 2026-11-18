@@ -35,7 +35,7 @@ suspend fun SocialViewModel.dvmFeed(service: com.example.btcwidget.nostr.core.Dv
 
 suspend fun SocialViewModel.followSuggestions() = runCatching { repo.followSuggestions() }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.badgesOf(pubkey: String) = runCatching { repo.badgesOf(pubkey) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.badgesOf(pubkey: String) = runCatching { repo.badges.of(pubkey) }.getOrDefault(emptyList())
 
 /** Publishes a long-form article (NIP-23 kind 30023); [onResult] gets the published Article or null. */
 fun SocialViewModel.publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Article?) -> Unit) {
@@ -71,7 +71,7 @@ suspend fun SocialViewModel.followingOf(pubkey: String) = runCatching { repo.fol
 
 fun SocialViewModel.loadProfiles(pubkeys: Collection<String>) = viewModelScope.launch { runCatching { repo.loadProfiles(pubkeys) } }
 
-suspend fun SocialViewModel.linkPreview(url: String) = repo.linkPreview(url)
+suspend fun SocialViewModel.linkPreview(url: String) = repo.linkPreviews.get(url)
 
 suspend fun SocialViewModel.engagement(noteId: String) = runCatching { repo.engagement(noteId) }.getOrNull()
 
@@ -79,7 +79,7 @@ suspend fun SocialViewModel.followersOf(pubkey: String) = runCatching { repo.fol
 
 suspend fun SocialViewModel.globalFeed(relay: String?, until: Long? = null) = runCatching { repo.globalFeed(relay, until) }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.pollTally(poll: com.example.btcwidget.nostr.core.Poll) = runCatching { repo.pollTally(poll) }.getOrNull()
+suspend fun SocialViewModel.pollTally(poll: com.example.btcwidget.nostr.core.Poll) = runCatching { repo.polls.tally(poll) }.getOrNull()
 
 suspend fun SocialViewModel.pinnedNoteOf(pubkey: String) = runCatching { repo.pinnedNoteOf(pubkey) }.getOrNull()
 

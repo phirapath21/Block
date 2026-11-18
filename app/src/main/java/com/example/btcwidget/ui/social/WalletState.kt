@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 class WalletState(private val vm: SocialViewModel) {
     private val repo get() = vm.repo
 
-    val nwc get() = repo.nwc
+    val nwc get() = repo.wallet.connection
 
     private val _balanceMsat = MutableStateFlow<Long?>(null)
     val balanceMsat: StateFlow<Long?> = _balanceMsat.asStateFlow()
@@ -25,12 +25,12 @@ class WalletState(private val vm: SocialViewModel) {
 
     /** Refreshes balance and transaction history from the connected NWC wallet. */
     fun refresh() {
-        if (repo.nwc.value == null || _loading.value) return
+        if (repo.wallet.connection.value == null || _loading.value) return
         _loading.value = true
         vm.viewModelScope.launch {
             try {
-                val bal = async { runCatching { repo.nwcBalance() }.getOrNull() }
-                val txs = async { runCatching { repo.nwcTransactions(20) }.getOrNull() }
+                val bal = async { runCatching { repo.wallet.balance() }.getOrNull() }
+                val txs = async { runCatching { repo.wallet.transactions(20) }.getOrNull() }
                 bal.await()?.let { _balanceMsat.value = it }
                 txs.await()?.let { _transactions.value = it }
             } finally {
@@ -43,7 +43,7 @@ class WalletState(private val vm: SocialViewModel) {
     fun makeInvoice(amountSat: Long, description: String, onResult: (String?) -> Unit) {
         var inv: String? = null
         vm.act(tr("Couldn't create invoice"), finally = { onResult(inv) }) {
-            inv = repo.nwcMakeInvoice(amountSat, description)
+            inv = repo.wallet.makeInvoice(amountSat, description)
         }
     }
 
@@ -52,7 +52,7 @@ class WalletState(private val vm: SocialViewModel) {
         var ok = false
         vm.act(tr("Payment failed"), finally = { onDone(ok) }) {
             vm.say(tr("⚡ Paying invoice…"))
-            repo.payWithNwc(invoice.trim().removePrefix("lightning:").removePrefix("LIGHTNING:"))
+            repo.wallet.pay(invoice.trim().removePrefix("lightning:").removePrefix("LIGHTNING:"))
             ok = true
             vm.say(tr("⚡ Payment sent"))
             refresh()
@@ -61,13 +61,13 @@ class WalletState(private val vm: SocialViewModel) {
 
     /** Returns an error message, or null when connected. */
     fun connect(uri: String): String? = try {
-        repo.connectNwc(uri); vm.say(tr("Wallet connected")); refresh(); null
+        repo.wallet.connect(uri); vm.say(tr("Wallet connected")); refresh(); null
     } catch (e: Exception) {
         e.message ?: "Couldn't connect the wallet"
     }
 
     fun disconnect() {
-        repo.disconnectNwc()
+        repo.wallet.disconnect()
         _balanceMsat.value = null
         _transactions.value = emptyList()
         vm.say(tr("Wallet disconnected"))

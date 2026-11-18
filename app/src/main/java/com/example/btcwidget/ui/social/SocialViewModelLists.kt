@@ -16,10 +16,10 @@ fun SocialViewModel.followAll(pubkeys: Collection<String>) = act(tr("Couldn't fo
     say(tr("Following {0} people", pubkeys.size))
 }
 
-suspend fun SocialViewModel.highlightsOf(article: com.example.btcwidget.nostr.core.Article) = runCatching { repo.highlightsOf(article) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.highlightsOf(article: com.example.btcwidget.nostr.core.Article) = runCatching { repo.highlights.of(article) }.getOrDefault(emptyList())
 
 fun SocialViewModel.highlight(article: com.example.btcwidget.nostr.core.Article, text: String, comment: String?, onDone: () -> Unit) =
-    tracked(tr("Highlighting"), tr("Highlighted"), tr("Couldn't highlight"), finally = onDone) { repo.highlight(article, text, comment) }
+    tracked(tr("Highlighting"), tr("Highlighted"), tr("Couldn't highlight"), finally = onDone) { repo.highlights.add(article, text, comment) }
 
 val SocialViewModel.followedTags get() = repo.followedTags
 
