@@ -1,6 +1,7 @@
 package com.example.btcwidget
 
 import android.content.ClipData
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -49,7 +50,7 @@ import com.example.btcwidget.ui.social.BlockLogo
 import com.example.btcwidget.ui.social.Glyphs
 import com.example.btcwidget.ui.social.tr
 
-private val Accent = Color(0xFFF7931A)
+private val Accent get() = com.example.btcwidget.ui.main.EInk.Accent
 
 /**
  * Shown on the launch after a crash: what happened, a box to say what you were doing, and
@@ -62,7 +63,7 @@ fun CrashReportScreen(report: String, onContinue: () -> Unit) {
     var note by remember { mutableStateOf("") }
     var details by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxSize().background(EInk.Background).safeDrawingPadding()
+        Modifier.fillMaxSize().screenBackground().safeDrawingPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         BlockLogo(Modifier.size(56.dp))

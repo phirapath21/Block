@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,7 +77,7 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
     val following by vm.following.collectAsState()
     val loaded by produceKept<Any?>(Unit, address) { value = vm.followPack(address) }
     val pack = loaded as? FollowPack
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(pack?.title ?: tr("Follow pack"), onBack)
         SocialScaffold(vm, navigate) { actions ->
             when {

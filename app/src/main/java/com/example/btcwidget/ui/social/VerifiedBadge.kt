@@ -26,12 +26,12 @@ import com.example.btcwidget.nostr.core.Profile
  * The verified mark (NIP-05 address confirmed by its domain): a rounded square in the app's
  * orange with a white tick.
  */
-private val VerifiedMark: ImageVector by lazy {
+private fun verifiedMark(accent: Color): ImageVector =
     ImageVector.Builder(name = "Verified", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
         .addPath(
-            // A rounded square (5.5 of 24 corners), the app's orange.
+            // A rounded square (5.5 of 24 corners), in the look's accent.
             pathData = addPathNodes("M8,2.5h8a5.5,5.5 0 0,1 5.5,5.5v8a5.5,5.5 0 0,1 -5.5,5.5h-8a5.5,5.5 0 0,1 -5.5,-5.5v-8a5.5,5.5 0 0,1 5.5,-5.5z"),
-            fill = SolidColor(Color(0xFFF7931A))
+            fill = SolidColor(accent)
         )
         .addPath(
             pathData = addPathNodes("M7.6,12.3l3,3l5.8,-6"),
@@ -39,12 +39,12 @@ private val VerifiedMark: ImageVector by lazy {
             strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round
         )
         .build()
-}
 
 @Composable
 fun VerifiedBadge(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    val accent = com.example.btcwidget.ui.main.EInk.Accent
     Image(
-        VerifiedMark, contentDescription = null,
+        androidx.compose.runtime.remember(accent) { verifiedMark(accent) }, contentDescription = null,
         modifier = modifier.size(size).semantics { contentDescription = tr("Verified") }
     )
 }

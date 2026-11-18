@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -35,9 +36,9 @@ import com.example.btcwidget.nostr.RelayStatus
 import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.delay
 
-private val Green = Color(0xFF3FB950)
+private val Green get() = EInk.Success
 private val Orange get() = EInk.Accent
-private val Red = Color(0xFFE5534B)
+private val Red get() = EInk.Alert
 
 /**
  * How each relay connection is doing, refreshed every second: your relays first, then the
@@ -47,7 +48,7 @@ private val Red = Color(0xFFE5534B)
 fun RelaysScreen(vm: SocialViewModel, onBack: () -> Unit) {
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
     var info by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Relays"), onBack)
         androidx.compose.foundation.layout.Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),

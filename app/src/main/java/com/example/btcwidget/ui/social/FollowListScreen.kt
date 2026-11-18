@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,7 +34,7 @@ fun FollowListScreen(vm: SocialViewModel, pubkey: String, followers: Boolean, na
     LaunchedEffect(people) { people?.let { vm.loadProfiles(it) } }
     val owner = profiles[pubkey]?.bestName ?: Profile.shortNpub(pubkey)
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(if (followers) tr("Followers of {0}", owner) else tr("{0} follows", owner), onBack)
         SocialScaffold(vm, navigate) { _ ->
             val list = people

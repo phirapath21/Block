@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -191,7 +192,7 @@ fun SearchScreen(
         onDismiss = { filterSheet = false }
     )
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         // ← (or avatar menu) · the search box · QR (or Cancel while typing).
         Row(
             verticalAlignment = Alignment.CenterVertically,

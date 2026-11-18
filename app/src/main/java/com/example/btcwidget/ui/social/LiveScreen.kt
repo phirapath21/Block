@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.animation.core.RepeatMode
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloat
@@ -245,7 +246,7 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
         // beside it, instead of the chat squeezed under the video.
         val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
         if (wide && player != null) {
-            Row(Modifier.fillMaxSize().background(EInk.Background).displayCutoutPadding()) {
+            Row(Modifier.fillMaxSize().screenBackground().displayCutoutPadding()) {
                 Column(Modifier.weight(1.6f).fillMaxHeight().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState())) { player() }
                 androidx.compose.material3.VerticalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
                 Box(Modifier.weight(1f).fillMaxHeight()) { chat(null, false) }
@@ -263,7 +264,7 @@ private fun LivePlayer(
 ) {
     // Typing in the chat: a shorter video and no details, so the chat and its box fit above the keyboard.
     val compact = LocalChatCompact.current
-    Column(Modifier.fillMaxWidth().background(EInk.Background)) {
+    Column(Modifier.fillMaxWidth().screenBackground()) {
         LiveVideo(
             live, host, replayPlayer,
             Modifier.fillMaxWidth().then(if (compact) Modifier.height(COMPACT_VIDEO) else Modifier.aspectRatio(16f / 9f)),

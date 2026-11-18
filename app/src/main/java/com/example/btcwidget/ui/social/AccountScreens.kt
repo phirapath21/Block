@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import android.app.Activity
+import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -114,7 +115,7 @@ fun LoginScreen(
 
     if (mode == "nsec" || mode == "backup") SecureScreen()
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(if (mode == "backup") tr("Save your key") else tr("Nostr account"), onBack = { if (mode == "choose" || mode == "backup") { if (mode == "backup") onCreated() else onBack() } else if (startMode != "choose") onBack() else mode = "choose" })
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp)
@@ -424,7 +425,7 @@ fun ComposeScreen(
     // A phone on its side leaves little room above the keyboard: a shorter box.
     val shortScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 520
 
-    Column(Modifier.fillMaxSize().background(EInk.Background).navigationBarsPadding().imePadding()) {
+    Column(Modifier.fillMaxSize().screenBackground().navigationBarsPadding().imePadding()) {
         // ✕ on the left, Post on the right, as on X.
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().height(56.dp).padding(horizontal = 8.dp),
@@ -793,7 +794,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
 
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Edit profile"), onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp)) {
             @Composable fun field(label: String, value: String, set: (String) -> Unit, singleLine: Boolean = true) =

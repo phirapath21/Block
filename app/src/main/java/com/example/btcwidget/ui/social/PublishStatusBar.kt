@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.example.btcwidget.ui.main.EInk
 
 private val Accent get() = EInk.Accent
-private val Green = Color(0xFF3FB950)
+private val Green get() = EInk.Success
 
 /**
  * A card at the top of the screen while a repost, reply or post is being sent: what's happening

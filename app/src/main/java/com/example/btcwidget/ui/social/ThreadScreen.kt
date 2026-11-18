@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.social
 
 import androidx.compose.foundation.background
+import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,7 +43,7 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
     // Saved, so Back to this thread after replying shows the version with your reply.
     var reload by rememberSaveable { mutableStateOf(0) }
     val thread by produceKept<NostrRepository.Thread?>(null, noteId, reload) { value = vm.thread(noteId) }
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Post"), onBack)
         SocialScaffold(vm, navigate) { actions ->
             val t = thread
@@ -98,7 +99,7 @@ fun HashtagScreen(vm: SocialViewModel, tag: String, navigate: (NavKey) -> Unit, 
     val followed by vm.followedTags.collectAsState()
     val account by vm.account.collectAsState()
     val isFollowed = tag.lowercase().removePrefix("#") in followed
-    Column(Modifier.fillMaxSize().background(EInk.Background)) {
+    Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar("#$tag", onBack)
         SocialScaffold(vm, navigate) { actions ->
             NoteList(feed.orEmpty(), stats, actions, header = {
