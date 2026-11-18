@@ -46,6 +46,8 @@ object AppPrefs {
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
+    private const val APP_LOCK_SCOPE = "app_lock_scope"
+    private const val APP_LOCK_AFTER = "app_lock_after_ms"
     private const val WHATS_NEW_SEEN = "whats_new_seen"
     private const val BTC_TX_CARDS = "btc_tx_cards"
     private const val BTC_BLOCK_CARDS = "btc_block_cards"
@@ -251,6 +253,14 @@ object AppPrefs {
     fun clearAppPinFailures(context: Context) = edit(context) { remove(APP_PIN_FAILURES); remove(APP_PIN_LOCKED_UNTIL) }
     fun biometricLock(context: Context): Boolean = prefs(context).getBoolean(APP_BIOMETRIC_LOCK, false)
     fun setBiometricLock(context: Context, enabled: Boolean) = edit(context) { putBoolean(APP_BIOMETRIC_LOCK, enabled) }
+    /** What the app lock guards: "app" (the default) or "sensitive" (private key, payments, messages). */
+    fun appLockScope(context: Context): String = prefs(context).getString(APP_LOCK_SCOPE, null) ?: "app"
+    fun setAppLockScope(context: Context, scope: String) = edit(context) { putString(APP_LOCK_SCOPE, scope) }
+
+    /** How long Block can be in the background before it asks again (0 = at once). */
+    fun appLockAfterMs(context: Context): Long = prefs(context).getLong(APP_LOCK_AFTER, 0L)
+    fun setAppLockAfterMs(context: Context, ms: Long) = edit(context) { putLong(APP_LOCK_AFTER, ms) }
+
     fun appLockPreference(context: Context): String = prefs(context).getString(APP_LOCK_PREFERENCE, "PIN") ?: "PIN"
     fun setAppLockPreference(context: Context, preference: String) = edit(context) {
         putString(APP_LOCK_PREFERENCE, preference.takeIf { it == "PIN" || it == "BIOMETRIC" } ?: "PIN")

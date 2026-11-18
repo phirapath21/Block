@@ -73,7 +73,7 @@ enum class SettingsPage(val title: String, val summary: String, val icon: () -> 
     POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
     BITCOIN("Bitcoin and widgets", "Your stack, currency, price sources, refresh", { NavIcons.Bitcoin.outline }),
-    SECURITY("App lock", "Protect Block with a PIN and biometrics", { Glyphs.Lock }),
+    SECURITY("App lock", "PIN or biometrics for the whole app or only private things", { Glyphs.Lock }),
     STORAGE("Storage and cache", "Event database, retention and media cache", { Glyphs.Server }),
     ABOUT("About Block", "Version, privacy policy, community rules", { Glyphs.Info });
 
@@ -310,7 +310,8 @@ private fun PrivateKey(vm: SocialViewModel) {
         text = tr("Never share it or paste it into a website. Anyone who sees it controls your account, ") +
             tr("and Nostr can't reset it. Make sure no one is looking at your screen."),
         confirmLabel = tr("Show key"),
-        onConfirm = { confirm = false; nsec = vm.exportNsec() },
+        // Behind the app lock when only private things are locked.
+        onConfirm = { confirm = false; AppLock.guard(tr("Show your private key")) { nsec = vm.exportNsec() } },
         onDismiss = { confirm = false }
     )
 }
@@ -665,6 +666,38 @@ private fun SecurityPage() {
             }
         }
 
+        if (hasPin) {
+            var scope by remember { mutableStateOf(LockScope.of(com.example.btcwidget.AppPrefs.appLockScope(context))) }
+            var after by remember { mutableStateOf(LockAfter.of(com.example.btcwidget.AppPrefs.appLockAfterMs(context))) }
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+                color = EInk.Body,
+                border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    SettingsHeader(tr("What to lock"), Modifier.padding(top = 0.dp))
+                    LockScope.entries.forEach { s ->
+                        SettingsRadioRow(tr(s.title), summary = tr(s.summary), selected = scope == s) {
+                            scope = s
+                            com.example.btcwidget.AppPrefs.setAppLockScope(context, s.id)
+                            com.example.btcwidget.ui.social.AppLockState.load(context)
+                        }
+                    }
+                    SettingsHeader(tr("Ask again"), Modifier.padding(top = 6.dp))
+                    SettingsNote(tr("How long Block can be in the background before it asks for your PIN again."))
+                    LockAfter.entries.forEach { a ->
+                        SettingsRadioRow(tr(a.label), selected = after == a) {
+                            after = a
+                            com.example.btcwidget.AppPrefs.setAppLockAfterMs(context, a.ms)
+                            com.example.btcwidget.ui.social.AppLockState.load(context)
+                        }
+                    }
+                }
+            }
+        }
+        // The gate reads these; keep it in step when the PIN is set or removed.
+        LaunchedEffect(hasPin) { com.example.btcwidget.ui.social.AppLockState.load(context) }
+
         if (hasPin) SecurityActionButton(tr("Remove PIN"), destructive = true) { confirmRemove = true }
     }
 
@@ -779,6 +812,12 @@ private fun StoragePage(vm: SocialViewModel) {
 
 @Composable
 private fun WalletPage(vm: SocialViewModel) {
+    // Balance, history and payments: behind the app lock when only private things are locked.
+    PrivateContent(tr("Your wallet"), askAtOnce = true) { WalletPageContent(vm) }
+}
+
+@Composable
+private fun WalletPageContent(vm: SocialViewModel) {
     val context = LocalContext.current
     val wallet by vm.nwc.collectAsState()
     val balanceMsat by vm.nwcBalanceMsat.collectAsState()

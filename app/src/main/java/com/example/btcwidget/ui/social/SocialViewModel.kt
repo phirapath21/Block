@@ -1270,6 +1270,11 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Pays a BOLT11 invoice via NWC and refreshes wallet balance/history. */
     fun payInvoiceWithNwc(invoice: String, onDone: (Boolean) -> Unit = {}) {
+        // Spending from the wallet: behind the app lock when only private things are locked.
+        if (AppLock.needsUnlock()) {
+            AppLock.guard(tr("Pay with your wallet")) { payInvoiceWithNwc(invoice, onDone) }
+            return
+        }
         var ok = false
         act(tr("Payment failed"), finally = { onDone(ok) }) {
             say(tr("⚡ Paying invoice…"))
@@ -1284,7 +1289,12 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
      * Zaps [amountSat]: with a connected wallet (NWC) it pays right here; otherwise the
      * invoice goes to [onInvoice], which opens a wallet app.
      */
-    fun zap(recipient: String, amountSat: Long, note: Event?, comment: String, address: String? = null, onInvoice: (String) -> Unit) =
+    fun zap(recipient: String, amountSat: Long, note: Event?, comment: String, address: String? = null, onInvoice: (String) -> Unit) {
+        // Paying from the connected wallet: behind the app lock when only private things are locked.
+        if (repo.nwc.value != null && AppLock.needsUnlock()) {
+            AppLock.guard(tr("Zap {0} sats", amountSat)) { zap(recipient, amountSat, note, comment, address, onInvoice) }
+            return
+        }
         act(tr("Couldn't zap")) {
             val invoice = repo.zapInvoice(recipient, amountSat, note, comment, address)
             if (repo.nwc.value != null) {
@@ -1297,6 +1307,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 onInvoice(invoice)
             }
         }
+    }
 
     /** Returns an error message, or null when connected. */
     fun connectNwc(uri: String): String? = try {
