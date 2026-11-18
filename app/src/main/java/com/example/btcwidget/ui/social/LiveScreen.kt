@@ -62,7 +62,7 @@ import com.example.btcwidget.nostr.core.LiveStreams
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 
-private val LiveRed = Color(0xFFE5534B)
+private val LiveRed get() = EInk.Alert
 
 @Composable
 private fun RoundControl(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {

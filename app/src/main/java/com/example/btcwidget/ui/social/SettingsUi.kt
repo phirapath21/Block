@@ -47,7 +47,7 @@ import com.example.btcwidget.ui.main.EInk
 // one-line explanation under it, and the control (chevron, switch, radio) at the right.
 
 internal val SettingsAccent get() = EInk.Accent
-private val Destructive = Color(0xFFF4212E)
+private val Destructive get() = EInk.Alert
 
 /** A heading over a group of rows. */
 @Composable
@@ -168,7 +168,7 @@ fun SettingsTextField(
 @Composable
 fun SettingsButton(label: String, primary: Boolean = false, enabled: Boolean = true, destructive: Boolean = false, onClick: () -> Unit) {
     val bg = when { !enabled -> EInk.Body; primary -> SettingsAccent; else -> Color.Transparent }
-    val fg = when { !enabled -> EInk.Caption; primary -> Color.Black; destructive -> Destructive; else -> EInk.Value }
+    val fg = when { !enabled -> EInk.Caption; primary -> EInk.OnAccent; destructive -> Destructive; else -> EInk.Value }
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
     Box(
         Modifier.heightIn(min = 36.dp)

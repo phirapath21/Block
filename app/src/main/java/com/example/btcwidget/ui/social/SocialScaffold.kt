@@ -256,7 +256,7 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
                 val on = sats == preset
                 Text(
                     "⚡ ${"%,d".format(preset)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    color = if (on) Color.Black else EInk.Value,
+                    color = if (on) EInk.OnAccent else EInk.Value,
                     modifier = Modifier.clip(RoundedCornerShape(50)).background(if (on) ZapOrange else EInk.Track)
                         .clickable { amount = preset.toString() }.padding(horizontal = 14.dp, vertical = 8.dp)
                 )

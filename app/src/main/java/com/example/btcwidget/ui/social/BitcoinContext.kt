@@ -150,7 +150,7 @@ fun BlockStampBadge(
     modifier: Modifier = Modifier
 ) {
     var showSheet by remember { mutableStateOf(false) }
-    val bitcoinOrange = Color(0xFFF7931A)
+    val bitcoinOrange = EInk.Accent
 
     Row(
         modifier = modifier
@@ -244,7 +244,7 @@ private fun SnapshotRow(label: String, value: String, highlight: Boolean = false
         Text(label, color = EInk.Caption, fontSize = 13.sp)
         Text(
             value,
-            color = if (highlight) Color(0xFFF7931A) else EInk.Value,
+            color = if (highlight) EInk.Accent else EInk.Value,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace

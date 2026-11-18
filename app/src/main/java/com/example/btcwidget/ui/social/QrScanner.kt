@@ -90,14 +90,14 @@ private fun CameraScannerDialog(onDismiss: () -> Unit, onResult: (String?) -> Un
 
     DisposableEffect(executor) { onDispose { executor.shutdown() } }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Column(Modifier.fillMaxSize().background(Color(0xFF080A0D)).statusBarsPadding().navigationBarsPadding()) {
+        Column(Modifier.fillMaxSize().background(com.example.btcwidget.ui.main.EInk.Background).statusBarsPadding().navigationBarsPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(tr("Scan QR code"), color = Color.White, fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                    Text(tr("Keep the code inside the frame"), color = Color(0xFF9AA3AD), fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
+                    Text(tr("Keep the code inside the frame"), color = com.example.btcwidget.ui.main.EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
                 }
                 Box(
                     Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Close"), onClick = onDismiss),
@@ -116,7 +116,7 @@ private fun CameraScannerDialog(onDismiss: () -> Unit, onResult: (String?) -> Un
                     if (cameraError) ScannerMessage(tr("Camera unavailable"), Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp))
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Surface(shape = CircleShape, color = Color(0xFF1A2028), modifier = Modifier.size(68.dp)) {
+                        Surface(shape = CircleShape, color = com.example.btcwidget.ui.main.EInk.Sheet, modifier = Modifier.size(68.dp)) {
                             Box(contentAlignment = Alignment.Center) { Icon(Glyphs.Qr, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(30.dp)) }
                         }
                         Text(tr("Allow camera access to scan a QR code"), color = Color.White, fontSize = 15.sp)
@@ -125,7 +125,7 @@ private fun CameraScannerDialog(onDismiss: () -> Unit, onResult: (String?) -> Un
                 }
             }
             Text(
-                tr("QR codes are scanned on this device."), color = Color(0xFF9AA3AD), fontSize = 13.sp,
+                tr("QR codes are scanned on this device."), color = com.example.btcwidget.ui.main.EInk.Caption, fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(horizontal = 24.dp, vertical = 22.dp)
             )
         }

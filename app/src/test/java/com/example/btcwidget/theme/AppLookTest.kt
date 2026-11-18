@@ -78,4 +78,30 @@ class AppLookTest {
         assertEquals(0.75f, glowStrength(b, a, 0.25f), 0f)
         assertEquals(0f, glowStrength(a, a, 0.5f), 0f)
     }
+
+    @Test
+    fun theGlowBitmapFollowsTheGradient() {
+        val glow = AppLook.EMBER.colors.glow!!
+        // The centre is the first stop, past the ellipse is the last (the background).
+        assertEquals(glow.colors.first(), glowColorAt(glow, 0f, 0f))
+        assertEquals(glow.colors.last(), glowColorAt(glow, 1f, 1f))
+        // Along the x axis, d = u / rx: at 0.3 × 1.4 it's exactly the second stop.
+        assertEquals(glow.colors[1], glowColorAt(glow, 0.3f * 1.4f, 0f))
+        val px = glowPixels(glow, 8, 16)
+        assertEquals(128, px.size)
+        assertEquals(glowColorAt(glow, 0.5f / 8, 0.5f / 16), px[0])
+        // Fully opaque everywhere, and never brighter than the centre.
+        assertTrue(px.all { (it ushr 24) == 0xFF })
+        assertTrue(px.all { ((it shr 16) and 0xFF) <= ((glow.colors.first() shr 16) and 0xFF) })
+    }
+
+    @Test
+    fun gildedAndKyriakiAreZeus() {
+        assertEquals(0xFFD5BF8D.toInt(), AppLook.GILDED.colors.accent)
+        assertEquals(0xFF4F473C.toInt(), AppLook.GILDED.colors.glow!!.colors.first())
+        assertEquals(0xFF1E2022.toInt(), AppLook.KYRIAKI.colors.background)
+        assertEquals(0xFFFFA900.toInt(), AppLook.KYRIAKI.colors.accent)
+        assertNull(AppLook.KYRIAKI.colors.glow)
+        assertEquals(AppLook.GILDED, AppLook.of("gilded"))
+    }
 }

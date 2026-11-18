@@ -46,6 +46,7 @@ object AppPrefs {
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
+    private const val WHATS_NEW_SEEN = "whats_new_seen"
     private const val BTC_TX_CARDS = "btc_tx_cards"
     private const val BTC_BLOCK_CARDS = "btc_block_cards"
     private const val BTC_TX_STYLE_FEED = "btc_tx_style_feed"
@@ -83,6 +84,10 @@ object AppPrefs {
     /** New bookmarks and mutes are private (encrypted, NIP-51; the default) or public. */
     fun privateLists(context: Context): Boolean = prefs(context).getBoolean(PRIVATE_LISTS, true)
     fun setPrivateLists(context: Context, private: Boolean) = edit(context) { putBoolean(PRIVATE_LISTS, private) }
+
+    /** The last "What's new" shown (0 = none yet). */
+    fun whatsNewSeen(context: Context): Int = prefs(context).getInt(WHATS_NEW_SEEN, 0)
+    fun setWhatsNewSeen(context: Context, version: Int) = edit(context) { putInt(WHATS_NEW_SEEN, version) }
 
     /** The app's colour theme (screens, menus); widgets keep their own [theme]. */
     fun appLook(context: Context): com.example.btcwidget.theme.AppLook =

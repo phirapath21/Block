@@ -48,7 +48,8 @@ import com.example.btcwidget.ui.main.EInk
 internal fun ComposeToolButton(icon: ImageVector, label: String, enabled: Boolean = true, on: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier
-            .size(42.dp)
+            // 48 dp: the smallest comfortable touch target.
+            .size(48.dp)
             .clip(CircleShape)
             .background(if (on) SettingsAccent.copy(alpha = 0.16f) else Color.Transparent)
             .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
@@ -88,7 +89,7 @@ internal fun ChoicePill(label: String, selected: Boolean, icon: ImageVector? = n
             .padding(start = if (icon != null) 10.dp else 14.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val ink = if (selected) Color.Black else EInk.Value
+        val ink = if (selected) EInk.OnAccent else EInk.Value
         if (icon != null) Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.padding(end = 6.dp).size(15.dp))
         Text(label, color = ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
