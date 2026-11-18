@@ -1311,11 +1311,21 @@ internal fun ArticleComposerDialog(
 ) {
     val context = LocalContext.current
     val account by vm.account.collectAsState()
-    val draftPrefs = remember { context.getSharedPreferences("article_draft_prefs", Context.MODE_PRIVATE) }
+    // The article being written is kept with the account's other drafts: per account, out of
+    // Android backup, and deleted on logout.
+    val draftKey = remember(account?.pubkey) { "${account?.pubkey ?: ""}/article" }
 
-    val initialDraftJson = remember(initialArticle) {
+    val initialDraftJson = remember(initialArticle, draftKey) {
         if (initialArticle != null) null
-        else draftPrefs.getString("current_draft", null)?.let { runCatching { JSONObject(it) }.getOrNull() }
+        else {
+            // A draft from before drafts were per account: it goes to whoever opens the composer next.
+            val legacy = context.getSharedPreferences("article_draft_prefs", Context.MODE_PRIVATE)
+            legacy.getString("current_draft", null)?.let { old ->
+                if (com.example.btcwidget.nostr.Drafts.get(context, draftKey) == null) com.example.btcwidget.nostr.Drafts.put(context, draftKey, old)
+                legacy.edit().clear().apply()
+            }
+            com.example.btcwidget.nostr.Drafts.get(context, draftKey)?.let { runCatching { JSONObject(it) }.getOrNull() }
+        }
     }
 
     var title by rememberSaveable {
@@ -1374,7 +1384,7 @@ internal fun ArticleComposerDialog(
             .put("image", coverImage)
             .put("tags", tagsInput)
             .put("content", content)
-        draftPrefs.edit().putString("current_draft", obj.toString()).apply()
+        com.example.btcwidget.nostr.Drafts.put(context, draftKey, obj.toString())
         if (showToast) vm.say(tr("Draft saved"))
     }
 
@@ -1453,7 +1463,7 @@ internal fun ArticleComposerDialog(
                                     publishing = false
                                     if (published != null) {
                                         if (initialArticle == null) {
-                                            draftPrefs.edit().remove("current_draft").apply()
+                                            com.example.btcwidget.nostr.Drafts.remove(context, draftKey)
                                         }
                                         onPublished(published)
                                     }

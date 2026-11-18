@@ -96,6 +96,25 @@ class EventSqlTest {
     }
 
     @Test
+    fun pruningKeepsMessagesAndManyBookmarks() {
+        val otherSec = Schnorr.newSecretKey(); val other = Schnorr.publicKey(otherSec)
+        fun theirs(t: Long, kind: Int = Kind.TEXT_NOTE) = UnsignedEvent(other, t, kind, emptyList(), "n$t").let { it.signed(Schnorr.sign(it.id, otherSec)) }
+        val notes = (1L..1_500L).map { theirs(it) }
+        notes.forEach(::insert)
+        // A gift-wrapped message: signed by a throwaway key, so "mine" doesn't cover it.
+        val wrap = theirs(0, 1059)
+        insert(wrap)
+        // Far more bookmarks than SQLite's 999-parameter limit, all among the oldest notes.
+        val bookmarks = notes.take(1_200).map { it.id }.toSet()
+        EventSql.prune(keep = 10, myPubkeys = setOf(pub), protectedIds = bookmarks).forEach { run(it.sql, it.args) }
+        val left = query(Filter(limit = 5_000)).map { it.id }.toSet()
+        assertEquals(true, wrap.id in left)
+        assertEquals(true, left.containsAll(bookmarks))
+        // Only bookmarks, the message and the newest 10 others are left.
+        assertEquals(1_200 + 1 + 10, left.size)
+    }
+
+    @Test
     fun offlineFullTextSearchAndOutboxAndNwc() {
         val n1 = sign(Events.note(pub, "Learning about Bitcoin Lightning and Nostr outbox").copy(createdAt = 100))
         val n2 = sign(Events.note(pub, "Just a random post").copy(createdAt = 200))
