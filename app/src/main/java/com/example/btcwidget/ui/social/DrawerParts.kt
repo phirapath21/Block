@@ -58,7 +58,7 @@ fun DrawerAccountHeader(vm: SocialViewModel, onLogin: () -> Unit, navigate: (and
             },
             color = EInk.Caption, fontSize = 15.sp,
             modifier = Modifier.padding(top = 10.dp)
-                .clickable(onClickLabel = tr("Following")) { navigate(com.example.btcwidget.FollowsKey(me, followers = false)) }
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Following")) { navigate(com.example.btcwidget.FollowsKey(me, followers = false)) }
         )
     }
 }
@@ -90,7 +90,7 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
             rows.forEach { pk ->
                 val current = pk == account?.pubkey
                 androidx.compose.foundation.layout.Row(
-                    Modifier.fillMaxWidth().clickable(onClickLabel = if (current) null else tr("Switch")) {
+                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (current) null else tr("Switch")) {
                         if (!current) { haptics.confirm(); vm.switchAccount(pk) }
                         onDismiss()
                     }.padding(horizontal = 20.dp, vertical = 10.dp),
@@ -107,7 +107,7 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
             androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 6.dp))
             Text(
                 tr("+ Add account"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth().clickable { onDismiss(); navigate(com.example.btcwidget.LoginKey) }
+                modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onDismiss(); navigate(com.example.btcwidget.LoginKey) }
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             )
         }

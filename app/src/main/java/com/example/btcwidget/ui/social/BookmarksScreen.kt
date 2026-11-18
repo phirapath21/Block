@@ -121,7 +121,7 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                         color = EInk.Caption,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.clickable { vm.toggleSavedArticle(a) }.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.toggleSavedArticle(a) }.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
                                 ArticleRow(

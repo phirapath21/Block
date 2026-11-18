@@ -141,7 +141,7 @@ internal fun StreamControls(
                     SkipButton(Glyphs.Replay, tr("Back 10 seconds"), enabled = seekable) { seekBy(-10_000) }
                     Box(
                         Modifier.size(60.dp).clip(CircleShape).background(Color(0x99000000))
-                            .clickable(onClickLabel = if (playing) tr("Pause") else tr("Play")) { haptics.tick(); touched = System.nanoTime(); onTogglePlay() },
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (playing) tr("Pause") else tr("Play")) { haptics.tick(); touched = System.nanoTime(); onTogglePlay() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(if (playing) Glyphs.Pause else Glyphs.Play, contentDescription = if (playing) tr("Pause") else tr("Play"), tint = Color.White, modifier = Modifier.size(34.dp))
@@ -154,7 +154,7 @@ internal fun StreamControls(
                             // LIVE: red while watching live; grey when behind, tap to catch up.
                             Row(
                                 Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
-                                    .clickable(enabled = !atLive, onClickLabel = tr("Go to live")) {
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !atLive, onClickLabel = tr("Go to live")) {
                                         haptics.tick(); touched = System.nanoTime()
                                         player.seekToDefaultPosition(); player.play()
                                         behindMs = 0L; position = effectiveMax
@@ -235,7 +235,7 @@ internal fun StreamControls(
 @Composable
 private fun SkipButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(48.dp).clip(CircleShape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick).alpha(if (enabled) 1f else 0.35f),
+        Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick).alpha(if (enabled) 1f else 0.35f),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(40.dp))
@@ -309,7 +309,7 @@ internal fun PlayerStatus(player: ExoPlayer, modifier: Modifier = Modifier) {
             Text(
                 tr("Try again"), color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 10.dp).clip(RoundedCornerShape(50)).background(VideoAccent)
-                    .clickable { failed = false; player.prepare(); player.play() }.padding(horizontal = 18.dp, vertical = 8.dp)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { failed = false; player.prepare(); player.play() }.padding(horizontal = 18.dp, vertical = 8.dp)
             )
         } else if (buffering) androidx.compose.material3.CircularProgressIndicator(color = VideoAccent, strokeWidth = 3.dp, modifier = Modifier.size(40.dp))
     }

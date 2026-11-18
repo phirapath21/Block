@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import android.app.Activity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipData
 import android.content.ClipDescription
@@ -160,7 +162,7 @@ fun LoginScreen(
                     Text(
                         tr("By posting you agree to the Community rules ›"),
                         color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp).clickable(onClickLabel = tr("Open community rules"), onClick = onOpenRules).padding(vertical = 6.dp)
+                        modifier = Modifier.padding(top = 16.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open community rules"), onClick = onOpenRules).padding(vertical = 6.dp)
                     )
                 }
                 "bunker" -> {
@@ -432,7 +434,7 @@ fun ComposeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                Modifier.size(48.dp).clip(CircleShape).clickable(onClickLabel = tr("Close"), onClick = onBack),
+                Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Close"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.CloseLine, contentDescription = tr("Close"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
             Spacer(Modifier.weight(1f))
@@ -441,14 +443,14 @@ fun ComposeScreen(
                     text = if (savedDrafts.isNotEmpty()) tr("Drafts ({0})", savedDrafts.size) else tr("Save draft"),
                     color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(end = 8.dp).clip(RoundedCornerShape(50))
-                        .clickable { draftsSheet = true }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { draftsSheet = true }
                         .padding(horizontal = 12.dp, vertical = 7.dp)
                 )
             }
             Row(
                 Modifier.padding(end = 6.dp).clip(RoundedCornerShape(50))
                     .background(SettingsAccent.copy(alpha = if (canSend || sending) 1f else 0.4f))
-                    .clickable(enabled = canSend, onClickLabel = tr("Post")) { send() }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canSend, onClickLabel = tr("Post")) { send() }
                     .padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -619,7 +621,7 @@ private fun DraftsSheet(
                 drafts.forEach { d ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                            .clickable { onSelect(d) }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { onSelect(d) }
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -634,7 +636,7 @@ private fun DraftsSheet(
                             }
                         }
                         Box(
-                            Modifier.padding(start = 8.dp).size(34.dp).clip(CircleShape).clickable(onClickLabel = tr("Delete draft")) { onDelete(d) },
+                            Modifier.padding(start = 8.dp).size(34.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Delete draft")) { onDelete(d) },
                             contentAlignment = Alignment.Center
                         ) {
                             androidx.compose.material3.Icon(Glyphs.Trash, contentDescription = tr("Delete draft"), tint = EInk.Alert, modifier = Modifier.size(18.dp))
@@ -675,7 +677,7 @@ private fun PollEditor(
             )
         }
         if (options.size < 4) Row(
-            Modifier.clip(RoundedCornerShape(50)).clickable { onOptions(options + "") }.padding(vertical = 6.dp, horizontal = 4.dp),
+            Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onOptions(options + "") }.padding(vertical = 6.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.material3.Icon(Glyphs.Plus, contentDescription = null, tint = SettingsAccent, modifier = Modifier.size(18.dp))
@@ -692,7 +694,7 @@ private fun PollEditor(
         }
         Text(
             tr("Remove poll"), color = EInk.Alert, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 12.dp).clip(RoundedCornerShape(50)).clickable(onClick = onRemove).padding(vertical = 6.dp, horizontal = 4.dp)
+            modifier = Modifier.padding(top = 12.dp).clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(vertical = 6.dp, horizontal = 4.dp)
         )
     }
 }
@@ -734,7 +736,7 @@ internal fun ScheduleDialog(initial: Long?, onDismiss: () -> Unit, onClear: () -
         )
         if (initial != null) Text(
             tr("Post now instead"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 12.dp).clickable(onClick = onClear).padding(vertical = 6.dp)
+            modifier = Modifier.padding(top = 12.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClear).padding(vertical = 6.dp)
         )
     }
 }
@@ -804,7 +806,8 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
             Box(Modifier.fillMaxWidth().padding(bottom = 44.dp)) {
                 Box(
                     Modifier.fillMaxWidth().aspectRatio(3f).clip(RoundedCornerShape(12.dp)).background(EInk.Track)
-                        .clickable(enabled = uploadingFor == null, onClickLabel = tr("Change banner")) { pick("banner") },
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = uploadingFor == null, onClickLabel = tr("Change banner")) { pick("banner") }
+                        .semantics(mergeDescendants = true) { contentDescription = tr("Change banner") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (banner.isNotBlank()) AsyncImage(banner, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -813,7 +816,8 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
                 Box(
                     Modifier.align(Alignment.BottomStart).offset(x = 14.dp, y = 36.dp).size(80.dp).clip(CircleShape)
                         .background(EInk.Body).border(3.dp, EInk.Background, CircleShape)
-                        .clickable(enabled = uploadingFor == null, onClickLabel = tr("Change profile picture")) { pick("picture") },
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = uploadingFor == null, onClickLabel = tr("Change profile picture")) { pick("picture") }
+                        .semantics(mergeDescendants = true) { contentDescription = tr("Change profile picture") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (picture.isNotBlank()) AsyncImage(picture, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())

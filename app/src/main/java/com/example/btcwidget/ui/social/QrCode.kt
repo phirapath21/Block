@@ -96,7 +96,7 @@ fun ProfileQrDialog(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> U
 private fun SmallPill(label: String, onClick: () -> Unit) {
     Text(
         label, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-        modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, EInk.Track, RoundedCornerShape(50)).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, EInk.Track, RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
 
@@ -139,7 +139,7 @@ private fun shareText(context: Context, text: String) {
 @Composable
 internal fun QrButton(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
+        Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) { Text(tr("▣ QR"), color = com.example.btcwidget.ui.main.EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
 }

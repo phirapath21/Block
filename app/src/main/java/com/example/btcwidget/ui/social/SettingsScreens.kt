@@ -196,7 +196,7 @@ private fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             DisplayName(profiles[acct.pubkey], acct.pubkey, EInk.Value, 18.sp)
             Text(
                 npub.take(14) + "…" + npub.takeLast(6), color = EInk.Caption, fontSize = 13.sp, fontFamily = FontFamily.Monospace,
-                modifier = Modifier.clickable(onClickLabel = tr("Copy npub")) {
+                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Copy npub")) {
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("npub", npub))
                     android.widget.Toast.makeText(context, tr("npub copied"), android.widget.Toast.LENGTH_SHORT).show()
                 }.padding(vertical = 2.dp)
@@ -211,7 +211,7 @@ private fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     SettingsHeader(tr("Accounts on this phone"))
     SettingsNote(tr("Switch between Nostr accounts without logging out."))
     saved.forEach { a ->
-        Row(Modifier.fillMaxWidth().clickable(onClickLabel = tr("Switch")) { vm.switchAccount(a.pubkey) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Switch")) { vm.switchAccount(a.pubkey) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Avatar(profiles[a.pubkey], a.pubkey, size = 40)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(profiles[a.pubkey]?.bestName ?: Profile.shortNpub(a.pubkey), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -372,7 +372,7 @@ private fun PrivacyPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(if (type == "t") "#$value" else value, color = EInk.Value, fontSize = 16.sp, modifier = Modifier.weight(1f))
             androidx.compose.foundation.layout.Box(
-                Modifier.size(40.dp).clickable(onClickLabel = tr("Unmute {0}", value)) { vm.muteEntry(type, value, false) },
+                Modifier.size(40.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Unmute {0}", value)) { vm.muteEntry(type, value, false) },
                 contentAlignment = Alignment.Center
             ) { Icon(Glyphs.Close, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp)) }
         }
@@ -714,7 +714,7 @@ private fun SecurityActionButton(
     }
     androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(48.dp)
-            .clip(shape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+            .clip(shape).clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick),
         shape = shape,
         color = if (primary && enabled) EInk.Accent else EInk.Background,
         border = if (primary) null else androidx.compose.foundation.BorderStroke(1.dp, if (destructive) EInk.Alert.copy(alpha = .45f) else EInk.BodyStroke)

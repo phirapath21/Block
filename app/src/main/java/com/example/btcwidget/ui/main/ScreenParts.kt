@@ -98,7 +98,7 @@ internal fun CategoryHeader(title: String, count: Int, collapsed: Boolean, onCli
             .fillMaxWidth()
             .padding(top = 10.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = if (collapsed) tr("Expand") else tr("Collapse"), onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (collapsed) tr("Expand") else tr("Collapse"), onClick = onClick)
             .semantics { stateDescription = if (collapsed) "Collapsed" else "Expanded" }
             .padding(horizontal = 6.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -80,7 +80,7 @@ fun PollView(poll: Poll, actions: NoteActions) {
                 Box(
                     Modifier.padding(vertical = 3.dp).fillMaxWidth().height(36.dp).clip(shape)
                         .border(if (selected) 1.5.dp else 1.dp, if (selected) EInk.Value else EInk.BodyStroke, shape)
-                        .clickable(enabled = !sending) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !sending) {
                             if (poll.multipleChoice) picked = if (selected) picked - option.id else picked + option.id
                             else send(listOf(option.id))
                         },
@@ -109,7 +109,7 @@ fun PollView(poll: Poll, actions: NoteActions) {
             if (!showResults && poll.multipleChoice && picked.isNotEmpty()) {
                 Text(
                     if (sending) tr("Voting…") else tr("Vote"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(enabled = !sending) { send(poll.options.map { it.id }.filter { it in picked }) }.padding(6.dp)
+                    modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !sending) { send(poll.options.map { it.id }.filter { it in picked }) }.padding(6.dp)
                 )
             }
         }

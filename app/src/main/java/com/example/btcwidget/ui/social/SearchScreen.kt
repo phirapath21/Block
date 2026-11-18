@@ -199,7 +199,7 @@ fun SearchScreen(
             modifier = Modifier.then(if (onBack != null) Modifier.statusBarsPadding() else Modifier).fillMaxWidth().height(56.dp).padding(horizontal = 6.dp)
         ) {
             if (onBack != null) Box(
-                Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Back"), onClick = onBack),
+                Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Back, contentDescription = tr("Back"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
             else leadingMenu?.invoke()
@@ -227,7 +227,7 @@ fun SearchScreen(
                     }
                 )
                 if (query.isNotEmpty()) Box(
-                    Modifier.size(34.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear")) {
+                    Modifier.size(34.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Clear")) {
                         query = ""; job?.cancel(); searched = null; runCatching { focus.requestFocus() }
                     },
                     contentAlignment = Alignment.Center
@@ -239,9 +239,9 @@ fun SearchScreen(
             }
             if (focused) Text(
                 tr("Cancel"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).clickable { query = searched.orEmpty(); focusManager.clearFocus() }.padding(horizontal = 10.dp, vertical = 8.dp)
+                modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { query = searched.orEmpty(); focusManager.clearFocus() }.padding(horizontal = 10.dp, vertical = 8.dp)
             ) else Box(
-                Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Scan a QR code"), onClick = scanQr),
+                Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Scan a QR code"), onClick = scanQr),
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Qr, contentDescription = tr("Scan a QR code"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
         }
@@ -496,7 +496,7 @@ private fun NoResults(q: String) {
 /** A #topic row: the tag in bold, a line under it, and a chevron. */
 @Composable
 private fun TagRow(tag: String, detail: String?, caption: String? = null, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             caption?.let { Text(it, color = EInk.Caption, fontSize = 13.sp) }
             Text("#$tag", color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -537,7 +537,7 @@ private fun SearchSuggestions(
                     Text(tr("Recent"), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     Text(
                         tr("Clear all"), color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clip(RoundedCornerShape(50)).clickable(onClick = onClearRecents).padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClearRecents).padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -545,7 +545,7 @@ private fun SearchSuggestions(
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 6.dp)) {
                     recentProfiles.forEach { (pk, p) ->
                         Column(
-                            Modifier.width(76.dp).clip(RoundedCornerShape(12.dp)).clickable { onProfile(pk) }.padding(vertical = 6.dp),
+                            Modifier.width(76.dp).clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onProfile(pk) }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Avatar(p, pk, size = 54)
@@ -559,13 +559,13 @@ private fun SearchSuggestions(
             }
             items(recents, key = { "r:$it" }) { q ->
                 Row(
-                    Modifier.fillMaxWidth().clickable(onClickLabel = tr("Search")) { onSearch(q) }.padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Search")) { onSearch(q) }.padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     androidx.compose.material3.Icon(Glyphs.Clock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
                     Text(q, color = EInk.Value, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
                     Box(
-                        Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = tr("Remove")) { onRemoveRecent(q) },
+                        Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove")) { onRemoveRecent(q) },
                         contentAlignment = Alignment.Center
                     ) { androidx.compose.material3.Icon(Glyphs.CloseLine, contentDescription = tr("Remove"), tint = EInk.Caption, modifier = Modifier.size(16.dp)) }
                 }
@@ -574,7 +574,7 @@ private fun SearchSuggestions(
         }
         item(key = "go") {
             Row(
-                Modifier.fillMaxWidth().clickable { onSearch(query) }.padding(horizontal = 16.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onSearch(query) }.padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = SettingsAccent, modifier = Modifier.size(20.dp))
@@ -588,7 +588,7 @@ private fun SearchSuggestions(
         val tags = vm.hashtagSuggestions(query.removePrefix("#")).take(4)
         items(tags, key = { "t:$it" }) { tag ->
             Row(
-                Modifier.fillMaxWidth().clickable { onTag(tag) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onTag(tag) }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 androidx.compose.material3.Icon(Glyphs.Hashtag, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
@@ -597,7 +597,7 @@ private fun SearchSuggestions(
         }
         items(people, key = { "p:" + it.pubkey }) { p ->
             Row(
-                Modifier.fillMaxWidth().clickable { onProfile(p.pubkey) }.padding(horizontal = 16.dp, vertical = 9.dp),
+                Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onProfile(p.pubkey) }.padding(horizontal = 16.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Avatar(p, p.pubkey, size = 42)
@@ -622,7 +622,7 @@ private fun SearchFilters(
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             Text(tr("Search filters"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Row(
-                Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(12.dp)).clickable { onFollowsOnly(!followsOnly) }.padding(vertical = 6.dp),
+                Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onFollowsOnly(!followsOnly) }.padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
@@ -644,7 +644,7 @@ private fun SearchFilters(
             }
             if (followsOnly || oldestFirst) Text(
                 tr("Reset"), color = SettingsAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 18.dp).clip(RoundedCornerShape(50)).clickable { onFollowsOnly(false); onOldestFirst(false) }.padding(vertical = 6.dp, horizontal = 4.dp)
+                modifier = Modifier.padding(top = 18.dp).clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onFollowsOnly(false); onOldestFirst(false) }.padding(vertical = 6.dp, horizontal = 4.dp)
             )
         }
     }
@@ -658,7 +658,7 @@ private fun SectionTitle(title: String, more: String?, onMore: () -> Unit) {
         more?.let {
             Text(
                 it, color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).clickable(onClick = onMore).padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onMore).padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
@@ -849,7 +849,7 @@ private fun DvmFeeds(vm: SocialViewModel, actions: NoteActions) {
                     )
                 }
                 items(l, key = { it.key }) { svc ->
-                    Row(Modifier.fillMaxWidth().clickable { chosen = svc }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { chosen = svc }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         androidx.compose.foundation.layout.Box(
                             Modifier.size(40.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp)).background(EInk.Body),
                             contentAlignment = Alignment.Center
@@ -915,7 +915,7 @@ private fun WhoToFollow(vm: SocialViewModel, actions: NoteActions) {
 @Composable
 internal fun PersonRow(profile: Profile, isFollowing: Boolean, onClick: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top
     ) {
         Avatar(profile, profile.pubkey, size = 44)

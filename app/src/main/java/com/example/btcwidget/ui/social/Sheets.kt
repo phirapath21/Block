@@ -83,7 +83,7 @@ fun ActionSheet(onDismiss: () -> Unit, actions: List<SheetAction>, header: (@Com
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = a.enabled, onClickLabel = a.label) {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = a.enabled, onClickLabel = a.label) {
                             scope.launch { state.hide() }.invokeOnCompletion { onDismiss(); a.onClick() }
                         }
                         .alpha(if (a.enabled) 1f else 0.4f)
@@ -218,7 +218,7 @@ fun ConfirmDialog(title: String, text: String, confirmLabel: String, onConfirm: 
 @Composable
 fun ChoiceRow(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(10.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = EInk.Value, fontSize = 16.sp, modifier = Modifier.weight(1f))
@@ -242,7 +242,7 @@ private fun PillButtonFull(
             .alpha(if (enabled) 1f else 0.4f)
             .clip(PillShape)
             .then(if (outlined) Modifier.border(1.dp, EInk.BodyStroke, PillShape) else Modifier.background(background))
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(label, color = if (outlined) EInk.Value else foreground, fontSize = 16.sp, fontWeight = FontWeight.Bold)

@@ -373,7 +373,7 @@ private fun StoreTopHeader(
                     Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .clickable(onClickLabel = tr("Clear search")) { onQueryChange("") },
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Clear search")) { onQueryChange("") },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Glyphs.CloseLine, contentDescription = tr("Clear search"), tint = EInk.Caption, modifier = Modifier.size(13.dp))
@@ -388,7 +388,7 @@ private fun StoreTopHeader(
                 .clip(CircleShape)
                 .background(if (hasActiveFilter) StoreOrange.copy(alpha = 0.16f) else EInk.Body)
                 .border(0.5.dp, if (hasActiveFilter) StoreOrange else EInk.BodyStroke, CircleShape)
-                .clickable(onClickLabel = tr("Sort and filter"), onClick = onOpenFilter),
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Sort and filter"), onClick = onOpenFilter),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -406,7 +406,7 @@ private fun StoreTopHeader(
                     .clip(RoundedCornerShape(50))
                     .background(EInk.Body)
                     .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                    .clickable(onClickLabel = tr("My Shop"), onClick = onOpenMyShop)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("My Shop"), onClick = onOpenMyShop)
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -420,7 +420,7 @@ private fun StoreTopHeader(
                 .height(40.dp)
                 .clip(RoundedCornerShape(50))
                 .background(StoreOrange)
-                .clickable(onClickLabel = tr("Sell an item"), onClick = onSell)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Sell an item"), onClick = onSell)
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -455,7 +455,7 @@ private fun StoreFilterSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onInStockChange(!inStockOnly) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { onInStockChange(!inStockOnly) }
                     .padding(vertical = 6.dp)
             ) {
                 Column(Modifier.weight(1f)) {
@@ -502,7 +502,7 @@ internal fun ProductGridCard(
             .clip(shape)
             .background(EInk.Body)
             .border(0.5.dp, EInk.BodyStroke, shape)
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
     ) {
         // 1:1 square product image
         Box(
@@ -622,7 +622,7 @@ internal fun ProductGridCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = tr("Open seller shop"), onClick = onSellerClick)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open seller shop"), onClick = onSellerClick)
             ) {
                 Avatar(seller, listing.pubkey, size = 20)
                 Spacer(Modifier.width(6.dp))
@@ -766,7 +766,7 @@ fun ListingDetailScreen(
                     fontSize = 22.sp,
                     modifier = Modifier
                         .clip(CircleShape)
-                        .clickable(onClickLabel = tr("Back"), onClick = onBack)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack)
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 )
                 Text(
@@ -966,21 +966,21 @@ fun ListingDetailScreen(
                                 color = if (noteStats.likedByMe) StoreOrange else EInk.Value,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable { actions.like(listing.event) }.padding(vertical = 4.dp)
+                                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.like(listing.event) }.padding(vertical = 4.dp)
                             )
                             Text(
                                 text = "⚡ " + (noteStats.zapMsat / 1000),
                                 color = EInk.Value,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable { actions.zap(listing.event) }.padding(vertical = 4.dp)
+                                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.zap(listing.event) }.padding(vertical = 4.dp)
                             )
                             Text(
                                 text = tr("Quote in post"),
                                 color = EInk.Label,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable {
+                                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                     if (account == null) navigate(LoginKey)
                                     else navigate(ComposeKey(quote = listing.event.id))
                                 }.padding(vertical = 4.dp)
@@ -1055,7 +1055,7 @@ private fun ListingImageGallery(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clickable(onClickLabel = tr("View image")) { onOpenFullScreen(url) }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("View image")) { onOpenFullScreen(url) }
                 )
             }
 
@@ -1108,7 +1108,7 @@ private fun ListingImageGallery(
                             .size(54.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .border(if (selected) 2.dp else 0.5.dp, if (selected) StoreOrange else EInk.BodyStroke, RoundedCornerShape(10.dp))
-                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { scope.launch { pagerState.animateScrollToPage(index) } }
                     )
                 }
             }
@@ -1129,7 +1129,7 @@ private fun SellerTrustCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpenShop)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpenShop)
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Avatar(seller, pubkey, size = 46, onClick = onOpenProfile)
@@ -1186,7 +1186,7 @@ private fun BuyerBottomBar(
                 .height(46.dp)
                 .clip(RoundedCornerShape(50))
                 .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                .clickable(onClick = onAskSeller)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onAskSeller)
                 .padding(horizontal = 16.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -1205,7 +1205,7 @@ private fun BuyerBottomBar(
                 .alpha(if (sold) 0.45f else 1f)
                 .clip(RoundedCornerShape(50))
                 .background(if (sold) EInk.Track else StoreOrange)
-                .clickable(enabled = !sold, onClick = onBuy)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !sold, onClick = onBuy)
                 .padding(horizontal = 18.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -1254,7 +1254,7 @@ private fun SellerBottomBar(
                 .size(42.dp)
                 .clip(CircleShape)
                 .border(1.dp, EInk.BodyStroke, CircleShape)
-                .clickable(onClickLabel = tr("Delete listing"), onClick = onDelete),
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Delete listing"), onClick = onDelete),
             contentAlignment = Alignment.Center
         ) {
             Icon(Glyphs.Delete, contentDescription = tr("Delete listing"), tint = EInk.Alert, modifier = Modifier.size(19.dp))
@@ -1388,7 +1388,7 @@ private fun CheckoutSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { sendDmWithOrder = !sendDmWithOrder }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { sendDmWithOrder = !sendDmWithOrder }
                         .padding(vertical = 8.dp)
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -1414,7 +1414,7 @@ private fun CheckoutSheet(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .padding(vertical = 8.dp)
-                        .clickable(onClick = onLogin)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onLogin)
                 )
             }
 
@@ -1430,7 +1430,7 @@ private fun CheckoutSheet(
                         .height(48.dp)
                         .clip(RoundedCornerShape(50))
                         .background(StoreOrange)
-                        .clickable {
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                             if (loggedIn && (sendDmWithOrder || deliveryNote.isNotBlank())) {
                                 vm.sendOrder(listing.pubkey, buildOrderMessage("Lightning ($lud16)"))
                             }
@@ -1460,7 +1460,7 @@ private fun CheckoutSheet(
                     .fillMaxWidth()
                     .height(42.dp)
                     .clip(RoundedCornerShape(50))
-                    .clickable {
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                         if (!loggedIn) onLogin()
                         else if (deliveryNote.isNotBlank()) {
                             vm.sendOrder(listing.pubkey, buildOrderMessage("Pending / Inquiry")) {
@@ -1739,7 +1739,7 @@ fun EditListingScreen(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(EInk.Body)
                                 .border(1.dp, EInk.BodyStroke, RoundedCornerShape(16.dp))
-                                .clickable {
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                     photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                 },
                             contentAlignment = Alignment.Center
@@ -1882,7 +1882,7 @@ fun EditListingScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { sold = !sold }
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { sold = !sold }
                         .padding(vertical = 4.dp)
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -1924,7 +1924,7 @@ fun EditListingScreen(
                     .alpha(if (ready) 1f else 0.45f)
                     .clip(RoundedCornerShape(50))
                     .background(StoreOrange)
-                    .clickable(enabled = ready) {
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready) {
                         val me = account?.pubkey ?: return@clickable
                         val amt = priceAmount.toDoubleOrNull()
                         if (title.isBlank() || amt == null || amt < 0.0) {

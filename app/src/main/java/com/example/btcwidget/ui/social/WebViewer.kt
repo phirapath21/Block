@@ -1,6 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipboardManager
 import android.content.Context
@@ -123,7 +125,8 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
             .padding(horizontal = 14.dp)
     ) {
         Box(
-            Modifier.fillMaxWidth().clickable(onClickLabel = tr("Show more or less of the post")) { onSheet(if (level == 2) 0 else level + 1) }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show more or less of the post")) { onSheet(if (level == 2) 0 else level + 1) }
+                .semantics { contentDescription = tr("Show more or less of the post") }.padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) { Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(50)).background(EInk.Caption)) }
         if (level >= 1) {
@@ -141,7 +144,7 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
             }
             if (level >= 2) Text(
                 plainText(note, actions), color = EInk.Value, fontSize = 15.sp, maxLines = 8, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 8.dp).clickable(onClickLabel = tr("Open post")) { onLeave(); actions.openNote(note) }
+                modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open post")) { onLeave(); actions.openNote(note) }
             )
             ActionRow(note, stats, actions)
             Spacer(Modifier.height(6.dp))
@@ -151,7 +154,9 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
 
 @Composable
 private fun BarButton(glyph: String, label: String, onClick: () -> Unit) {
-    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
+    // 48 dp, named for TalkBack (the glyph itself would be read as a symbol).
+    Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label), onClick = onClick)
+        .semantics { contentDescription = tr(label) }, contentAlignment = Alignment.Center) {
         Text(glyph, color = EInk.Value, fontSize = 20.sp)
     }
 }

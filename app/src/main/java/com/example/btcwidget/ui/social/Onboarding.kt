@@ -97,13 +97,13 @@ fun LandingScreen(
         Spacer(Modifier.height(10.dp))
         BigButton(tr("Log in with nsec"), filled = false, onClick = onNsec)
         Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(tr("Remote signer (bunker)"), color = EInk.Label, fontSize = 14.sp, modifier = Modifier.clickable(onClick = onBunker).padding(vertical = 8.dp))
-            Text(tr("Look around first ›"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = onBrowse).padding(vertical = 8.dp))
+            Text(tr("Remote signer (bunker)"), color = EInk.Label, fontSize = 14.sp, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onBunker).padding(vertical = 8.dp))
+            Text(tr("Look around first ›"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onBrowse).padding(vertical = 8.dp))
         }
         Text(
             tr("By creating an account or posting you agree to the Community rules ›"),
             color = EInk.Caption, fontSize = 12.sp,
-            modifier = Modifier.padding(top = 8.dp).clickable(onClick = onOpenRules).padding(vertical = 6.dp)
+            modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpenRules).padding(vertical = 6.dp)
         )
     }
 }
@@ -123,7 +123,7 @@ private fun BigButton(text: String, filled: Boolean, onClick: () -> Unit) {
         Modifier.fillMaxWidth().height(52.dp).clip(shape)
             .background(if (filled) Orange else EInk.Body, shape)
             .then(if (filled) Modifier else Modifier.border(1.dp, EInk.BodyStroke, shape))
-            .clickable(onClick = onClick),
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(text, color = if (filled) Color.Black else EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -144,13 +144,13 @@ fun OnboardingScreen(vm: SocialViewModel, onFinish: () -> Unit) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (step > 0) Text(
                 tr("← Back"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable(onClickLabel = tr("Previous step")) { step-- }.padding(8.dp)
+                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Previous step")) { step-- }.padding(8.dp)
             )
             Text(
                 tr("Step {0} of 4", step + 1), color = EInk.Caption, fontSize = 13.sp,
                 modifier = Modifier.weight(1f).padding(start = if (step > 0) 4.dp else 8.dp)
             )
-            Text(tr("Skip"), color = EInk.Label, fontSize = 15.sp, modifier = Modifier.clickable { if (step < 3) step++ else onFinish() }.padding(8.dp))
+            Text(tr("Skip"), color = EInk.Label, fontSize = 15.sp, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { if (step < 3) step++ else onFinish() }.padding(8.dp))
         }
         // Where you are in the four steps, in the accent colour.
         androidx.compose.material3.LinearProgressIndicator(
@@ -198,7 +198,7 @@ private fun ProfileStep(vm: SocialViewModel, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
         StepTitle(tr("Make it yours"), tr("A name and a picture help people you know find and trust you. Both are public."))
         Box(
-            Modifier.size(96.dp).clip(CircleShape).background(EInk.Body).clickable {
+            Modifier.size(96.dp).clip(CircleShape).background(EInk.Body).clickable(role = androidx.compose.ui.semantics.Role.Button) {
                 picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             },
             contentAlignment = Alignment.Center

@@ -268,7 +268,7 @@ fun AppLockGate(activity: FragmentActivity?) {
                     if (useBiometric) {
                         Surface(
                             shape = RoundedCornerShape(18.dp), color = EInk.Background,
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clickable(onClick = ::launchBiometric)
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = ::launchBiometric)
                         ) {
                             Column(Modifier.padding(vertical = 26.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(Glyphs.Person, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(38.dp))
@@ -279,7 +279,7 @@ fun AppLockGate(activity: FragmentActivity?) {
                         error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp) }
                         Surface(
                             shape = RoundedCornerShape(50), color = EInk.Accent,
-                            modifier = Modifier.fillMaxWidth().height(50.dp).clickable(onClickLabel = tr("Try biometric again"), onClick = ::launchBiometric)
+                            modifier = Modifier.fillMaxWidth().height(50.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Try biometric again"), onClick = ::launchBiometric)
                         ) { Box(contentAlignment = Alignment.Center) { Text(tr("Unlock with biometrics"), color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold) } }
                     } else {
                         Row(Modifier.height(30.dp).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -326,7 +326,7 @@ fun AppLockGate(activity: FragmentActivity?) {
                         Text(
                             tr(if (useBiometric) "Use PIN instead" else "Use fingerprint or face instead"),
                             color = EInk.Accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(50)).clickable {
+                            modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                 useBiometric = !useBiometric
                                 pin = ""
                                 error = null
@@ -364,7 +364,7 @@ private fun PinKey(label: String, icon: String? = null, enabled: Boolean = true,
         shape = CircleShape,
         color = EInk.Background,
         border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke),
-        modifier = Modifier.size(68.dp).clip(CircleShape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick)
+        modifier = Modifier.size(68.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(icon ?: label, color = EInk.Value, fontSize = if (icon == null) 22.sp else 20.sp, fontWeight = FontWeight.Medium)

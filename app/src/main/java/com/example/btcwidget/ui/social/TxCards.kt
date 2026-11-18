@@ -208,7 +208,7 @@ private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions
             .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
             .then(
                 if (inSheet && state !is TxState.Failed) Modifier
-                else Modifier.clickable(onClickLabel = if (state is TxState.Failed) tr("Try again") else tr("View on Mempool")) {
+                else Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (state is TxState.Failed) tr("Try again") else tr("View on Mempool")) {
                     if (state is TxState.Failed) retry++ else actions.openLink(ref.explorerUrl(base), note)
                 }
             )
@@ -586,7 +586,7 @@ private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: ()
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = tr("Show details"), onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show details"), onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -658,7 +658,7 @@ private fun TxRowCard(txs: List<BitcoinEmbedRef.TxRef>, note: Event, actions: No
         if (txs.size > 1) {
             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(horizontal = 14.dp))
             Row(
-                Modifier.fillMaxWidth().clickable(onClickLabel = tr("Show all")) { sheetAt = 1 }.padding(horizontal = 14.dp, vertical = 9.dp),
+                Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show all")) { sheetAt = 1 }.padding(horizontal = 14.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -699,7 +699,7 @@ private fun BlockRowCard(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: No
             .padding(top = 8.dp)
             .fillMaxWidth()
             .embedFrame()
-            .clickable(onClickLabel = tr("Show details")) { open = true }
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show details")) { open = true }
             .heightIn(min = 56.dp)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -768,7 +768,7 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
                 b == null -> Text(
                     tr("Couldn't load it from {0}. Tap to try again.", base.removePrefix("https://")),
                     color = EInk.Caption, fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 16.dp).clickable { retry++ }
+                    modifier = Modifier.padding(top = 16.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { retry++ }
                 )
                 else -> {
                     // How full: weight against the 4 MWU limit.
@@ -801,7 +801,7 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
                     // The hash, to copy.
                     Row(
                         Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(EInk.Body)
-                            .clickable(onClickLabel = tr("Copy")) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(b.hash)) }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Copy")) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(b.hash)) }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

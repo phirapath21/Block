@@ -65,7 +65,7 @@ internal fun CircleIconButton(icon: ImageVector, label: String, modifier: Modifi
             .size(36.dp)
             .clip(CircleShape)
             .border(1.dp, EInk.BodyStroke, CircleShape)
-            .clickable(onClickLabel = label, onClick = onClick),
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(icon, contentDescription = label, tint = EInk.Value, modifier = Modifier.size(19.dp)) }
 }
@@ -81,7 +81,7 @@ internal fun copyToClipboard(context: android.content.Context, label: String, te
 @Composable
 private fun CopyButton(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(32.dp).clip(CircleShape).clickable(onClickLabel = label, onClick = onClick),
+        Modifier.size(32.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(Glyphs.CopyLine, contentDescription = label, tint = EInk.Caption, modifier = Modifier.size(16.dp)) }
 }
@@ -108,7 +108,7 @@ internal fun ProfileInfoRow(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .clip(RoundedCornerShape(4.dp))
-                .clickable { if (onClick != null) onClick() else copyToClipboard(context, copyText, copyText, copiedToast) }
+                .clickable(role = androidx.compose.ui.semantics.Role.Button) { if (onClick != null) onClick() else copyToClipboard(context, copyText, copyText, copiedToast) }
                 .padding(vertical = 4.dp)
         )
         CopyButton(tr("Copy")) { copyToClipboard(context, copyText, copyText, copiedToast) }
@@ -255,7 +255,7 @@ internal fun ProfileTopBar(
                     .size(34.dp)
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = if (onBanner) 0.45f else 0.45f * (1f - collapse)))
-                    .clickable(onClickLabel = tr("Back"), onClick = onBack),
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

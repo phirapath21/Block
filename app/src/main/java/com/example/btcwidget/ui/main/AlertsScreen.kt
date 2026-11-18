@@ -203,7 +203,7 @@ private fun NetworkEventRow(rule: AlertRule, data: PriceData?, onChange: (AlertR
     SettingRow(
         label = label,
         note = note,
-        modifier = Modifier.clickable { onChange(rule.copy(enabled = !rule.enabled)) }
+        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { onChange(rule.copy(enabled = !rule.enabled)) }
     ) {
         EInkSwitch(checked = rule.enabled, onCheckedChange = { onChange(rule.copy(enabled = it)) })
     }

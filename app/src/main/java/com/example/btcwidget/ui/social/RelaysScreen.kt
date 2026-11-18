@@ -104,7 +104,7 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
             items(mine, key = { "m" + it.url }) { RelayRow(it, onInfo = { onInfo(it.url) }) { vm.retryRelay(it.url) } }
             if (others.isNotEmpty()) item(key = "others") {
                 Row(
-                    Modifier.fillMaxWidth().clickable { showOthers = !showOthers }.padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { showOthers = !showOthers }.padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -130,7 +130,7 @@ private fun RelayRow(s: RelayStatus, onInfo: () -> Unit, onRetry: () -> Unit) {
     }
     val canRetry = s.state == RelayStatus.State.RETRYING || (s.state == RelayStatus.State.FAILED && s.failures > 0)
     Row(
-        Modifier.fillMaxWidth().clickable(onClickLabel = tr("About this relay"), onClick = onInfo).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("About this relay"), onClick = onInfo).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(color))
@@ -146,7 +146,7 @@ private fun RelayRow(s: RelayStatus, onInfo: () -> Unit, onRetry: () -> Unit) {
         }
         if (canRetry) Text(
             tr("Retry"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(onClick = onRetry).padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRetry).padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -206,7 +206,7 @@ internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
             }
             Row(
                 Modifier.fillMaxWidth()
-                    .clickable(enabled = !gone && !r.offline && p.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.OK) {
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !gone && !r.offline && p.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.OK) {
                         haptics.tick(); ticked = if (p.url in ticked) ticked - p.url else ticked + p.url
                     }
                     .padding(horizontal = 20.dp, vertical = 8.dp),

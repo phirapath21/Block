@@ -67,7 +67,7 @@ private val LiveRed get() = EInk.Alert
 @Composable
 private fun RoundControl(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).clip(CircleShape).background(Color(0x99000000)).clickable(onClickLabel = label, onClick = onClick),
+        Modifier.size(40.dp).clip(CircleShape).background(Color(0x99000000)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp)) }
 }
@@ -87,7 +87,7 @@ internal fun LiveList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
 @Composable
 internal fun LiveRow(live: LiveStreams.Live, host: Profile?, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(120.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(EInk.Body)) {
             live.image?.let { AsyncImage(it, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
             if (live.isLive) LiveBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
@@ -362,7 +362,7 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
         }
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Avatar(host, live.host, size = 38, onClick = onHost)
-            Column(Modifier.weight(1f).padding(horizontal = 10.dp).clickable(onClick = onHost)) {
+            Column(Modifier.weight(1f).padding(horizontal = 10.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onHost)) {
                 DisplayName(host, live.host, EInk.Value, 15.sp)
                 Text(handleText(host, live.host), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -372,11 +372,11 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
                     color = if (isFollowing) EInk.Value else Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.clip(RoundedCornerShape(50))
                         .then(if (isFollowing) Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)) else Modifier.background(EInk.Accent))
-                        .clickable(onClick = onFollow).padding(horizontal = 14.dp, vertical = 7.dp)
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onFollow).padding(horizontal = 14.dp, vertical = 7.dp)
                 )
                 Row(
                     Modifier.padding(start = 8.dp).clip(RoundedCornerShape(50)).background(SettingsAccent)
-                        .clickable(onClickLabel = tr("Zap the streamer"), onClick = onZap).padding(start = 10.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Zap the streamer"), onClick = onZap).padding(start = 10.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(Glyphs.Zap, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
@@ -389,7 +389,7 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
             var cut by remember(live.address) { mutableStateOf(false) }
             Column(
                 Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(12.dp)).background(EInk.Body)
-                    .clickable { expanded = !expanded }.padding(12.dp)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = !expanded }.padding(12.dp)
             ) {
                 Text(
                     summary, color = EInk.Value, fontSize = 14.sp, lineHeight = 19.sp,

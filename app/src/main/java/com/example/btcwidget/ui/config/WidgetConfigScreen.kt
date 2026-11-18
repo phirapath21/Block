@@ -60,7 +60,7 @@ fun WidgetConfigScreen(
                     .fillMaxWidth()
                     .clip(shape)
                     .border(2.dp, if (selected) EInk.Accent else Color.Transparent, shape)
-                    .clickable { onPick(choice.mode) }
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { onPick(choice.mode) }
                     .padding(4.dp)
             ) {
                 if (choice.preview != null) {

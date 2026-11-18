@@ -81,7 +81,7 @@ fun ListsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, owner: String? 
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     if (own) item(key = "new") {
                         Row(
-                            Modifier.fillMaxWidth().clickable(onClickLabel = tr("New list")) { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp),
+                            Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("New list")) { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Body), contentAlignment = Alignment.Center) {
@@ -111,7 +111,7 @@ fun ListsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, owner: String? 
 @Composable
 private fun ListRow(list: PeopleList, vm: SocialViewModel, onClick: () -> Unit) {
     val profiles by vm.profiles.collectAsState()
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         // The first few faces, overlapping.
         Box(Modifier.width(44.dp + ((list.members.size.coerceIn(1, 3) - 1) * 14).dp)) {
             if (list.members.isEmpty()) Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Body), contentAlignment = Alignment.Center) {
@@ -167,7 +167,7 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             Text(list.title, color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             list.description?.let { Text(it, color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp)) }
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable { navigate(ProfileKey(list.owner)) }) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(list.owner)) }) {
                                 Avatar(profiles[list.owner], list.owner, size = 20)
                                 Text(
                                     (profiles[list.owner]?.bestName ?: Profile.shortNpub(list.owner)) + " · " + peopleCount(list.members.size),
@@ -199,7 +199,7 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
                         if (isOwn) item(key = "add") {
                             Text(
                                 tr("+ Add people"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                                modifier = Modifier.fillMaxWidth().clickable { adding = true }.padding(horizontal = 16.dp, vertical = 14.dp)
+                                modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { adding = true }.padding(horizontal = 16.dp, vertical = 14.dp)
                             )
                             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
                         }
@@ -227,7 +227,7 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
 
 @Composable
 private fun MemberRow(pubkey: String, profile: Profile?, isFollowing: Boolean, onOpen: () -> Unit, onRemove: (() -> Unit)?) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Avatar(profile, pubkey, size = 44)
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
             DisplayName(profile, pubkey, EInk.Value, 15.sp)
@@ -235,7 +235,7 @@ private fun MemberRow(pubkey: String, profile: Profile?, isFollowing: Boolean, o
         }
         if (onRemove != null) Text(
             tr("Remove"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(onClick = onRemove).padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -300,7 +300,7 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
                     l.forEach { list ->
                         val inList = pubkey in list.members
                         Row(
-                            Modifier.fillMaxWidth().clickable { vm.setInList(list, pubkey, !inList) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.setInList(list, pubkey, !inList) }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
@@ -317,7 +317,7 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
             }
             Text(
                 tr("+ New list with {0}", name), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().clickable { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp)
+                modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp)
             )
             Text(tr("Lists are public on Nostr: anyone can see who's in them."), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp))
         }
