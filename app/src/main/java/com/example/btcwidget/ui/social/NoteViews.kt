@@ -91,7 +91,6 @@ class NoteActions(
     val vote: (com.example.btcwidget.nostr.core.Poll, List<String>, (Boolean) -> Unit) -> Unit,
     val resolveArticle: suspend (com.example.btcwidget.nostr.core.Nip19.Address) -> com.example.btcwidget.nostr.core.Article?,
     val openArticle: (com.example.btcwidget.nostr.core.Nip19.Address) -> Unit,
-    val resolveListing: (suspend (com.example.btcwidget.nostr.core.Nip19.Address) -> com.example.btcwidget.nostr.core.Listing?) = { null },
     val linkPreview: suspend (String) -> com.example.btcwidget.nostr.core.LinkPreview?,
     val me: String?
 )

@@ -10,7 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.btcwidget.MainActivity
 import com.example.btcwidget.R
-import com.example.btcwidget.alerts.AlertNotifier
+import com.example.btcwidget.NotificationAccess
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.Filter
 import com.example.btcwidget.nostr.core.Kind
@@ -42,7 +42,7 @@ object NostrBackground {
 
     /** Posts a live relay event while the app is foregrounded; no push server is involved. */
     fun notifyLiveActivity(context: Context, event: Event) {
-        if (!wanted(context) || !AlertNotifier.canNotify(context)) return
+        if (!wanted(context) || !NotificationAccess.canNotify(context)) return
         val me = NostrAccountStore.account(context)?.pubkey ?: return
         if (event.pubkey == me || typeOf(event) in NostrAccountStore.notificationsOff(context)) return
         val line = describe(event, cachedNames(context)) ?: return
@@ -51,7 +51,7 @@ object NostrBackground {
 
     /** Announces a newly decrypted NIP-17 DM, except when that conversation is already read. */
     fun notifyLiveMessage(context: Context, message: Nip17.Message) {
-        if (!wanted(context) || !AlertNotifier.canNotify(context) || "dm" in NostrAccountStore.notificationsOff(context)) return
+        if (!wanted(context) || !NotificationAccess.canNotify(context) || "dm" in NostrAccountStore.notificationsOff(context)) return
         val me = NostrAccountStore.account(context)?.pubkey ?: return
         if (message.sender == me || !message.isBubble) return
         val peers = message.peers(me)
@@ -62,7 +62,7 @@ object NostrBackground {
     }
 
     suspend fun check(context: Context) {
-        if (!wanted(context) || !AlertNotifier.canNotify(context)) return
+        if (!wanted(context) || !NotificationAccess.canNotify(context)) return
         val me = NostrAccountStore.account(context)?.pubkey ?: return
         val pool = RelayPool()
         try {

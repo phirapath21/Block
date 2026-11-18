@@ -10,9 +10,7 @@ import android.content.SharedPreferences
  * Storage map (each file has one owner):
  * - [FILE] "blockclock_prefs": user settings and widget state — this object.
  * - "btc_widget_prefs": cached market data — [PriceRepository].
- * - "alert_prefs": alert rules and their last state — [com.example.btcwidget.alerts.AlertStore].
- * Keeping the cache and alerts in their own files means clearing either never touches
- * settings. File and key names are unchanged from earlier versions, so nothing migrates.
+ * Keeping the cache in its own file means clearing it never touches settings. File and key names are unchanged from earlier versions, so nothing migrates.
  */
 object AppPrefs {
     const val FILE = "blockclock_prefs"
@@ -291,9 +289,16 @@ object AppPrefs {
         }
     }
 
-    /** Drops keys left by features removed in earlier versions. */
+    /** Drops keys and files left by features removed in earlier versions. */
     fun removeObsoleteKeys(context: Context) {
         val p = prefs(context)
         if (OBSOLETE.any { p.contains(it) }) edit(context) { OBSOLETE.forEach { remove(it) } }
+        // Relay groups (removed): the ones the user had opened.
+        runCatching { context.getSharedPreferences("nostr_account", Context.MODE_PRIVATE).edit().remove("groups").apply() }
+        // Price alerts (removed): their rules file and their notification channel.
+        runCatching { context.deleteSharedPreferences("alert_prefs") }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) runCatching {
+            context.getSystemService(android.app.NotificationManager::class.java)?.deleteNotificationChannel("price_alerts")
+        }
     }
 }

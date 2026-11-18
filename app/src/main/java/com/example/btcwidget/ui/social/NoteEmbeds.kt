@@ -62,52 +62,6 @@ internal fun ArticleCard(address: com.example.btcwidget.nostr.core.Nip19.Address
     }
 }
 
-/** A linked marketplace listing (NIP-99 / NIP-15) inside a note or chat message. */
-@Composable
-internal fun ListingInlineCard(address: com.example.btcwidget.nostr.core.Nip19.Address, actions: NoteActions) {
-    val listing by produceState<com.example.btcwidget.nostr.core.Listing?>(null, address) { value = actions.resolveListing(address) }
-    val l = listing
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .padding(top = 8.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(EInk.Body)
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
-            .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openArticle(address) }
-            .padding(10.dp)
-    ) {
-        val cover = l?.images?.firstOrNull()
-        if (cover != null) {
-            AsyncImage(
-                model = cover, contentDescription = null, contentScale = ContentScale.Crop,
-                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Track)
-            )
-            Spacer(Modifier.width(12.dp))
-        }
-        Column(Modifier.weight(1f)) {
-            Text(
-                if (l?.sold == true) tr("STORE · SOLD") else tr("STORE"),
-                color = if (l?.sold == true) EInk.Alert else EInk.Accent,
-                fontSize = 11.sp, fontWeight = FontWeight.Bold
-            )
-            Text(
-                l?.title ?: tr("Loading listing…"),
-                color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                maxLines = 2, overflow = TextOverflow.Ellipsis
-            )
-            l?.price?.let { p ->
-                Text(
-                    "⚡ " + com.example.btcwidget.nostr.core.Marketplace.formatRaw(p),
-                    color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-        }
-    }
-}
-
 /** A quoted note, boxed, as in a quote post. */
 @Composable
 internal fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: NoteActions) {

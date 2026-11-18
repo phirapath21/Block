@@ -40,7 +40,7 @@ import com.example.btcwidget.BlockclockMetrics
 import com.example.btcwidget.ChartMath
 import com.example.btcwidget.ChartRange
 import com.example.btcwidget.PricePoint
-import com.example.btcwidget.alerts.PriceAlerts
+import com.example.btcwidget.PriceFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -73,7 +73,7 @@ fun PriceChartPanel(
     val summary = remember(points, hasCoverage) { if (hasCoverage) ChartMath.summary(points) else null }
     var selected by remember(points) { mutableStateOf<Int?>(null) }
     val timeFormat = remember { SimpleDateFormat("EEE d MMM, HH:mm", Locale.getDefault()) }
-    fun price(value: Double) = PriceAlerts.formatPrice(value, currency)
+    fun price(value: Double) = PriceFormat.format(value, currency)
 
     Column(
         modifier = modifier

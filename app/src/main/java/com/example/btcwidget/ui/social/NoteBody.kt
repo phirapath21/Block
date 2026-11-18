@@ -199,9 +199,6 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         }
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.Kind.ARTICLE }
             .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ArticleCard(it.address, actions) }
-        // A linked store listing (NIP-99 / NIP-15): cover, title and price.
-        segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind in com.example.btcwidget.nostr.core.Marketplace.KINDS }
-            .distinctBy { it.address.identifier + it.address.pubkey }.take(2).forEach { ListingInlineCard(it.address, actions) }
         // A linked live stream (NIP-53): a button to watch it.
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND }
             .take(1).forEach { ref ->

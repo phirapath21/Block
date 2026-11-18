@@ -9,8 +9,8 @@
 
 Block is an Android app with two halves:
 
-- **Bitcoin widgets and dashboard.** Home-screen widgets inspired by desk blockclocks: price, sats per dollar or baht, block height, fees, halving countdown, hashrate, your stack's value and more, with price alerts.
-- **A Nostr social client.** A timeline, replies, reposts, likes and zaps, private messages, lists, communities and search, laid out like X, with a Bitcoin-orange accent.
+- **Bitcoin widgets and dashboard.** Home-screen widgets inspired by desk blockclocks: price, sats per dollar or baht, block height, fees, halving countdown, hashrate, your stack's value and more.
+- **A Nostr social client.** A timeline, replies, reposts, likes and zaps, private messages, a Lightning wallet, lists and search, laid out like X, with a Bitcoin-orange accent.
 
 No account or server of ours is involved: market data comes from public APIs, social data from Nostr relays, and your keys stay on your phone or in your signer app.
 
@@ -19,7 +19,7 @@ No account or server of ours is involved: market data comes from public APIs, so
 ## Contents
 
 - [Bitcoin widgets](#bitcoin-widgets)
-- [Dashboard and alerts](#dashboard-and-alerts)
+- [Dashboard](#dashboard)
 - [Nostr social](#nostr-social)
 - [Privacy and security](#privacy-and-security)
 - [Building](#building)
@@ -59,21 +59,21 @@ Four resizable home-screen widgets (2×1 by default):
 
 **Refresh:** every 15, 30 or 60 minutes with WorkManager (only when online, Doze-friendly, survives reboots). If a source fails, its value keeps the last good number and a red dot marks it stale; other sources carry on.
 
-## Dashboard and alerts
+## Dashboard
 
 The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees) and a BTC price chart (24H / 7D / 30D / 1Y; drag to read a sample). Pull down to refresh.
 
 - **Share:** sends the hero panel as an image plus a one-line post (`Bitcoin: $74,455 (+1.2% in 24h) · block 925,000 #bitcoin`) through Android's share sheet. Your stack is never offered for sharing.
 - **Your stack:** enter what you hold, in BTC or sats. It's stored only on the phone and shown in USD or THB with its 24h change. Tap the Stack hero panel to hide or reveal it.
-- **Price alerts:** BTC above or below a price, and fees at or below a sat/vB level. Network events too: the day before a halving, and before each difficulty adjustment with the estimated change. Each alert fires once per crossing and is never triggered by stale data.
 - **Data sources:** BTC price from Coinbase or Kraken; THB converted or from Bitkub.
 - **Mempool:** use a custom mempool.space-compatible HTTPS URL in Bitcoin settings, or leave it blank for mempool.space.
 
 ## Nostr social
 
 **Layout:**
-- **Bottom bar:** Home · Search · Communities · Notifications · Messages.
-- **Side bar** (swipe from the left or tap your avatar): Profile · Shorts · Store · Lists · Bookmarks · Bitcoin · Widgets · Price alerts · Settings.
+- **Bottom bar:** Home · Search · Wallet · Notifications · Messages.
+- **New post:** a floating + at the bottom right of Home, Search, Notifications, your profile, Bookmarks and Lists.
+- **Side bar** (swipe from the left or tap your avatar): Profile · Live · Lists · Bookmarks · Bitcoin · Widgets · Settings.
 
 **Getting started:**
 - **New here:** a welcome page offers three ways in: create an account, log in with a signer app, or paste an nsec.
@@ -102,7 +102,7 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
   - Link previews in notes.
   - Links open in Block's own browser, with the post underneath, like X; a setting sends them to your phone's browser instead.
 - **More to read:** long-form articles (NIP-23) with highlights (NIP-84: long-press a paragraph), polls (NIP-88), content warnings (NIP-36), custom emoji (NIP-30), and blurred previews while images load (BlurHash).
-- **Live streams (NIP-53):** Communities › LIVE, with the video and live chat.
+- **Live streams (NIP-53):** in the side bar and in Search, with the video and live chat.
 - **Picture-in-Picture:** a full-screen video keeps playing in a small window when you leave the app.
 
 **Writing:**
@@ -127,8 +127,8 @@ The **Bitcoin** tab has a hero panel (Stack, Block, Price, Halving, Sats or Fees
   - Group chats.
   - Message requests from people you don't follow.
   - Older NIP-04 messages are shown, marked as an old format.
-- **Communities and chats:** communities (NIP-72), public chats (NIP-28) and relay-based groups (NIP-29).
-- **Zaps (NIP-57):** pay through your Lightning wallet app, or in one tap with Nostr Wallet Connect (NIP-47). The notes screen shows who liked, reposted and zapped.
+- **Wallet (NIP-47):** connect a Lightning wallet with Nostr Wallet Connect to see its balance and payments, receive (an invoice with a QR code) and send (paste or scan an invoice, then confirm).
+- **Zaps (NIP-57):** pay through your Lightning wallet app, or in one tap with the connected wallet. The notes screen shows who liked, reposted and zapped.
 
 **Notifications:**
 - Likes, reposts and zaps of the same note are grouped ("Alice and 5 others liked your note").
@@ -204,8 +204,8 @@ On Windows use `gradlew.bat` instead of `./gradlew`. Or open the folder in Andro
 ```
 
 - **Unit tests** cover:
-  - the Nostr core: events, NIP-19, Schnorr signatures, NIP-44 and NIP-17, zaps, lists, communities, the local database;
-  - price parsing and merging, the widget painters and chart math, alerts and share text.
+  - the Nostr core: events, NIP-19, Schnorr signatures, NIP-44 and NIP-17, zaps, lists, the local database;
+  - price parsing and merging, the widget painters and chart math, and share text.
 - **UI tests** run on a device or emulator.
 - **GitHub Actions** ([`.github/workflows/android.yml`](.github/workflows/android.yml)) runs on every pull request and push to `main`:
   - unit tests, lint (reported only), a debug build and a release build with R8;
@@ -220,8 +220,7 @@ app/src/main/java/com/example/btcwidget/
 ├── *WidgetProvider.kt, WidgetUpdater.kt   home-screen widgets
 ├── Blockclock*.kt, ChartPainter.kt        the painted widget panels
 ├── PriceData.kt, PriceSources.kt          market and network data, merged per field
-├── PriceRefreshWorker.kt                  background refresh, alerts, Nostr notifications
-├── alerts/                                price and network alerts
+├── PriceRefreshWorker.kt                  background refresh, Nostr notifications
 ├── Navigation.kt, NavigationKeys.kt       screens (Navigation 3)
 ├── ui/main/                               Bitcoin dashboard, widgets page, settings
 ├── ui/social/                             Nostr screens and the social view model

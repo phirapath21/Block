@@ -129,16 +129,13 @@ fun SocialScaffold(
             vote = { poll, ids, done -> if (accountState.value == null) { navigateState.value(LoginKey); done(false) } else vm.vote(poll, ids, done) },
             resolveArticle = { vm.article(it) },
             openArticle = { a ->
-                // Addresses of live streams open the stream, store listings open the product page, else an article.
+                // Addresses of live streams open the stream, else an article.
                 when {
                     a.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND ->
                         navigateState.value(com.example.btcwidget.LiveKey("${a.kind}:${a.pubkey}:${a.identifier}"))
-                    a.kind in com.example.btcwidget.nostr.core.Marketplace.KINDS ->
-                        navigateState.value(com.example.btcwidget.ListingKey("${a.kind}:${a.pubkey}:${a.identifier}"))
                     else -> navigateState.value(com.example.btcwidget.ArticleKey(Nip19.naddr(a.kind, a.pubkey, a.identifier, a.relays)))
                 }
             },
-            resolveListing = { vm.market.listing("${it.kind}:${it.pubkey}:${it.identifier}") },
             linkPreview = { vm.linkPreview(it) },
             me = mePubkey
         )

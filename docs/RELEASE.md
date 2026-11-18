@@ -57,20 +57,22 @@ Install `app/build/outputs/apk/release/app-release.apk` on a phone and check:
 - [ ] **Bitcoin:**
   - [ ] Dashboard: the large panel, the chips, the price chart, pull to refresh.
   - [ ] Add each widget, resize it and tap it.
-  - [ ] Alerts: the permission prompt appears.
 - [ ] **Log in** with each method: nsec, Amber, and a remote signer (bunker).
 - [ ] **Timeline:** scrolls smoothly, photo albums, videos, a quoted note, Bitcoin transaction rows and their sheet.
 - [ ] **Post, reply and quote:**
   - [ ] with an image;
   - [ ] with proof of work turned on (Settings › Proof of work).
 - [ ] **Private messages:** send and receive.
+- [ ] **Wallet tab:** connect an NWC wallet; balance and recent payments; Receive (invoice, QR code, copy, share); Send (paste and scan, the amount shows, confirm).
+- [ ] **New post:** the floating + at the bottom right opens the composer.
 - [ ] **Zaps:**
   - [ ] with an NWC wallet;
   - [ ] without one (an external wallet app opens).
 - [ ] **Live:** a stream (side panel › Live), its chat and details sheet, the mini player and picture-in-picture.
-- [ ] **Shorts, search, profile, bookmarks.**
+- [ ] **Search, profile, bookmarks, lists.**
 - [ ] **Themes:** Block, Ember, Gilded, Kyriaki. **Language:** Thai.
 - [ ] **Airplane mode:** cached data shows, and the widgets keep their last values.
+- [ ] **Phone notifications** for Nostr: the permission prompt appears when you turn them on.
 
 ## 4. Tag and make a GitHub release
 

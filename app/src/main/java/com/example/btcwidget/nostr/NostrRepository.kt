@@ -109,11 +109,10 @@ class NostrRepository private constructor(private val context: Context) {
 
     /** Private messages (NIP-17). */
     val dms: DirectMessages by lazy { DirectMessages(this) }
-    /** Communities, public chats and groups. */
-    val spaces: Spaces by lazy { Spaces(this) }
+    /** Live streams and their chat. */
+    val live: LiveStreamFeed by lazy { LiveStreamFeed(this) }
     val wallet: NwcWallet by lazy { NwcWallet(this) }
     val linkPreviews: LinkPreviews by lazy { LinkPreviews(this) }
-    val market: MarketListings by lazy { MarketListings(this) }
     val polls: Polls by lazy { Polls(this) }
     val highlights: ArticleHighlights by lazy { ArticleHighlights(this) }
     val badges: ProfileBadges by lazy { ProfileBadges(this) }
@@ -340,7 +339,6 @@ class NostrRepository private constructor(private val context: Context) {
         DmMediaCache.clear(context)
         (signer as? BunkerSigner)?.close()
         dms.reset()
-        spaces.reset()
         wallet.forget()
         pool.setRelays(NostrAccountStore.relays(context) ?: RelayPool.DEFAULT_RELAYS)
         relayList = null

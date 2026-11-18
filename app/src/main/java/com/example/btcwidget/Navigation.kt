@@ -66,7 +66,7 @@ fun MainNavigation() {
       slideInHorizontally(tween(SLIDE_MS)) { -it / 4 } togetherWith slideOutHorizontally(tween(SLIDE_MS)) { it }
     },
     entryProvider =
-      // Wide screens: each screen in a readable column in the middle (Shorts and live use the width).
+      // Wide screens: each screen in a readable column in the middle (live uses the width).
       entryProvider {
         entry<Main> { MainScreen(onItemClick = navigate) }
         entry<NoteKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { ThreadScreen(social, key.id, navigate, back) } }
@@ -105,17 +105,10 @@ fun MainNavigation() {
         entry<ArticleKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ArticleScreen(social, key.naddr, navigate, back) } }
         entry<NostrSettingsKey> { com.example.btcwidget.ui.social.ReadableColumn { SettingsEntry(social, "ACCOUNT", navigate, back) } }
         entry<SettingsKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { SettingsEntry(social, key.page, navigate, back) } }
-        entry<CommunityKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.CommunityScreen(social, key.coordinate, navigate, back) } }
-        entry<ChannelKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ChannelScreen(social, key.id, navigate, back) } }
-        entry<GroupKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.GroupScreen(social, key.address, navigate, back) } }
         entry<ListsKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ListsScreen(social, navigate, key.owner, back) } }
         entry<ListKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ListScreen(social, key.owner, key.d, navigate, back) } }
         entry<PackKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.FollowPackScreen(social, key.address, navigate, back) } }
-        entry<ShortsKey> { key -> com.example.btcwidget.ui.social.ShortsScreen(social, key.everyone, navigate, back) }
         entry<LiveKey> { key -> com.example.btcwidget.ui.social.LiveScreen(social, key.address, navigate, back) }
-        entry<ListingKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { MarketplaceListingEntry(social, key.address, navigate, back) } }
-        entry<ShopKey> { key -> MarketplaceShopEntry(social, key.pubkey, navigate, back) }
-        entry<EditListingKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.EditListingScreen(social, key.address, navigate, back) } }
         entry<RelaysKey> { com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.RelaysScreen(social, back) } }
         entry<SearchKey> { com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.SearchScreen(social, navigate, back) } }
       },
@@ -153,27 +146,5 @@ private fun SettingsEntry(social: SocialViewModel, page: String, navigate: (andr
     social, com.example.btcwidget.ui.social.SettingsPage.of(page), navigate, back,
     appVersion = main.appVersion,
     bitcoin = { com.example.btcwidget.ui.main.BitcoinSettingsRoute(main) }
-  )
-}
-
-@Composable
-private fun MarketplaceListingEntry(social: SocialViewModel, address: String, navigate: (androidx.navigation3.runtime.NavKey) -> Unit, back: () -> Unit) {
-  val main: com.example.btcwidget.ui.main.MainScreenViewModel = viewModel()
-  val state = main.uiState.collectAsState().value
-  val settings = main.settings.collectAsState().value
-  com.example.btcwidget.ui.social.ListingDetailScreen(
-    social, address, data = (state as? com.example.btcwidget.ui.main.MainScreenUiState.Success)?.data,
-    currency = settings.currency, navigate = navigate, onBack = back
-  )
-}
-
-@Composable
-private fun MarketplaceShopEntry(social: SocialViewModel, pubkey: String, navigate: (androidx.navigation3.runtime.NavKey) -> Unit, back: () -> Unit) {
-  val main: com.example.btcwidget.ui.main.MainScreenViewModel = viewModel()
-  val state = main.uiState.collectAsState().value
-  val settings = main.settings.collectAsState().value
-  com.example.btcwidget.ui.social.ShopScreen(
-    social, pubkey, data = (state as? com.example.btcwidget.ui.main.MainScreenUiState.Success)?.data,
-    currency = settings.currency, navigate = navigate, onBack = back
   )
 }

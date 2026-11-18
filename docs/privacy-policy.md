@@ -2,7 +2,7 @@
 
 **Effective date:** 18 November 2026
 
-Block ("the app") is a client for Nostr, an open social network, with Bitcoin market and network data, home-screen widgets and alerts. This policy explains what the app does with information. In short: **the developer runs no servers and collects no personal data; there are no ads, analytics or tracking.** What you post on Nostr is public, and it goes to the Nostr relays you use, not to the developer.
+Block ("the app") is a client for Nostr, an open social network, with Bitcoin market and network data and home-screen widgets. This policy explains what the app does with information. In short: **the developer runs no servers and collects no personal data; there are no ads, analytics or tracking.** What you post on Nostr is public, and it goes to the Nostr relays you use, not to the developer.
 
 ## Information stored on your device
 
@@ -11,7 +11,6 @@ The app keeps the following only on your device, in its private app storage:
 - **Your settings** — theme, display currency, refresh interval, data sources, which metrics the widget shows and their order, collapsed sections.
 - **Your stack** — the amount of bitcoin you choose to enter, to show what it is worth, and whether amounts are hidden on the dashboard. It is never sent anywhere by the app.
 - **Your own mempool server**, if you set one in Settings, used instead of mempool.space (see Network requests).
-- **Alerts** — the price, fee and network-event alerts you set.
 - **Cached market data** — the latest prices, network figures and hourly price history, so widgets and charts work offline.
 - **Widget state** — the mode, range or quote each placed widget shows.
 - **Your Nostr account** — your public key and, depending on how you log in:
@@ -62,7 +61,7 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Videos you post:** videos (up to 100 MB) are uploaded the same way but **as they are, without re-encoding**, so metadata saved in the file, which can include where it was recorded, is not removed; the composer warns you. While uploading, a temporary copy is kept in the app's cache and deleted afterwards.
 
-**Wallet (Nostr Wallet Connect):** if you connect a wallet in Settings › Nostr, the connection link is stored on your phone encrypted with the Android Keystore, is excluded from backup, and is removed when you disconnect or log out. When you zap, the app sends an encrypted payment request for that invoice to your wallet's relay, and your wallet pays it. The developer never sees the link, your balance or your payments.
+**Wallet (Nostr Wallet Connect):** if you connect a wallet in the Wallet tab (or Settings › Wallet), the connection link is stored on your phone encrypted with the Android Keystore, is excluded from backup, and is removed when you disconnect or log out. Everything the Wallet tab shows or does goes as encrypted requests to your wallet's relay, and your wallet answers: its balance and recent payments when you open or refresh the tab, a new invoice when you receive, and payment of an invoice you paste or scan when you send (you confirm the amount first). Zaps pay the same way. Scanning an invoice uses the QR scanner described below. The developer never sees the link, your balance or your payments.
 
 **Images and videos:** pictures (including animated GIFs) in notes and profiles are loaded from the addresses they point to, which can see your IP address. Videos start loading by themselves (muted) when they scroll into view, if video autoplay allows it on your connection (Settings › Nostr › More › Video autoplay: Always, Wi-Fi only (the default), or Never); otherwise only when you tap them.
 
@@ -78,16 +77,11 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Who to follow and badges:** suggestions are worked out on your phone from the public follow lists of people you follow (fetched from your relays and indexers). Profile badges (NIP-58) are loaded from the same relays.
 
-**Communities, public chats and groups:** communities (NIP-72) and public chat channels (NIP-28) are read from your relays and the community's own relays; posts and chat messages you send there are public, and joining a community publishes your public list of joined communities (kind 10004). Groups (NIP-29) live on one relay chosen by the group: when you open a group, the app connects to that relay, and if the relay asks (NIP-42), it proves who you are by signing a login challenge, so that relay learns your public key. This happens only for groups you open. The groups you open are remembered on your phone only.
-
-**Live streams:** the LIVE tab (Communities) and the Live tab in Search list streams (NIP-53) from your relays and indexers. Watching one, or the replay of one that has ended, loads the video from the streamer's video server, which sees your IP address; its live chat comes from your relays and the stream's own relays, and messages you send there are public. Zapping a stream works as other zaps do (see Zaps), and the zap, with its amount and comment, shows in the stream's chat for everyone.
+**Live streams:** the Live page (in the side bar) and the Live tab in Search list streams (NIP-53) from your relays and indexers. Watching one, or the replay of one that has ended, loads the video from the streamer's video server, which sees your IP address; its live chat comes from your relays and the stream's own relays, and messages you send there are public. Zapping a stream works as other zaps do (see Zaps), and the zap, with its amount and comment, shows in the stream's chat for everyone.
 
 **Feeds from DVMs:** under Search › Feeds you can ask a Data Vending Machine (NIP-90) for a feed. The request goes through your relays to that service and is signed with a new throwaway key each time, so the service doesn't learn who asked, except for feeds marked "personalized", which use your account so they can tailor results.
 
 **QR codes:** your profile's QR code is drawn on the phone. Scanning a code uses Block's own scanner: it asks for the camera permission the first time you scan, shows the camera only while the scan screen is open, and reads the code on the phone (ZXing). Camera frames are never saved or sent anywhere, and no Google Play services are involved.
-
-
-**Store (Marketplace):** listings (NIP-99 classified listings, and NIP-15 products from other apps) are read from your relays and are public. A listing you post, with its title, description, price, photos, location and shipping note, is public and signed by your key; photos are uploaded as described in Photos you post, and marking it sold or deleting it works like editing or deleting a note. When you check out, the order note (what you're buying, the price and any shipping address you type) is sent to the seller as an encrypted private message, if you choose to. Paying with Lightning is a plain payment to the seller's Lightning address, not a zap: the app asks the seller's Lightning provider (the domain in their Lightning address) for an invoice for the amount, which shows that provider your IP address and the amount, and then your wallet app (or your connected NWC wallet) pays it. Nothing is signed with your key and no public receipt is published, so others can't see that you bought something. Block never holds funds and is not part of the sale.
 
 **New accounts:** the setup after creating an account publishes only what you choose: your name, about and picture (public profile), the people you follow, and your message inbox list. The topics you pick are stored on the phone as Home feeds; finding people for them asks the search relays for recent notes with those hashtags.
 
@@ -116,13 +110,13 @@ To show market and network data, the app requests public data directly from thes
 
 The table covers market data. Nostr relays, Lightning address providers and image hosts are described above; they are chosen by you or by the people you follow.
 
-Requests run when you open or refresh the app and in the background at the interval you choose (15, 30 or 60 minutes) while a widget is placed or an alert is on.
+Requests run when you open or refresh the app and in the background at the interval you choose (15, 30 or 60 minutes) while a widget is placed or phone notifications for Nostr are on.
 
 ## Permissions
 
 - **Internet** — to fetch the data above.
 - **Storage (Android 9 and below only)** — asked only when you choose "Save image", to save that picture to Pictures/Block. Android 10 and later need no permission for this.
-- **Notifications** (Android 13 and later) — to show the alerts you switch on. Asked for only when you turn on an alert; you can revoke it in system settings at any time.
+- **Notifications** (Android 13 and later) — to show the Nostr notifications you switch on (replies, mentions, zaps, messages). Asked for only when you turn them on; you can revoke it in system settings at any time.
 - **Camera** — only to scan QR codes, asked the first time you open the scanner. Frames are read on the phone and never saved or sent. You can revoke it in system settings at any time; everything else works without it.
 - The background-work library the app uses (Android WorkManager) also declares permissions to check network status, keep scheduled updates after a restart, and run briefly in the background. They are used only to refresh the data above.
 

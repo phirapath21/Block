@@ -214,9 +214,9 @@ private fun PortfolioStackCard(
     var unit by remember(stackUnit) { mutableStateOf(stackUnit) }
     var stackText by remember(stackSats, unit) { mutableStateOf(com.example.btcwidget.Stack.toInput(stackSats, unit)) }
 
-    val btcPrice = com.example.btcwidget.alerts.PriceAlerts.price(data, currencySetting)
+    val btcPrice = com.example.btcwidget.PriceFormat.price(data, currencySetting)
     val stackWorth = if (stackSats > 0 && btcPrice > 0) {
-        com.example.btcwidget.alerts.PriceAlerts.formatPrice((stackSats.toDouble() / com.example.btcwidget.Stack.SATS_PER_BTC) * btcPrice, currencySetting)
+        com.example.btcwidget.PriceFormat.format((stackSats.toDouble() / com.example.btcwidget.Stack.SATS_PER_BTC) * btcPrice, currencySetting)
     } else null
     val invalidStack = stackText.isNotBlank() && com.example.btcwidget.Stack.parse(stackText, unit) == null
 

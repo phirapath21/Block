@@ -4,15 +4,15 @@ Block is two things in one app: Bitcoin at a glance on your home screen, and a N
 <ul>
 <li>Home-screen widgets in a desk-blockclock style: price, sats per dollar or baht, block height, fees, hash rate, difficulty, halving countdown, Lightning capacity, Strategy (MSTR) and Strive (ASST) holdings, and the value of your stack.</li>
 <li>Price chart widget (24H / 7D / 30D / 1Y), halving countdown and Bitcoin quotes. Every widget is resizable.</li>
-<li>Dashboard with a large panel for the number you care about, alerts for price, fees, halving and difficulty adjustments, and USD or THB with your choice of price source.</li>
+<li>Dashboard with a large panel for the number you care about, and USD or THB with your choice of price source.</li>
 </ul>
 
 <b>Nostr social</b>
 <ul>
 <li>A timeline laid out like X: notes, replies, reposts, quotes, likes, emoji reactions and zaps.</li>
-<li>Private messages (NIP-17), lists, bookmarks, communities, groups, live streams, Shorts and long-form articles.</li>
+<li>Private messages and group chats (NIP-17), lists, bookmarks, live streams and long-form articles.</li>
 <li>Photo albums, videos, polls, link previews, and live cards for Bitcoin transactions and blocks in posts.</li>
-<li>Zap in one tap with a Nostr Wallet Connect (NWC) wallet.</li>
+<li>A Lightning wallet tab with Nostr Wallet Connect (NWC): balance, receive with a QR code, send by pasting or scanning an invoice, and zaps in one tap.</li>
 <li>Your relays your way: outbox model, relay checkup and suggestions, NIP-11 info.</li>
 <li>Proof of work (NIP-13) for your posts, and themes including Ember from Zeus.</li>
 <li>English and Thai.</li>

@@ -114,8 +114,13 @@ fun SettingsPageScreen(
     val account by vm.account.collectAsState()
     Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr(page.title), onBack)
+        // The wallet is its own screen (also a tab in the bottom bar), with its own scrolling.
+        if (page == SettingsPage.WALLET) {
+            WalletScreen(vm, navigate)
+            return@Column
+        }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
-            val needsAccount = page in setOf(SettingsPage.NOTIFICATIONS, SettingsPage.PRIVACY, SettingsPage.WALLET)
+            val needsAccount = page in setOf(SettingsPage.NOTIFICATIONS, SettingsPage.PRIVACY)
             if (needsAccount && account == null) {
                 SettingsNote(tr("Log in to change these settings."))
                 SettingsLinkRow(tr("Log in or create account")) { navigate(com.example.btcwidget.LoginKey) }
@@ -128,7 +133,7 @@ fun SettingsPageScreen(
                 SettingsPage.DISPLAY -> DisplayPage(vm)
                 SettingsPage.RELAYS -> RelaysPage(vm, navigate)
                 SettingsPage.POW -> PowSettingsPage(vm)
-                SettingsPage.WALLET -> WalletPage(vm)
+                SettingsPage.WALLET -> Unit // shown above
                 SettingsPage.BITCOIN -> bitcoin()
                 SettingsPage.STORAGE -> StoragePage(vm)
                 SettingsPage.ABOUT -> AboutPage(appVersion, navigate)

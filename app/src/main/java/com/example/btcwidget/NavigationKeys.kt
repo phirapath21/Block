@@ -60,15 +60,6 @@ import kotlinx.serialization.Serializable
 /** One Settings page ([com.example.btcwidget.ui.social.SettingsPage] name). */
 @Serializable data class SettingsKey(val page: String) : NavKey
 
-/** A NIP-72 community, by its coordinate "34550:<owner>:<id>". */
-@Serializable data class CommunityKey(val coordinate: String) : NavKey
-
-/** A NIP-28 public chat channel, by its creation event id. */
-@Serializable data class ChannelKey(val id: String) : NavKey
-
-/** A NIP-29 group, as "host'id". */
-@Serializable data class GroupKey(val address: String) : NavKey
-
 /** Someone's lists of people (NIP-51), from their profile. */
 @Serializable data class ListsKey(val owner: String) : NavKey
 
@@ -80,17 +71,7 @@ import kotlinx.serialization.Serializable
 
 /** A live stream (NIP-53), by its address "30311:<pubkey>:<d>". */
 @Serializable data class LiveKey(val address: String) : NavKey
-@Serializable data class ShortsKey(val everyone: Boolean = false) : NavKey
 
 /** A follow pack (kind 39089), by its address "39089:<pubkey>:<d>". */
 @Serializable data class PackKey(val address: String) : NavKey
-
-/** A marketplace listing (NIP-99 kind 30402 or NIP-15 kind 30018), by its address "kind:pubkey:d". */
-@Serializable data class ListingKey(val address: String) : NavKey
-
-/** Someone's shop: every listing by [pubkey]. */
-@Serializable data class ShopKey(val pubkey: String) : NavKey
-
-/** Creating a new listing (`address == null`) or editing an existing one. */
-@Serializable data class EditListingKey(val address: String? = null) : NavKey
 

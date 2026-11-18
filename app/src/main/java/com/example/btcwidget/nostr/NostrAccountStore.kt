@@ -235,7 +235,6 @@ object NostrAccountStore {
     private const val PUSH = "push_enabled"
     private const val NOTIF_OFF = "notif_off"
     private const val WOT = "wot_filter"
-    private const val GROUPS = "groups"
     private const val HOME_FEEDS = "home_feeds"
     private const val HOME_FEED = "home_feed"
     private const val DM_INBOX = "dm_inbox"
@@ -272,9 +271,6 @@ object NostrAccountStore {
     fun homeFeed(context: Context): String? = prefs(context).getString(HOME_FEED, null)
     fun setHomeFeed(context: Context, id: String) = prefs(context).edit().putString(HOME_FEED, id).apply()
 
-    /** NIP-29 groups the user opened or joined, as "host'id". */
-    fun groups(context: Context): Set<String> = prefs(context).getStringSet(GROUPS, null)?.toSet().orEmpty()
-    fun setGroups(context: Context, groups: Set<String>) = prefs(context).edit().putStringSet(GROUPS, groups).apply()
 
     /** Hide replies, mentions and search results from accounts outside the user's network. */
     fun wotFilter(context: Context): Boolean = prefs(context).getBoolean(WOT, false)
