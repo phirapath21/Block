@@ -39,10 +39,10 @@ import com.example.btcwidget.ui.main.EInk
 @Composable
 internal fun WalletPage(vm: SocialViewModel) {
     val context = LocalContext.current
-    val wallet by vm.nwc.collectAsState()
-    val balanceMsat by vm.nwcBalanceMsat.collectAsState()
-    val transactions by vm.nwcTransactions.collectAsState()
-    val loading by vm.nwcLoading.collectAsState()
+    val wallet by vm.wallet.nwc.collectAsState()
+    val balanceMsat by vm.wallet.balanceMsat.collectAsState()
+    val transactions by vm.wallet.transactions.collectAsState()
+    val loading by vm.wallet.loading.collectAsState()
     var uri by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var disconnecting by remember { mutableStateOf(false) }
@@ -55,7 +55,7 @@ internal fun WalletPage(vm: SocialViewModel) {
     var payingInvoice by remember { mutableStateOf(false) }
 
     LaunchedEffect(wallet) {
-        if (wallet != null) vm.refreshWallet()
+        if (wallet != null) vm.wallet.refresh()
     }
 
     SettingsHeader(tr("Wallet (NWC)"))
@@ -73,7 +73,7 @@ internal fun WalletPage(vm: SocialViewModel) {
                 )
             }
             SettingsButton(if (loading) tr("Refreshing…") else tr("Refresh"), enabled = !loading) {
-                vm.refreshWallet()
+                vm.wallet.refresh()
             }
         }
         SettingsNote(tr("Connected. Zaps pay from this wallet in one tap, up to the budget you set in the wallet."))
@@ -101,7 +101,7 @@ internal fun WalletPage(vm: SocialViewModel) {
                 enabled = amt > 0 && !creatingInvoice
             ) {
                 creatingInvoice = true
-                vm.makeNwcInvoice(amt, recvDesc.trim()) { inv ->
+                vm.wallet.makeInvoice(amt, recvDesc.trim()) { inv ->
                     creatingInvoice = false
                     if (inv != null) createdInvoice = inv
                 }
@@ -152,7 +152,7 @@ internal fun WalletPage(vm: SocialViewModel) {
                 enabled = payInput.isNotBlank() && !payingInvoice
             ) {
                 payingInvoice = true
-                vm.payInvoiceWithNwc(payInput) { ok ->
+                vm.wallet.payInvoice(payInput) { ok ->
                     payingInvoice = false
                     if (ok) payInput = ""
                 }
@@ -211,7 +211,7 @@ internal fun WalletPage(vm: SocialViewModel) {
             error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
             Spacer(Modifier.height(10.dp))
             SettingsButton(tr("Connect"), primary = true, enabled = uri.isNotBlank()) {
-                val e = vm.connectNwc(uri)
+                val e = vm.wallet.connect(uri)
                 if (e == null) uri = "" else error = e
             }
         }
@@ -221,7 +221,7 @@ internal fun WalletPage(vm: SocialViewModel) {
         title = tr("Disconnect wallet?"),
         text = tr("Zaps will open your Lightning wallet app to pay instead. You can connect again any time."),
         confirmLabel = tr("Disconnect"),
-        onConfirm = { disconnecting = false; vm.disconnectNwc() },
+        onConfirm = { disconnecting = false; vm.wallet.disconnect() },
         onDismiss = { disconnecting = false }
     )
 }

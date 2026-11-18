@@ -321,40 +321,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         if (on) act(tr("Couldn't load your network")) { repo.loadTrust(); say(tr("Showing replies and mentions from your network only")) }
     }
 
-    // ---- Video autoplay (a device setting, in AppPrefs) ----
+    // ---- Settings kept on this phone: video and links ----
 
-    private val _videoAutoplay = MutableStateFlow(VideoAutoplay.fromName(com.example.btcwidget.AppPrefs.videoAutoplay(application)))
-    val videoAutoplay: StateFlow<VideoAutoplay> = _videoAutoplay.asStateFlow()
-
-    private val _videoQuality = MutableStateFlow(VideoQuality.fromName(com.example.btcwidget.AppPrefs.videoQuality(application)))
-    val videoQuality: StateFlow<VideoQuality> = _videoQuality.asStateFlow()
-
-    fun setVideoQuality(q: VideoQuality) {
-        com.example.btcwidget.AppPrefs.setVideoQuality(getApplication(), q.name)
-        _videoQuality.value = q
-    }
-
-    private val _linksInApp = MutableStateFlow(com.example.btcwidget.AppPrefs.linksInApp(application))
-    /** Web links open in Block's browser (true) or the phone's. */
-    val linksInApp: StateFlow<Boolean> = _linksInApp.asStateFlow()
-
-    private val _privateLists = MutableStateFlow(com.example.btcwidget.AppPrefs.privateLists(application))
-    /** New bookmarks and mutes are private (encrypted to you) or public. */
-    val privateLists: StateFlow<Boolean> = _privateLists.asStateFlow()
-    fun setPrivateLists(private: Boolean) {
-        com.example.btcwidget.AppPrefs.setPrivateLists(getApplication(), private)
-        _privateLists.value = private
-    }
-
-    fun setLinksInApp(inApp: Boolean) {
-        com.example.btcwidget.AppPrefs.setLinksInApp(getApplication(), inApp)
-        _linksInApp.value = inApp
-    }
-
-    fun setVideoAutoplay(mode: VideoAutoplay) {
-        com.example.btcwidget.AppPrefs.setVideoAutoplay(getApplication(), mode.name)
-        _videoAutoplay.value = mode
-    }
+    val devicePrefs = DevicePrefs(application)
 
     fun clearMediaCache(onDone: (Boolean) -> Unit) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -412,7 +381,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         _push.value = store.pushEnabled(app)
         _notifOff.value = store.notificationsOff(app)
         _wot.value = store.wotFilter(app)
-        refreshScheduled()
+        scheduledPosts.refresh()
         _homeFeeds.value = loadFeeds()
         _homeFeed.value = loadFeed(_homeFeeds.value)
     }
@@ -511,69 +480,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Store (NIP-99 marketplace) ----
 
-    /** Listings for the store: everyone's, or only [seller]'s shop. Kept between visits. */
-    private val _listings = MutableStateFlow<List<com.example.btcwidget.nostr.core.Listing>?>(null)
-    val listings: StateFlow<List<com.example.btcwidget.nostr.core.Listing>?> = _listings.asStateFlow()
-    private val _storeLoading = MutableStateFlow(false)
-    val storeLoading: StateFlow<Boolean> = _storeLoading.asStateFlow()
-
-    fun refreshStore() {
-        if (_storeLoading.value) return
-        _storeLoading.value = true
-        viewModelScope.launch {
-            runCatching { repo.listings() }.onSuccess { _listings.value = it }
-            if (_listings.value == null) _listings.value = emptyList()
-            _storeLoading.value = false
-        }
-    }
-
-    suspend fun shopListings(seller: String) = runCatching { repo.listings(sellers = listOf(seller)) }.getOrDefault(emptyList())
-    suspend fun listing(address: String) = runCatching { repo.listing(address) }.getOrNull()
-
-    /** Publishes a listing (new or edited); [onResult] gets it, or null on failure. */
-    fun publishListing(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Listing?) -> Unit) {
-        var result: com.example.btcwidget.nostr.core.Listing? = null
-        act(tr("Couldn't publish the listing"), finally = { onResult(result) }) {
-            result = repo.publishListing(unsigned)
-            result?.let { l -> _listings.value = (listOf(l) + _listings.value.orEmpty().filter { it.address != l.address }) }
-            say(tr("Listing published"))
-        }
-    }
-
-    fun deleteListing(listing: com.example.btcwidget.nostr.core.Listing, onDone: () -> Unit = {}) =
-        act(tr("Couldn't delete the listing"), finally = onDone) {
-            repo.deleteListing(listing)
-            _listings.value = _listings.value?.filter { it.address != listing.address }
-            say(tr("Listing deleted"))
-        }
-
-    /** Sends the order to the seller as a private message (NIP-17). */
-    fun sendOrder(seller: String, text: String, onResult: (Boolean) -> Unit = {}) {
-        var ok = false
-        act(tr("Couldn't send the order to the seller"), finally = { onResult(ok) }) {
-            repo.dms.send(listOf(seller), text, null)
-            ok = true
-            say(tr("Order sent to the seller"))
-        }
-    }
-
-    /**
-     * Pays the seller's Lightning address for a Store order: in the app with NWC, else [onInvoice]
-     * opens a wallet. A plain payment, not a zap: no signed request and no public receipt, so the
-     * purchase stays between buyer and seller (the order details go by encrypted message).
-     */
-    fun payLightning(seller: String, amountSat: Long, onInvoice: (String) -> Unit) =
-        act(tr("Couldn't pay")) {
-            val invoice = repo.lnurlPayInvoice(seller, amountSat)
-            if (repo.nwc.value != null) {
-                say(tr("⚡ Paying {0} sats…", amountSat))
-                repo.payWithNwc(invoice)
-                say(tr("⚡ Paid {0} sats", amountSat))
-                refreshWallet()
-            } else {
-                onInvoice(invoice)
-            }
-        }
+    val market = MarketState(this)
 
     // ---- Images ----
 
@@ -621,7 +528,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 viewModelScope.launch { onQueued?.invoke() }
             }
         }) {
-            val bits = powFor(pow ?: _powDifficulty.value)
+            val bits = this.pow.bitsFor(pow ?: this.pow.difficulty.value)
             // Image URLs go in the text (so every client shows them) with imeta tags (NIP-92).
             val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
             val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
@@ -640,55 +547,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Proof of work (NIP-13) ----
 
-    private val _powDifficulty = MutableStateFlow(com.example.btcwidget.AppPrefs.powDifficulty(application))
-    /** Bits of proof of work mined into new posts, replies and quotes (0 = off). */
-    val powDifficulty: StateFlow<Int> = _powDifficulty.asStateFlow()
-    fun setPowDifficulty(bits: Int) {
-        val b = bits.coerceIn(0, com.example.btcwidget.nostr.core.Pow.MAX_DIFFICULTY)
-        com.example.btcwidget.AppPrefs.setPowDifficulty(getApplication(), b)
-        _powDifficulty.value = b
-    }
-
-    private val _powMatchRelays = MutableStateFlow(com.example.btcwidget.AppPrefs.powMatchRelays(application))
-    /** Mine at least what the relays a post goes to ask for (NIP-11). */
-    val powMatchRelays: StateFlow<Boolean> = _powMatchRelays.asStateFlow()
-    fun setPowMatchRelays(match: Boolean) {
-        com.example.btcwidget.AppPrefs.setPowMatchRelays(getApplication(), match)
-        _powMatchRelays.value = match
-    }
-
-    private val _powHashRate = MutableStateFlow(com.example.btcwidget.AppPrefs.powHashRate(application).toDouble())
-    /** This phone's hashes per second (0 until measured), for "≈ N s" estimates. */
-    val powHashRate: StateFlow<Double> = _powHashRate.asStateFlow()
-    private fun rememberHashRate(rate: Double) {
-        if (rate <= 0 || !rate.isFinite()) return
-        _powHashRate.value = rate
-        com.example.btcwidget.AppPrefs.setPowHashRate(getApplication(), rate.toFloat())
-    }
-
-    private val _powBenchmarking = MutableStateFlow(false)
-    val powBenchmarking: StateFlow<Boolean> = _powBenchmarking.asStateFlow()
-
-    /** Measures this phone's mining speed for a moment (skipped when it's known unless [force]). */
-    fun benchmarkPow(force: Boolean = false) {
-        if (_powBenchmarking.value || (!force && _powHashRate.value > 0)) return
-        _powBenchmarking.value = true
-        viewModelScope.launch {
-            try { rememberHashRate(com.example.btcwidget.nostr.core.Pow.benchmark()) } finally { _powBenchmarking.value = false }
-        }
-    }
-
-    private val _relayPow = MutableStateFlow<Pair<Int, String?>>(0 to null)
-    /** The most proof of work any of your relays asks for, and which relay (0 = none known). */
-    val relayPow: StateFlow<Pair<Int, String?>> = _relayPow.asStateFlow()
-    fun checkRelayPow() = viewModelScope.launch { _relayPow.value = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null) }
-
-    /** [chosen] bits, raised to what the relays ask for (when that's on and within reach). */
-    private suspend fun powFor(chosen: Int): Int {
-        if (!_powMatchRelays.value) return chosen
-        val (asked, _) = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null).also { _relayPow.value = it }
-        return if (asked in 1..RELAY_POW_LIMIT) maxOf(chosen, asked) else chosen
-    }
+    val pow = PowSettings(application, repo, viewModelScope)
 
     /** Stops mining the publish [id] and sends it without proof of work. */
     fun skipPow(id: Long) {
@@ -705,46 +564,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Scheduled posts ----
 
-    private val _scheduled = MutableStateFlow<List<com.example.btcwidget.nostr.ScheduledPosts.Post>>(emptyList())
-    /** The active account's posts waiting to be published. */
-    val scheduled: StateFlow<List<com.example.btcwidget.nostr.ScheduledPosts.Post>> = _scheduled.asStateFlow()
-
-    fun refreshScheduled() {
-        _scheduled.value = repo.pubkey?.let { com.example.btcwidget.nostr.ScheduledPosts.forAccount(getApplication(), it) }.orEmpty()
-    }
-
-    /** Saves a new post to publish at [at] (seconds), with the same tags [send] would add. */
-    fun schedule(
-        text: String,
-        images: List<Attachment>,
-        contentWarning: String?,
-        at: Long,
-        extraTags: List<List<String>> = emptyList()
-    ): Boolean {
-        val me = repo.pubkey ?: return false
-        val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
-        val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
-            listOfNotNull(contentWarning?.let { listOf("content-warning", it) }) +
-            extraTags
-        com.example.btcwidget.nostr.ScheduledPosts.schedule(getApplication(), me, at, body, tags)
-        refreshScheduled()
-        say(tr("Scheduled for ") + java.text.SimpleDateFormat("EEE, MMM d - h:mm a", java.util.Locale.ENGLISH).format(java.util.Date(at * 1000)))
-        return true
-    }
-
-    fun cancelScheduled(id: String) {
-        com.example.btcwidget.nostr.ScheduledPosts.cancel(getApplication(), id)
-        refreshScheduled()
-    }
-
-    /** Publishes a scheduled post right away (e.g. one the signer couldn't approve in the background). */
-    fun postScheduledNow(post: com.example.btcwidget.nostr.ScheduledPosts.Post) = act(tr("Couldn't post")) {
-        val event = repo.publish(com.example.btcwidget.nostr.core.Events.note(post.pubkey, post.content, post.tags))
-        com.example.btcwidget.nostr.ScheduledPosts.cancel(getApplication(), post.id)
-        _home.update { it.copy(items = listOf(FeedItem(event)) + it.items) }
-        refreshScheduled()
-        say(tr("Posted"))
-    }
+    val scheduledPosts = ScheduledPostsState(this)
 
     // ---- New posts while reading (the "↑ N new posts" pill) ----
 
@@ -816,52 +636,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Wallet (NWC) and zaps ----
 
-    val nwc get() = repo.nwc
-
-    private val _nwcBalanceMsat = MutableStateFlow<Long?>(null)
-    val nwcBalanceMsat: StateFlow<Long?> = _nwcBalanceMsat.asStateFlow()
-
-    private val _nwcTransactions = MutableStateFlow<List<com.example.btcwidget.nostr.core.Nwc.Transaction>>(emptyList())
-    val nwcTransactions: StateFlow<List<com.example.btcwidget.nostr.core.Nwc.Transaction>> = _nwcTransactions.asStateFlow()
-
-    private val _nwcLoading = MutableStateFlow(false)
-    val nwcLoading: StateFlow<Boolean> = _nwcLoading.asStateFlow()
-
-    /** Refreshes balance and transaction history from the connected NWC wallet. */
-    fun refreshWallet() {
-        if (repo.nwc.value == null || _nwcLoading.value) return
-        _nwcLoading.value = true
-        viewModelScope.launch {
-            try {
-                val bal = async { runCatching { repo.nwcBalance() }.getOrNull() }
-                val txs = async { runCatching { repo.nwcTransactions(20) }.getOrNull() }
-                bal.await()?.let { _nwcBalanceMsat.value = it }
-                txs.await()?.let { _nwcTransactions.value = it }
-            } finally {
-                _nwcLoading.value = false
-            }
-        }
-    }
-
-    /** Creates an invoice via NWC `make_invoice` and passes the BOLT11 string to [onResult]. */
-    fun makeNwcInvoice(amountSat: Long, description: String, onResult: (String?) -> Unit) {
-        var inv: String? = null
-        act(tr("Couldn't create invoice"), finally = { onResult(inv) }) {
-            inv = repo.nwcMakeInvoice(amountSat, description)
-        }
-    }
-
-    /** Pays a BOLT11 invoice via NWC and refreshes wallet balance/history. */
-    fun payInvoiceWithNwc(invoice: String, onDone: (Boolean) -> Unit = {}) {
-        var ok = false
-        act(tr("Payment failed"), finally = { onDone(ok) }) {
-            say(tr("⚡ Paying invoice…"))
-            repo.payWithNwc(invoice.trim().removePrefix("lightning:").removePrefix("LIGHTNING:"))
-            ok = true
-            say(tr("⚡ Payment sent"))
-            refreshWallet()
-        }
-    }
+    val wallet = WalletState(this)
 
     /**
      * Zaps [amountSat]: with a connected wallet (NWC) it pays right here; otherwise the
@@ -875,28 +650,17 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 repo.payWithNwc(invoice)
                 say(tr("⚡ Zapped {0} sats", amountSat))
                 note?.let { n -> runCatching { repo.loadStats(listOf(n.id)) } }
-                refreshWallet()
+                wallet.refresh()
             } else {
                 onInvoice(invoice)
             }
         }
     }
 
-    /** Returns an error message, or null when connected. */
-    fun connectNwc(uri: String): String? = try {
-        repo.connectNwc(uri); say(tr("Wallet connected")); refreshWallet(); null
-    } catch (e: Exception) {
-        e.message ?: "Couldn't connect the wallet"
-    }
-
-    fun disconnectNwc() {
-        repo.disconnectNwc()
-        _nwcBalanceMsat.value = null
-        _nwcTransactions.value = emptyList()
-        say(tr("Wallet disconnected"))
-    }
-
     internal fun say(message: String) { _messages.tryEmit(message) }
+
+    /** Puts a note you just published at the top of the Home feed. */
+    internal fun showOnHome(event: Event) { _home.update { it.copy(items = listOf(FeedItem(event)) + it.items) } }
 
     // ---- Progress of what's being sent (repost, reply, post) ----
 
@@ -954,7 +718,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             when (stage) {
                 is com.example.btcwidget.nostr.PublishTracker.Stage.Mining -> {
                     if (stage.elapsedMs >= 1_000) lastMining.set(stage)
-                    val rate = stage.hashesPerSecond.takeIf { stage.elapsedMs >= 300 } ?: _powHashRate.value
+                    val rate = stage.hashesPerSecond.takeIf { stage.elapsedMs >= 300 } ?: pow.hashRate.value
                     val m = PublishActivity.Mining(stage.difficulty, stage.hashes, rate, stage.elapsedMs)
                     if (!finishedFlag.get() && trackers[id]?.skipPow?.get() != true) show(PublishActivity(
                         id, working, tr("Mining proof of work · {0} bits", stage.difficulty),
@@ -1015,7 +779,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 show(PublishActivity(id, failure, friendlyError(e), 1f, PublishActivity.State.FAILED))
                 clearLater(5_000)
             } finally {
-                lastMining.get()?.let { rememberHashRate(it.hashesPerSecond) }
+                lastMining.get()?.let { pow.rememberHashRate(it.hashesPerSecond) }
                 trackers.remove(id)
                 jobs.remove(id)
                 finally()
@@ -1066,5 +830,3 @@ internal fun friendlyError(e: Throwable): String = when (e) {
 /** Mining longer than this lets the composer close while the post carries on in the status bar. */
 private const val QUEUE_AFTER_MS = 700L
 
-/** Relays asking for more proof of work than this aren't matched automatically (it'd take minutes). */
-private const val RELAY_POW_LIMIT = 24

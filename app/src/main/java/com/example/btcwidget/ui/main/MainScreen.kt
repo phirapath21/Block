@@ -119,7 +119,7 @@ fun MainScreen(
     val unreadNotifications by social.unreadNotifications.collectAsStateWithLifecycle()
     val unreadChats by social.unreadConversations.collectAsStateWithLifecycle()
     val pushEnabled by social.pushEnabled.collectAsStateWithLifecycle()
-    val nwcWallet by social.nwc.collectAsStateWithLifecycle()
+    val nwcWallet by social.wallet.nwc.collectAsStateWithLifecycle()
     val notificationItems by social.notifications.collectAsStateWithLifecycle()
 
     // Badges: load notifications and messages when the account is known and on every return.

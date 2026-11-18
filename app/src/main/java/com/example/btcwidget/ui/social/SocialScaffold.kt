@@ -64,12 +64,12 @@ fun SocialScaffold(
     var viewImage by rememberKeptState<Pair<String, Event>?> { null }
     var viewVideo by rememberKeptState<Pair<String, Event>?> { null }
     var viewWeb by rememberKeptState<Pair<String, Event?>?> { null }
-    val linksInAppState = vm.linksInApp.collectAsState()
-    val autoplay by vm.videoAutoplay.collectAsState()
+    val linksInAppState = vm.devicePrefs.linksInApp.collectAsState()
+    val autoplay by vm.devicePrefs.videoAutoplay.collectAsState()
     val bookmarksState = vm.bookmarks.collectAsState()
     val pinsState = vm.pinned.collectAsState()
     val followingState = vm.following.collectAsState()
-    val nwcWallet by vm.nwc.collectAsState()
+    val nwcWallet by vm.wallet.nwc.collectAsState()
     val customEmojis by vm.emojis.collectAsState()
     val navigateState = androidx.compose.runtime.rememberUpdatedState(navigate)
     val accountState = androidx.compose.runtime.rememberUpdatedState(account)
@@ -138,7 +138,7 @@ fun SocialScaffold(
                     else -> navigateState.value(com.example.btcwidget.ArticleKey(Nip19.naddr(a.kind, a.pubkey, a.identifier, a.relays)))
                 }
             },
-            resolveListing = { vm.listing("${it.kind}:${it.pubkey}:${it.identifier}") },
+            resolveListing = { vm.market.listing("${it.kind}:${it.pubkey}:${it.identifier}") },
             linkPreview = { vm.linkPreview(it) },
             me = mePubkey
         )

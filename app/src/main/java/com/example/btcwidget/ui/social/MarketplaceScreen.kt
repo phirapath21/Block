@@ -156,8 +156,8 @@ fun MarketplaceScreen(
     currency: String,
     navigate: (NavKey) -> Unit
 ) {
-    val listings by vm.listings.collectAsState()
-    val loading by vm.storeLoading.collectAsState()
+    val listings by vm.market.listings.collectAsState()
+    val loading by vm.market.loading.collectAsState()
     val profiles by vm.profiles.collectAsState()
     val following by vm.following.collectAsState()
     val muted by vm.muted.collectAsState()
@@ -174,7 +174,7 @@ fun MarketplaceScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        if (listings == null) vm.refreshStore()
+        if (listings == null) vm.market.refresh()
     }
     LaunchedEffect(Unit) {
         TabTaps.flow.collect { tab ->
@@ -182,7 +182,7 @@ fun MarketplaceScreen(
                 if (gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0) {
                     gridState.animateScrollToItem(0)
                 } else {
-                    vm.refreshStore()
+                    vm.market.refresh()
                 }
             }
         }
@@ -259,7 +259,7 @@ fun MarketplaceScreen(
 
         PullToRefreshBox(
             isRefreshing = loading && !listings.isNullOrEmpty(),
-            onRefresh = { haptics.tick(); vm.refreshStore() },
+            onRefresh = { haptics.tick(); vm.market.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
             when {
@@ -683,10 +683,10 @@ fun ListingDetailScreen(
     navigate: (NavKey) -> Unit,
     onBack: () -> Unit
 ) {
-    val cachedListings by vm.listings.collectAsState()
+    val cachedListings by vm.market.listings.collectAsState()
     val fromCache = remember(cachedListings, address) { cachedListings?.firstOrNull { it.address == address } }
     val loaded by produceKept<Listing?>(fromCache, address) {
-        value = vm.listing(address) ?: fromCache
+        value = vm.market.listing(address) ?: fromCache
     }
     val listing = fromCache ?: loaded
 
@@ -694,7 +694,7 @@ fun ListingDetailScreen(
     val following by vm.following.collectAsState()
     val account by vm.account.collectAsState()
     val stats by vm.stats.collectAsState()
-    val nwcWallet by vm.nwc.collectAsState()
+    val nwcWallet by vm.wallet.nwc.collectAsState()
     val context = LocalContext.current
 
     var checkoutOpen by remember { mutableStateOf(false) }
@@ -714,7 +714,7 @@ fun ListingDetailScreen(
             confirmLabel = tr("Delete"),
             onConfirm = {
                 confirmDelete = false
-                vm.deleteListing(listing) { onBack() }
+                vm.market.deleteListing(listing) { onBack() }
             },
             onDismiss = { confirmDelete = false }
         )
@@ -1012,7 +1012,7 @@ fun ListingDetailScreen(
                             shipping = listing.shipping,
                             publishedAt = listing.publishedAt
                         )
-                        vm.publishListing(updated) {}
+                        vm.market.publishListing(updated) {}
                     },
                     onDelete = { confirmDelete = true }
                 )
@@ -1432,10 +1432,10 @@ private fun CheckoutSheet(
                         .background(StoreOrange)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                             if (loggedIn && (sendDmWithOrder || deliveryNote.isNotBlank())) {
-                                vm.sendOrder(listing.pubkey, buildOrderMessage("Lightning ($lud16)"))
+                                vm.market.sendOrder(listing.pubkey, buildOrderMessage("Lightning ($lud16)"))
                             }
                             onDismiss()
-                            vm.payLightning(seller = listing.pubkey, amountSat = sats) { invoice -> payInvoice(context, invoice) }
+                            vm.market.payLightning(seller = listing.pubkey, amountSat = sats) { invoice -> payInvoice(context, invoice) }
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1463,7 +1463,7 @@ private fun CheckoutSheet(
                     .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                         if (!loggedIn) onLogin()
                         else if (deliveryNote.isNotBlank()) {
-                            vm.sendOrder(listing.pubkey, buildOrderMessage("Pending / Inquiry")) {
+                            vm.market.sendOrder(listing.pubkey, buildOrderMessage("Pending / Inquiry")) {
                                 onOpenChat()
                             }
                         } else {
@@ -1513,7 +1513,7 @@ fun ShopScreen(
 
     var reload by rememberSaveable { mutableStateOf(0) }
     val shopItems by produceKept<List<Listing>?>(null, pubkey, reload) {
-        value = vm.shopListings(pubkey)
+        value = vm.market.shopListings(pubkey)
     }
 
     LaunchedEffect(pubkey) {
@@ -1615,12 +1615,12 @@ fun EditListingScreen(
     onBack: () -> Unit
 ) {
     val account by vm.account.collectAsState()
-    val cachedListings by vm.listings.collectAsState()
+    val cachedListings by vm.market.listings.collectAsState()
     val existing by produceKept<Listing?>(
         address?.let { a -> cachedListings?.firstOrNull { it.address == a } },
         address
     ) {
-        if (address != null && value == null) value = vm.listing(address)
+        if (address != null && value == null) value = vm.market.listing(address)
     }
 
     var initialized by rememberSaveable(address) { mutableStateOf(address == null) }
@@ -1950,7 +1950,7 @@ fun EditListingScreen(
                             publishedAt = existing?.publishedAt ?: (System.currentTimeMillis() / 1000)
                         )
                         publishing = true
-                        vm.publishListing(unsigned) { published ->
+                        vm.market.publishListing(unsigned) { published ->
                             publishing = false
                             if (published != null) {
                                 onBack()

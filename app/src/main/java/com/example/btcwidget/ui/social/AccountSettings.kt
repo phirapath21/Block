@@ -130,9 +130,9 @@ private fun signerLabel(type: SignerType): String = when (type) {
 /** Scheduled posts, opened in place: Post now or Cancel each. */
 @Composable
 private fun ScheduledRow(vm: SocialViewModel) {
-    val posts by vm.scheduled.collectAsState()
+    val posts by vm.scheduledPosts.posts.collectAsState()
     var open by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) { vm.refreshScheduled() }
+    LaunchedEffect(Unit) { vm.scheduledPosts.refresh() }
     SettingsLinkRow(
         tr("Scheduled posts"),
         summary = tr("Sent at their time if your phone is on and online. Schedule one with 🕒 in the composer."),
@@ -148,8 +148,8 @@ private fun ScheduledRow(vm: SocialViewModel) {
             )
             Text(p.content, color = EInk.Value, fontSize = 15.sp, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SettingsButton(tr("Post now"), primary = true) { vm.postScheduledNow(p) }
-                SettingsButton(tr("Cancel"), destructive = true) { vm.cancelScheduled(p.id) }
+                SettingsButton(tr("Post now"), primary = true) { vm.scheduledPosts.postNow(p) }
+                SettingsButton(tr("Cancel"), destructive = true) { vm.scheduledPosts.cancel(p.id) }
             }
         }
     }
