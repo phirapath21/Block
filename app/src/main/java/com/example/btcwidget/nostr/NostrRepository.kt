@@ -843,6 +843,63 @@ class NostrRepository private constructor(private val context: Context) {
         return (own + RelayPool.DEFAULT_RELAYS).distinct().take(maxOf(8, own.size))
     }
 
+    // ---- Check and tidy relays ----
+
+    /** The user's relays: their NIP-65 list, else the relays set in Settings, else what Block uses now. */
+    fun myRelayUrls(): List<String> =
+        _relayEntries.value.map { it.url }.ifEmpty { NostrAccountStore.relays(context) ?: pool.urls.toList() }
+            .mapNotNull { normalizeRelayUrl(it) }.distinct()
+
+    /**
+     * Opens a fresh connection to each of [urls] at once, separate from the ones in use, and
+     * reports how long each took to connect (or that it didn't) within [timeoutMs].
+     */
+    suspend fun probeRelays(urls: List<String>, timeoutMs: Long = 8_000): List<com.example.btcwidget.nostr.core.RelayCheckup.Probe> {
+        if (urls.isEmpty()) return emptyList()
+        val probe = RelayPool()
+        return try {
+            probe.setRelays(urls)
+            val deadline = System.currentTimeMillis() + timeoutMs
+            fun settled(st: RelayStatus) = st.state == RelayStatus.State.CONNECTED || st.failures > 0 || st.state == RelayStatus.State.FAILED
+            while (System.currentTimeMillis() < deadline && !probe.status().all(::settled)) delay(250)
+            val byUrl = probe.status().associateBy { it.url }
+            urls.map { u ->
+                val st = byUrl[u]
+                com.example.btcwidget.nostr.core.RelayCheckup.Probe(
+                    u,
+                    st?.takeIf { it.state == RelayStatus.State.CONNECTED }?.let { it.connectMs ?: 0L },
+                    st?.lastError ?: if (st == null) "Blocked" else null
+                )
+            }
+        } finally {
+            probe.closeAll()
+        }
+    }
+
+    /** Relays most of the people the user follows write to (NIP-65), not already theirs. */
+    suspend fun suggestedRelays(limit: Int = 8): List<Pair<String, Int>> {
+        val follows = _following.value.take(300)
+        if (follows.isEmpty()) return emptyList()
+        loadWriteRelays(follows)
+        return com.example.btcwidget.nostr.core.RelayCheckup.suggestions(
+            follows.associateWith { writeRelays[it].orEmpty() },
+            mine = (myRelayUrls() + pool.urls).toSet(),
+            blocked = _blockedRelays.value.toSet(),
+            limit = limit
+        )
+    }
+
+    /** Takes [urls] out of the user's relays: their NIP-65 list (published) and the list set in Settings. */
+    suspend fun removeRelays(urls: Collection<String>) {
+        val gone = urls.map { it.trimEnd('/') }.toSet()
+        NostrAccountStore.relays(context)?.let { local -> setRelays(local.filter { it.trimEnd('/') !in gone }) }
+        val entries = _relayEntries.value.ifEmpty {
+            pool.urls.map { com.example.btcwidget.nostr.core.RelayLists.Entry(it, read = true, write = true) }
+        }
+        val kept = entries.filter { it.url.trimEnd('/') !in gone }
+        if (kept.size != entries.size || _relayEntries.value.isEmpty()) saveRelayList(kept)
+    }
+
     /** Adds [url] to the relays the user set in Settings (when they set some), so Block connects to it. */
     fun addToLocalRelays(url: String) {
         val local = NostrAccountStore.relays(context) ?: return
