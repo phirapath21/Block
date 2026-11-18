@@ -130,14 +130,62 @@ fun NoteList(
     }
     if (onLoadMore != null) LaunchedEffect(nearEnd, items.size) { if (nearEnd && items.isNotEmpty()) onLoadMore() }
 
-    LazyColumn(state = state, contentPadding = contentPadding, modifier = modifier.fillMaxSize()) {
-        if (header != null) item(key = "header", contentType = "header") { header() }
-        items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
-            NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
+    Box(modifier.fillMaxSize()) {
+        LazyColumn(state = state, contentPadding = contentPadding, modifier = Modifier.fillMaxSize()) {
+            if (header != null) item(key = "header", contentType = "header") { header() }
+            items(items, key = { it.key }, contentType = { it.note.kind }) { item ->
+                NoteCard(item.note, stats[item.note.id] ?: EmptyNoteStats, actions, repostedBy = item.repostedBy)
+            }
+            if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
         }
-        if (loadingMore) item(key = "more", contentType = "spinner") { Spinner() }
+        BackToTopButton(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp))
     }
 }
+
+/**
+ * "Back to top": a round ↑ that rises in once you're well down a list and start scrolling
+ * back up (when the bars come back), and glides you to the top. From far down it first
+ * jumps close to the top, so the trip is quick instead of a long scroll through everything.
+ */
+@Composable
+internal fun BackToTopButton(state: LazyListState, modifier: Modifier = Modifier) {
+    val farDown by remember { derivedStateOf { state.firstVisibleItemIndex >= BACK_TO_TOP_AFTER } }
+    val visible = farDown && LocalBarsVisible.current
+    val scope = rememberCoroutineScope()
+    val haptics = rememberHaptics()
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)) +
+            androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 500f), initialScale = 0.6f) +
+            androidx.compose.animation.slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 2 },
+        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) +
+            androidx.compose.animation.scaleOut(androidx.compose.animation.core.tween(120), targetScale = 0.6f),
+        modifier = modifier
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .shadow(10.dp, CircleShape)
+                .clip(CircleShape)
+                .background(SheetColor)
+                .border(0.75.dp, EInk.BodyStroke, CircleShape)
+                .clickable(onClickLabel = tr("Back to top")) {
+                    haptics.tick()
+                    scope.launch {
+                        if (state.firstVisibleItemIndex > 12) state.scrollToItem(6)
+                        state.animateScrollToItem(0)
+                    }
+                }
+                .testTag("back_to_top")
+        ) {
+            androidx.compose.material3.Icon(Glyphs.ArrowUp, contentDescription = tr("Back to top"), tint = SettingsAccent, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
+/** How many notes down before "Back to top" can show. */
+internal const val BACK_TO_TOP_AFTER = 8
 
 @Composable
 fun Spinner(modifier: Modifier = Modifier) {
