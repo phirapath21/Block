@@ -10,6 +10,7 @@ import com.example.btcwidget.nostr.core.Hex
 import com.example.btcwidget.nostr.core.Kind
 import com.example.btcwidget.nostr.core.Markdown
 import com.example.btcwidget.nostr.core.Nip19
+import com.example.btcwidget.nostr.core.WalletTip
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.nostr.core.RelayMessage
 import com.example.btcwidget.nostr.core.Schnorr
@@ -77,6 +78,19 @@ class NostrCoreTest {
         assertTrue(e.verify())
         assertFalse(e.copy(content = "gm").verify())
         assertTrue(Event.fromJson(e.toJson()).verify())
+    }
+
+    @Test
+    fun walletTipsReadTheZapRequestInAnInvoice() {
+        val other = "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+        val request = sign(UnsignedEvent(pubkey, 1, Kind.ZAP_REQUEST, listOf(listOf("p", other), listOf("amount", "21000")), "Thanks!"))
+        // Tipped by me: the person is who I tipped. Tipped to me: the person is who tipped.
+        assertEquals(WalletTip(other, "Thanks!"), WalletTip.of(request.toJson(), incoming = false))
+        assertEquals(WalletTip(pubkey, "Thanks!"), WalletTip.of(request.toJson(), incoming = true))
+        // Not a tip, or a request that isn't signed right.
+        assertNull(WalletTip.of("Coffee", incoming = true))
+        assertNull(WalletTip.of(request.copy(content = "changed").toJson(), incoming = true))
+        assertNull(WalletTip.of(sign(Events.note(pubkey, "hi")).toJson(), incoming = true))
     }
 
     @Test

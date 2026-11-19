@@ -12,6 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -36,15 +41,23 @@ import com.example.btcwidget.ui.main.EInk
  * bars or the side panel (your account, notifications, Bitcoin) use the same icon there.
  */
 /** [topLevel] pages are listed on Settings; the others open from within one (Proof of work, from Advanced). */
-enum class SettingsPage(val title: String, val summary: String, val icon: () -> androidx.compose.ui.graphics.vector.ImageVector, val topLevel: Boolean = true) {
-    ACCOUNT("Your account", "Accounts on this phone, your key, scheduled posts, log out", { NavIcons.Profile.outline }),
-    NOTIFICATIONS("Notifications", "What Block tells you about while it's closed", { NavIcons.Bell.outline }),
-    PRIVACY("Privacy and safety", "Muted words, web of trust, community rules", { Glyphs.Shield }),
-    DISPLAY("Display and language", "Theme, language, Bitcoin cards, videos, links", { Glyphs.Eye }),
-    WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
-    BITCOIN("Bitcoin and widgets", "Your stack, currency, price sources, refresh", { NavIcons.Bitcoin.outline }),
-    ADVANCED("Advanced", "Relays, message inbox, media servers, storage and cache", { Glyphs.Server }),
-    ABOUT("About Block", "Version, privacy policy, community rules", { Glyphs.Info }),
+enum class SettingsPage(
+    val title: String,
+    val summary: String,
+    val icon: () -> androidx.compose.ui.graphics.vector.ImageVector,
+    val topLevel: Boolean = true,
+    /** Where it sits on the Settings page (You, App, More) and the colour of its icon's tile. */
+    val group: String = "More",
+    val tile: Long = 0xFF536471
+) {
+    ACCOUNT("Your account", "Profile, your key, log out", { NavIcons.Profile.outline }, group = "You", tile = 0xFF1877CC),
+    NOTIFICATIONS("Notifications", "What reaches your phone", { NavIcons.Bell.outline }, group = "You", tile = 0xFFF91880),
+    PRIVACY("Privacy and safety", "Mute people and words, who you see", { Glyphs.Shield }, group = "You", tile = 0xFF00BA7C),
+    DISPLAY("Look and language", "Theme, language, videos", { Glyphs.Eye }, group = "App", tile = 0xFF9B6BFF),
+    WALLET("Wallet and tips", "Send and receive tips", { NavIcons.Wallet.outline }, group = "App", tile = 0xFFFFB300),
+    BITCOIN("Bitcoin and widgets", "Price on your home screen", { NavIcons.Bitcoin.outline }, group = "App", tile = 0xFFF7931A),
+    ADVANCED("Advanced", "Relays, storage, proof of work", { Glyphs.Server }),
+    ABOUT("About Block", "Version, privacy, community rules", { Glyphs.Info }),
     POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }, topLevel = false);
 
     companion object {
@@ -93,9 +106,32 @@ fun SettingsHome(accountName: String?, onOpen: (SettingsPage) -> Unit, needsAtte
             hits.forEach { (title, page) -> SettingsLinkRow(tr(title), summary = tr(page.title)) { onOpen(page) } }
             return@Column
         }
-        SettingsPage.entries.filter { it.topLevel }.forEach { page ->
-            val summary = if (page == SettingsPage.ACCOUNT && accountName != null) accountName + " · " + tr(page.summary) else tr(page.summary)
-            SettingsLinkRow(tr(page.title), summary = summary, icon = page.icon(), badge = page in needsAttention) { onOpen(page) }
+        // You, App, More: each a see-through card of rows, each row's icon on its own coloured tile.
+        SettingsPage.entries.filter { it.topLevel }.groupBy { it.group }.forEach { (group, pages) ->
+            Text(
+                tr(group).uppercase(), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(start = 18.dp, top = 8.dp, bottom = 6.dp)
+            )
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 8.dp).clip(com.example.btcwidget.ui.main.Radius.Large)
+                    .background(com.example.btcwidget.ui.main.CardColors.Fill)
+                    .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, com.example.btcwidget.ui.main.Radius.Large)
+            ) {
+                pages.forEachIndexed { i, page ->
+                    if (i > 0) androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = com.example.btcwidget.ui.main.CardColors.Edge)
+                    val summary = if (page == SettingsPage.ACCOUNT && accountName != null) accountName + " · " + tr(page.summary) else tr(page.summary)
+                    val tile = androidx.compose.ui.graphics.Color(page.tile)
+                    SettingsLinkRow(tr(page.title), summary = summary, badge = page in needsAttention, leading = {
+                        Box(Modifier.size(34.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp)).background(tile), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.Icon(
+                                page.icon(), contentDescription = null, modifier = Modifier.size(19.dp),
+                                // Dark ink on the light tiles (gold, orange), white on the rest.
+                                tint = if (tile.luminance() > 0.4f) androidx.compose.ui.graphics.Color.Black else androidx.compose.ui.graphics.Color.White
+                            )
+                        }
+                    }) { onOpen(page) }
+                }
+            }
         }
         Spacer(Modifier.height(24.dp))
     }
