@@ -8,7 +8,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.draggable
 import com.example.btcwidget.ui.main.EInk
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import android.Manifest
 import android.widget.Toast
@@ -19,7 +18,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

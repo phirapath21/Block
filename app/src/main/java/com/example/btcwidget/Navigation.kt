@@ -1,13 +1,11 @@
 package com.example.btcwidget
 
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack

@@ -1,6 +1,5 @@
 package com.example.btcwidget.ui.social
 
-import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize

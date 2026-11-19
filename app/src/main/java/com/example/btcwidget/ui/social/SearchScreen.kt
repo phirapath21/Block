@@ -30,8 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,11 +59,9 @@ import com.example.btcwidget.HashtagKey
 import com.example.btcwidget.NoteKey
 import com.example.btcwidget.ProfileKey
 import com.example.btcwidget.nostr.FeedItem
-import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.NostrRepository
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
-import com.example.btcwidget.ui.main.EInkChip
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch

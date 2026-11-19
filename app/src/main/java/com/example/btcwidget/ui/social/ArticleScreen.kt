@@ -1713,13 +1713,6 @@ private fun openLink(url: String, actions: NoteActions?, navigate: (NavKey) -> U
     }
 }
 
-/** Shares a link to the article (njump.me opens it in any browser or Nostr app). */
-private fun shareArticle(context: Context, article: Article) {
-    val link = "https://njump.me/" + article.naddr()
-    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, article.title + "\n" + link)
-    context.startActivity(Intent.createChooser(send, "Share article").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-}
-
 /** An article in a list: cover, title, summary, date,reading time, and saved reading progress badge. */
 @Composable
 internal fun ArticleRow(article: Article, onClick: () -> Unit) {

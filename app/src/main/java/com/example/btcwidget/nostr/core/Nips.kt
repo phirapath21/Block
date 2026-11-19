@@ -223,9 +223,6 @@ object CustomEmoji {
 
     /** "blob" for ":blob:", null for anything else. */
     fun code(content: String): String? = SHORTCODE.matchEntire(content)?.groupValues?.get(1)
-
-    /** How a reaction reads: a like is ♥, otherwise its emoji or ":code:". */
-    fun reactionLabel(content: String): String = if (content == "+" || content.isBlank()) "♥" else content
 }
 
 /** Splits note text into displayable pieces: text, links, images, hashtags and nostr: references. */

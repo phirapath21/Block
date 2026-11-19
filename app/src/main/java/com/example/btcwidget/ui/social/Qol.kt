@@ -9,14 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
-import androidx.compose.foundation.background
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.lazy.LazyListState

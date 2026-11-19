@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 
 /** Top of the side bar: avatar, name, handle and follow count, or a log-in prompt. */

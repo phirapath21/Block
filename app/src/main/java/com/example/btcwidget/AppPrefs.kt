@@ -152,7 +152,6 @@ object AppPrefs {
 
     // ---- Metrics on the widget ----
 
-    fun isModeEnabled(context: Context, mode: Int): Boolean = prefs(context).getBoolean(modeEnabled(mode), true)
     fun setModeEnabled(context: Context, mode: Int, enabled: Boolean) = edit(context) { putBoolean(modeEnabled(mode), enabled) }
 
     /** On/off state of every mode, indexed by mode. */

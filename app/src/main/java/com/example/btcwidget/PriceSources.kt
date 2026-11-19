@@ -103,20 +103,6 @@ object ApiParsers {
             }
             .sortedBy { it.time }
     }
-
-    /** Kraken OHLC rows: [time, open, high, low, close, vwap, volume, count]. */
-    fun krakenDailyCandles(json: String): List<PricePoint> {
-        val root = JSONObject(json)
-        val errors = root.optJSONArray("error")
-        if (errors != null && errors.length() > 0) error("Kraken: ${errors.getString(0)}")
-        val result = root.getJSONObject("result")
-        val key = result.keys().asSequence().firstOrNull { it != "last" } ?: error("Kraken returned no candles")
-        val candles = result.getJSONArray(key)
-        return (0 until candles.length()).map { i ->
-            val row = candles.getJSONArray(i)
-            PricePoint(row.getLong(0), row.getString(4).toDouble(), 86_400L)
-        }.sortedBy { it.time }
-    }
 }
 
 object PriceMath {

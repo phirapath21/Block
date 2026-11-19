@@ -71,7 +71,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation3.runtime.NavKey
 import com.example.btcwidget.nostr.AmberSigner
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.Profile

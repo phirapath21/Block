@@ -7,30 +7,21 @@ import com.example.btcwidget.ui.social.SettingsHeader
 import com.example.btcwidget.ui.social.SettingsNote
 import com.example.btcwidget.ui.social.SettingsRadioRow
 import com.example.btcwidget.ui.social.SettingsTextField
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.btcwidget.AppTheme
 import com.example.btcwidget.DataSources
 import com.example.btcwidget.PriceSource
@@ -121,44 +112,6 @@ fun BitcoinSettings(
         onMempoolUrl(cleanMempoolUrl)
     }
     if (!mempoolValid) SettingsNote(tr("Enter an https:// URL or leave it empty."))
-}
-
-/** A labelled settings row with controls on the right and an optional note under the label. */
-@Composable
-internal fun SettingRow(
-    label: String,
-    modifier: Modifier = Modifier,
-    note: String? = null,
-    dimmed: Boolean = false,
-    controls: @Composable RowScope.() -> Unit
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(
-                text = label,
-                color = if (dimmed) EInk.Caption else EInk.Value,
-                fontSize = 15.sp
-            )
-            if (note != null) {
-                Text(
-                    text = note,
-                    color = EInk.Caption,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = controls
-        )
-    }
 }
 
 /** Published copy of docs/privacy-policy.md (also the URL for the Play listing). */

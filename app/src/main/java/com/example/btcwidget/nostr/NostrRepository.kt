@@ -692,8 +692,6 @@ class NostrRepository private constructor(private val context: Context) {
         }
     }
 
-    fun cachedNote(id: String): Event? = notes[id]
-
     /** Hashtags starting with [prefix] in notes seen so far, most used first (for autocomplete). */
     fun hashtagSuggestions(prefix: String, limit: Int = 5): List<String> {
         val p = prefix.lowercase()
