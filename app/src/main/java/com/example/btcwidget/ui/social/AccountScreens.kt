@@ -65,7 +65,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -108,16 +107,15 @@ fun LoginScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val hasSigner = remember { AmberSigner.isInstalled(context) }
-    var mode by remember { mutableStateOf(startMode) }   // choose | bunker | nsec | create | backup
+    var mode by remember { mutableStateOf(startMode) }   // choose | bunker | nsec | create
     var input by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    var newNsec by remember { mutableStateOf<String?>(null) }
 
-    if (mode == "nsec" || mode == "backup") SecureScreen()
+    if (mode == "nsec") SecureScreen()
 
     Column(Modifier.fillMaxSize().screenBackground()) {
-        SocialTopBar(if (mode == "backup") tr("Save your key") else tr("Nostr account"), onBack = { if (mode == "choose" || mode == "backup") { if (mode == "backup") onCreated() else onBack() } else if (startMode != "choose") onBack() else mode = "choose" })
+        SocialTopBar(tr("Nostr account"), onBack = { if (mode == "choose") { onBack() } else if (startMode != "choose") onBack() else mode = "choose" })
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(20.dp)
         ) {
@@ -224,31 +222,9 @@ fun LoginScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     PillButton(tr("Create")) {
-                        vm.createAccount(name)?.let { newNsec = it; mode = "backup" }
+                        // No key to copy on day one: Home asks to save it from tomorrow.
+                        if (vm.createAccount(name) != null) onCreated()
                     }
-                }
-                "backup" -> {
-                    val nsec = newNsec.orEmpty()
-                    Text(tr("This is your private key"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        keyBackupExplainer(),
-                        color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
-                    )
-                    Text(
-                        nsec, color = EInk.Value, fontSize = 13.sp, fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.fillMaxWidth().background(EInk.Body).padding(12.dp)
-                    )
-                    Row(Modifier.padding(top = 14.dp)) {
-                        PillButton(tr("Copy"), filled = false, modifier = Modifier.padding(end = 8.dp)) { copySecret(context, nsec); vm.keyBackup.saved() }
-                        PillButton(tr("I saved it")) { vm.keyBackup.saved(); newNsec = null; onCreated() }
-                    }
-                    // Not now: Home reminds again in a few days.
-                    Text(
-                        tr("Later"), color = EInk.Caption, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(top = 18.dp).clip(RoundedCornerShape(50))
-                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.keyBackup.later(); newNsec = null; onCreated() }
-                            .padding(horizontal = 4.dp, vertical = 6.dp)
-                    )
                 }
             }
         }

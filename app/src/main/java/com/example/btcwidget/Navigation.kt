@@ -80,7 +80,8 @@ fun MainNavigation() {
         entry<LandingKey> {
           com.example.btcwidget.ui.social.LandingScreen(
             social,
-            onCreate = { navigate(LoginWithKey("create")) },
+            // Signing up is the two-step onboarding itself: it creates the account on its first step.
+            onCreate = { navigate(OnboardingKey) },
             onNsec = { navigate(LoginWithKey("nsec")) },
             onBunker = { navigate(LoginWithKey("bunker")) },
             onLoggedIn = leaveLanding,
@@ -94,7 +95,12 @@ fun MainNavigation() {
             onCreated = { leaveLanding(); navigate(OnboardingKey) }
           )
         }
-        entry<OnboardingKey> { com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.OnboardingScreen(social, onFinish = back) } }
+        entry<OnboardingKey> {
+          com.example.btcwidget.ui.social.ReadableColumn {
+            // Done: into Home, with the welcome page gone from under it.
+            com.example.btcwidget.ui.social.OnboardingScreen(social, onFinish = { leaveLanding(); back() })
+          }
+        }
         entry<EditProfileKey> { com.example.btcwidget.ui.social.ReadableColumn { EditProfileScreen(social, back) } }
         entry<ChatKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ChatScreen(social, key.peers.split(','), navigate, back) } }
         entry<FollowsKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.FollowListScreen(social, key.pubkey, key.followers, navigate, back) } }

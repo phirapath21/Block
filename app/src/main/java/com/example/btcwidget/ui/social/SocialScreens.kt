@@ -247,6 +247,8 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     )
                     // An account made here whose key isn't saved yet.
                     KeyBackupBanner(vm)
+                    // Right after signing up: hello, once.
+                    FirstHomeWelcome(vm)
                     PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
                         when {
                             // The shape of the feed while it loads, not a spinner.
@@ -352,16 +354,17 @@ fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
 @Composable
 private fun WelcomeScreen(vm: SocialViewModel, actions: NoteActions, onLogin: () -> Unit) {
     val stats by vm.stats.collectAsState()
-    val feed by produceKept<List<FeedItem>?>(null) { value = vm.hashtagFeed("bitcoin") }
+    // Newcomers saying hello: a friendly first look, whoever you are.
+    val feed by produceKept<List<FeedItem>?>(null) { value = vm.hashtagFeed("introductions") }
     NoteList(items = feed.orEmpty(), stats = stats, actions = actions, header = {
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(tr("Bitcoin people, on Nostr"), color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Your people.") + " " + tr("Your conversations."), color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text(
-                tr("An open social network with no company in charge. Your account is a key you own; post, follow, reply and zap sats."),
+                tr("Share what's on your mind and follow people you like. No ads, and nobody can take your account away."),
                 color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
             )
             PillButton(tr("Log in or create account"), onClick = onLogin)
-            Text("#bitcoin right now", color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp))
+            Text(tr("New here and saying hi"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp))
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         if (feed == null) Spinner()

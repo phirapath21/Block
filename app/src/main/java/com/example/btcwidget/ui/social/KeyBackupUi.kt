@@ -67,6 +67,11 @@ class KeyBackupState(private val app: Application, private val account: StateFlo
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
     internal fun needed(pubkey: String) { KeyBackup.markNeeded(app, pubkey); changes.value++ }
+    /** A new account whose key wasn't shown: remind from tomorrow, or after the first post. */
+    internal fun neededLater(pubkey: String) { KeyBackup.markNeededLater(app, pubkey); changes.value++ }
+
+    /** The user posted something. */
+    fun posted() { account.value?.pubkey?.let { KeyBackup.posted(app, it); changes.value++ } }
     internal fun saved(pubkey: String) { KeyBackup.markSaved(app, pubkey); changes.value++ }
 
     /** The user saved (copied, or said so) the current account's key. */
