@@ -28,14 +28,8 @@ suspend fun SocialViewModel.starterPeople(): List<Profile> = runCatching {
     known.mapNotNull { k -> profiles[k.pubkey]?.takeIf { p -> k.matches(p) } }
 }.getOrDefault(emptyList())
 
-suspend fun SocialViewModel.feedServices() = runCatching { repo.dvm.services() }.getOrDefault(emptyList())
-
 /** The feed, or the reason it couldn't load. */
-suspend fun SocialViewModel.dvmFeed(service: com.example.btcwidget.nostr.core.Dvm.Service): Result<List<FeedItem>> = runCatching { repo.dvm.feed(service) }
-
 suspend fun SocialViewModel.followSuggestions() = runCatching { repo.followSuggestions() }.getOrDefault(emptyList())
-
-suspend fun SocialViewModel.badgesOf(pubkey: String) = runCatching { repo.badges.of(pubkey) }.getOrDefault(emptyList())
 
 /** Publishes a long-form article (NIP-23 kind 30023); [onResult] gets the published Article or null. */
 fun SocialViewModel.publishArticle(unsigned: com.example.btcwidget.nostr.core.UnsignedEvent, onResult: (com.example.btcwidget.nostr.core.Article?) -> Unit) {

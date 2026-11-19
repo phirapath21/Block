@@ -37,17 +37,17 @@ import com.example.btcwidget.ui.main.EInk
 enum class SettingsPage(val title: String, val summary: String, val icon: () -> androidx.compose.ui.graphics.vector.ImageVector) {
     ACCOUNT("Your account", "Accounts on this phone, your key, scheduled posts, log out", { NavIcons.Profile.outline }),
     NOTIFICATIONS("Notifications", "What Block tells you about while it's closed", { NavIcons.Bell.outline }),
-    PRIVACY("Privacy and safety", "Muted words, web of trust, private lists", { Glyphs.Shield }),
+    PRIVACY("Privacy and safety", "Muted words, web of trust, community rules", { Glyphs.Shield }),
     DISPLAY("Display and language", "Theme, language, Bitcoin cards, videos, links", { Glyphs.Eye }),
-    RELAYS("Relays and servers", "Where your notes, messages and media go", { Glyphs.Server }),
-    POW("Proof of work", "Mine your posts so spam filters trust them (NIP-13)", { Glyphs.Pickaxe }),
     WALLET("Wallet and zaps", "Connect a Lightning wallet to zap in one tap", { Glyphs.Zap }),
     BITCOIN("Bitcoin and widgets", "Your stack, currency, price sources, refresh", { NavIcons.Bitcoin.outline }),
-    STORAGE("Storage and cache", "Event database, retention and media cache", { Glyphs.Server }),
+    ADVANCED("Advanced", "Relays, message inbox, media servers, storage and cache", { Glyphs.Server }),
     ABOUT("About Block", "Version, privacy policy, community rules", { Glyphs.Info });
 
     companion object {
-        fun of(name: String) = entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: ACCOUNT
+        /** A page by name; pages folded into Advanced (relays, storage) open it. */
+        fun of(name: String) = entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            ?: if (name.uppercase() in setOf("RELAYS", "STORAGE", "POW")) ADVANCED else ACCOUNT
     }
 }
 
@@ -59,12 +59,11 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Zaps" to SettingsPage.NOTIFICATIONS, "Messages" to SettingsPage.NOTIFICATIONS,
     "Muted words and hashtags" to SettingsPage.PRIVACY, "Muted conversations" to SettingsPage.PRIVACY, "Web of trust" to SettingsPage.PRIVACY,
     "Private bookmarks and mutes" to SettingsPage.PRIVACY, "Community rules" to SettingsPage.PRIVACY,
-    "Theme" to SettingsPage.DISPLAY, "Bitcoin in posts" to SettingsPage.DISPLAY, "Transaction cards" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
-    "Relays" to SettingsPage.RELAYS, "Message inbox relays" to SettingsPage.RELAYS, "Media servers" to SettingsPage.RELAYS,
+    "Theme" to SettingsPage.DISPLAY, "Bitcoin in posts" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,
+    "Relays" to SettingsPage.ADVANCED, "Message inbox relays" to SettingsPage.ADVANCED, "Media servers" to SettingsPage.ADVANCED,
     "Wallet (NWC)" to SettingsPage.WALLET,
-    "Proof of work" to SettingsPage.POW, "Difficulty" to SettingsPage.POW, "Match what my relays ask for" to SettingsPage.POW,
-    "Storage and cache" to SettingsPage.STORAGE, "Event database" to SettingsPage.STORAGE, "Media cache" to SettingsPage.STORAGE,
-    "Your stack" to SettingsPage.BITCOIN, "Currency" to SettingsPage.BITCOIN, "Widget theme" to SettingsPage.BITCOIN,
+    "Storage and cache" to SettingsPage.ADVANCED, "Event database" to SettingsPage.ADVANCED, "Media cache" to SettingsPage.ADVANCED,
+    "Your stack" to SettingsPage.BITCOIN, "Widgets" to SettingsPage.BITCOIN, "Currency" to SettingsPage.BITCOIN, "Widget theme" to SettingsPage.BITCOIN,
     "Refresh every" to SettingsPage.BITCOIN, "BTC price" to SettingsPage.BITCOIN, "THB price" to SettingsPage.BITCOIN,
     "Privacy policy" to SettingsPage.ABOUT, "Version" to SettingsPage.ABOUT,
 )
@@ -131,11 +130,9 @@ fun SettingsPageScreen(
                 SettingsPage.NOTIFICATIONS -> NotificationsPage(vm)
                 SettingsPage.PRIVACY -> PrivacyPage(vm, navigate)
                 SettingsPage.DISPLAY -> DisplayPage(vm)
-                SettingsPage.RELAYS -> RelaysPage(vm, navigate)
-                SettingsPage.POW -> PowSettingsPage(vm)
                 SettingsPage.WALLET -> Unit // shown above
                 SettingsPage.BITCOIN -> bitcoin()
-                SettingsPage.STORAGE -> StoragePage(vm)
+                SettingsPage.ADVANCED -> { RelaysPage(vm, navigate); SettingsDivider(); StoragePage(vm) }
                 SettingsPage.ABOUT -> AboutPage(appVersion, navigate)
             }
         }

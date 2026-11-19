@@ -105,6 +105,7 @@ fun MainNavigation() {
         entry<ArticleKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ArticleScreen(social, key.naddr, navigate, back) } }
         entry<NostrSettingsKey> { com.example.btcwidget.ui.social.ReadableColumn { SettingsEntry(social, "ACCOUNT", navigate, back) } }
         entry<SettingsKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { SettingsEntry(social, key.page, navigate, back) } }
+        entry<WidgetsKey> { com.example.btcwidget.ui.main.WidgetsRoute(onBack = back, onSetUpStack = back) }
         entry<ListsKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ListsScreen(social, navigate, key.owner, back) } }
         entry<ListKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.ListScreen(social, key.owner, key.d, navigate, back) } }
         entry<PackKey> { key -> com.example.btcwidget.ui.social.ReadableColumn { com.example.btcwidget.ui.social.FollowPackScreen(social, key.address, navigate, back) } }
@@ -145,6 +146,6 @@ private fun SettingsEntry(social: SocialViewModel, page: String, navigate: (andr
   com.example.btcwidget.ui.social.SettingsPageScreen(
     social, com.example.btcwidget.ui.social.SettingsPage.of(page), navigate, back,
     appVersion = main.appVersion,
-    bitcoin = { com.example.btcwidget.ui.main.BitcoinSettingsRoute(main) }
+    bitcoin = { com.example.btcwidget.ui.main.BitcoinSettingsRoute(main, onOpenWidgets = { navigate(WidgetsKey) }) }
   )
 }

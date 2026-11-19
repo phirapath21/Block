@@ -59,6 +59,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object NostrSettingsKey : NavKey
 /** One Settings page ([com.example.btcwidget.ui.social.SettingsPage] name). */
 @Serializable data class SettingsKey(val page: String) : NavKey
+/** Settings › Bitcoin and widgets › Widgets: what the home-screen widget shows. */
+@Serializable data object WidgetsKey : NavKey
 
 /** Someone's lists of people (NIP-51), from their profile. */
 @Serializable data class ListsKey(val owner: String) : NavKey

@@ -10,25 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Proof of work (NIP-13) for what you post: how much to mine, and this phone's mining speed. */
+/**
+ * Proof of work (NIP-13), only when a relay asks for it: some relays take posts only with enough
+ * work, so Block mines what they ask (within reach) before sending. No setting: it's automatic.
+ */
 class PowSettings(private val app: Application, private val repo: NostrRepository, private val scope: CoroutineScope) {
-
-    private val _difficulty = MutableStateFlow(AppPrefs.powDifficulty(app))
-    /** Bits of proof of work mined into new posts, replies and quotes (0 = off). */
-    val difficulty: StateFlow<Int> = _difficulty.asStateFlow()
-    fun setDifficulty(bits: Int) {
-        val b = bits.coerceIn(0, Pow.MAX_DIFFICULTY)
-        AppPrefs.setPowDifficulty(app, b)
-        _difficulty.value = b
-    }
-
-    private val _matchRelays = MutableStateFlow(AppPrefs.powMatchRelays(app))
-    /** Mine at least what the relays a post goes to ask for (NIP-11). */
-    val matchRelays: StateFlow<Boolean> = _matchRelays.asStateFlow()
-    fun setMatchRelays(match: Boolean) {
-        AppPrefs.setPowMatchRelays(app, match)
-        _matchRelays.value = match
-    }
 
     private val _hashRate = MutableStateFlow(AppPrefs.powHashRate(app).toDouble())
     /** This phone's hashes per second (0 until measured), for "≈ N s" estimates. */
@@ -56,11 +42,10 @@ class PowSettings(private val app: Application, private val repo: NostrRepositor
     val relayPow: StateFlow<Pair<Int, String?>> = _relayPow.asStateFlow()
     fun checkRelayPow() = scope.launch { _relayPow.value = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null) }
 
-    /** [chosen] bits, raised to what the relays ask for (when that's on and within reach). */
-    internal suspend fun bitsFor(chosen: Int): Int {
-        if (!_matchRelays.value) return chosen
+    /** What the relays a post goes to ask for (NIP-11), when within reach; 0 when none ask. */
+    internal suspend fun bitsNeeded(): Int {
         val (asked, _) = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null).also { _relayPow.value = it }
-        return if (asked in 1..RELAY_POW_LIMIT) maxOf(chosen, asked) else chosen
+        return if (asked in 1..RELAY_POW_LIMIT) asked else 0
     }
 }
 

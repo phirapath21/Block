@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -41,7 +43,7 @@ import com.example.btcwidget.ThbSource
  * price sources. Its state lives in [MainScreenViewModel] with the price data.
  */
 @Composable
-fun BitcoinSettingsRoute(viewModel: MainScreenViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun BitcoinSettingsRoute(viewModel: MainScreenViewModel = androidx.lifecycle.viewmodel.compose.viewModel(), onOpenWidgets: () -> Unit = {}) {
     val settings by viewModel.settings.collectAsState()
     val state by viewModel.uiState.collectAsState()
     val data = (state as? MainScreenUiState.Success)?.data
@@ -49,6 +51,11 @@ fun BitcoinSettingsRoute(viewModel: MainScreenViewModel = androidx.lifecycle.vie
         val btc = settings.stackSats / Stack.SATS_PER_BTC.toDouble()
         com.example.btcwidget.PriceFormat.format(btc * com.example.btcwidget.PriceFormat.price(it, settings.currency), settings.currency)
     }
+    com.example.btcwidget.ui.social.SettingsLinkRow(
+        tr("Widgets"), summary = tr("What the home-screen widget shows, and in which order"),
+        icon = com.example.btcwidget.ui.social.NavIcons.Widgets.outline, onClick = onOpenWidgets
+    )
+    SettingsDivider()
     BitcoinSettings(
         stackSats = settings.stackSats, stackUnit = settings.stackUnit, stackValue = stackValue, onStackChange = viewModel::setStack,
         currency = settings.currency, onCurrency = viewModel::setCurrency,
@@ -156,3 +163,30 @@ internal fun SettingRow(
 
 /** Published copy of docs/privacy-policy.md (also the URL for the Play listing). */
 const val PRIVACY_POLICY_URL = "https://github.com/phirapath21/Block/blob/main/docs/privacy-policy.md"
+
+/**
+ * Settings › Bitcoin and widgets › Widgets: every panel the blockclock widget can show, which ones
+ * it cycles through and in what order. Its state lives in [MainScreenViewModel] with the price data.
+ */
+@Composable
+fun WidgetsRoute(onBack: () -> Unit, onSetUpStack: () -> Unit, viewModel: MainScreenViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val settings by viewModel.settings.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.start() }
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().screenBackground()) {
+        com.example.btcwidget.ui.social.SocialTopBar(tr("Widgets"), onBack)
+        WidgetsScreen(
+            data = (state as? MainScreenUiState.Success)?.data,
+            currencySetting = settings.currency,
+            modeStates = settings.modeStates,
+            onModeToggle = viewModel::setModeEnabled,
+            order = settings.modeOrder,
+            onOrderChange = viewModel::setModeOrder,
+            collapsedCategories = settings.collapsedCategories,
+            onToggleCategory = viewModel::toggleCategory,
+            stackSats = settings.stackSats,
+            onSetUpStack = onSetUpStack,
+            modifier = Modifier.navigationBarsPadding()
+        )
+    }
+}

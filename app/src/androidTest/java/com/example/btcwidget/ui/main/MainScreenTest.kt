@@ -33,19 +33,12 @@ class MainScreenTest {
         btcCirculation = 19_912_345.0, timestamp = 0L
     )
 
-    private fun setContent(currency: String = "USD") {
+    private fun setContent() {
         composeTestRule.setContent {
             var tab by remember { mutableStateOf(MainTab.HOME) }
             MainScreenContent(
-                state = MainScreenUiState.Success(sample),
                 selectedTab = tab,
-                modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
-                currencySetting = currency,
-                onCurrencySelected = {},
-                refreshInterval = 30,
-                onRefreshIntervalSelected = {},
                 onTabSelected = { tab = it },
-                onModeToggle = { _, _ -> },
                 onItemClick = {},
                 settingsContent = { com.example.btcwidget.ui.social.SettingsHome(accountName = null, onOpen = { openedSettings = it }) }
             )
@@ -74,12 +67,7 @@ class MainScreenTest {
                 screenWidthDp = 840; screenHeightDp = 380; orientation = android.content.res.Configuration.ORIENTATION_LANDSCAPE
             }
             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalConfiguration provides wide) {
-                MainScreenContent(
-                    state = MainScreenUiState.Success(sample), selectedTab = MainTab.HOME,
-                    modeStates = List(BlockclockMetrics.MODE_COUNT) { true }, currencySetting = "USD", onCurrencySelected = {},
-                    refreshInterval = 30, onRefreshIntervalSelected = {}, onTabSelected = {},
-                    onModeToggle = { _, _ -> }, onItemClick = {}
-                )
+                MainScreenContent(selectedTab = MainTab.HOME, onTabSelected = {}, onItemClick = {})
             }
         }
         composeTestRule.onNodeWithTag("side_rail").assertExists()
@@ -138,23 +126,24 @@ class MainScreenTest {
         org.junit.Assert.assertEquals(com.example.btcwidget.ui.social.SettingsPage.BITCOIN, openedSettings)
     }
 
-    @Test
-    fun widgets_offMetricsStayVisibleWithTheirSwitch() {
+    /** The Widgets page (Settings › Bitcoin and widgets › Widgets) with fixed data. */
+    private fun setWidgets(states: List<Boolean> = List(BlockclockMetrics.MODE_COUNT) { true }, onToggle: (Int, Boolean) -> Unit = { _, _ -> }) {
         composeTestRule.setContent {
-            val states = remember { androidx.compose.runtime.mutableStateListOf(*Array(14) { it != 1 }) } // SATS off
-            MainScreenContent(
-                state = MainScreenUiState.Success(sample),
-                selectedTab = MainTab.WIDGETS,
-                modeStates = states,
-                currencySetting = "USD",
-                onCurrencySelected = {},
-                refreshInterval = 30,
-                onRefreshIntervalSelected = {},
-                onTabSelected = {},
-                onModeToggle = { index, on -> states[index] = on },
-                onItemClick = {}
+            var collapsed by remember { mutableStateOf(emptySet<com.example.btcwidget.MetricCategory>()) }
+            WidgetsScreen(
+                data = sample, currencySetting = "USD", modeStates = states, onModeToggle = onToggle,
+                order = BlockclockMetrics.MODE_KEYS, onOrderChange = {},
+                collapsedCategories = collapsed,
+                onToggleCategory = { c -> collapsed = if (c in collapsed) collapsed - c else collapsed + c },
+                stackSats = 0, onSetUpStack = {}
             )
         }
+    }
+
+    @Test
+    fun widgets_offMetricsStayVisibleWithTheirSwitch() {
+        val states = androidx.compose.runtime.mutableStateListOf(*Array(BlockclockMetrics.MODE_COUNT) { it != 1 }) // SATS off
+        setWidgets(states) { index, on -> states[index] = on }
         // The switched-off SATS panel is still shown, with its switch off.
         scrollWidgetsTo(hasContentDescription(sats))
         composeTestRule.onNodeWithContentDescription(sats).assertExists()
@@ -164,33 +153,16 @@ class MainScreenTest {
     }
 
     @Test
-    fun widgets_tabCountsMetricsOnTheWidget() {
-        setContent()
-        openFromSideBar("Widgets")
-        // STACK needs holdings, so 16 of the 17 modes are available.
+    fun widgets_countMetricsOnTheWidget() {
+        setWidgets()
+        // STACK needs holdings, so all but one of the modes are available.
         val available = BlockclockMetrics.MODE_COUNT - 1
         composeTestRule.onNodeWithText("$available of $available", substring = true).assertExists()
     }
 
     @Test
     fun widgets_sectionsCollapse() {
-        composeTestRule.setContent {
-            var collapsed by remember { mutableStateOf(emptySet<com.example.btcwidget.MetricCategory>()) }
-            MainScreenContent(
-                state = MainScreenUiState.Success(sample),
-                selectedTab = MainTab.WIDGETS,
-                modeStates = List(BlockclockMetrics.MODE_COUNT) { true },
-                currencySetting = "USD",
-                onCurrencySelected = {},
-                refreshInterval = 30,
-                onRefreshIntervalSelected = {},
-                onTabSelected = {},
-                onModeToggle = { _, _ -> },
-                onItemClick = {},
-                collapsedCategories = collapsed,
-                onToggleCategory = { c -> collapsed = if (c in collapsed) collapsed - c else collapsed + c }
-            )
-        }
+        setWidgets()
         scrollWidgetsTo(hasContentDescription(sats))
         composeTestRule.onNodeWithContentDescription(sats).assertExists()
         scrollWidgetsTo(hasText("Market"))

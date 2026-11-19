@@ -30,7 +30,7 @@ object Kind {
     /** What timelines show: notes, polls, picture and video posts and highlights. */
     /** A highlighted passage (NIP-84). */
     const val HIGHLIGHT = 9802
-    val POSTS = listOf(TEXT_NOTE, POLL, PICTURE, VIDEO, SHORT_VIDEO, HIGHLIGHT)
+    val POSTS = listOf(TEXT_NOTE, POLL, PICTURE, VIDEO, SHORT_VIDEO)
 }
 
 /** An event before signing: everything but id and sig. */

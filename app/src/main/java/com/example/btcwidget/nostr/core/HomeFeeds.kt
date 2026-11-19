@@ -1,6 +1,6 @@
 package com.example.btcwidget.nostr.core
 
-/** A feed the user can pick for Home, like Primal's feed menu. Saved as a short string. */
+/** A feed the user can pick for Home: who they follow, a topic, or a list. Saved as a short string. */
 sealed interface HomeFeed {
     val title: String
     val subtitle: String
@@ -13,31 +13,10 @@ sealed interface HomeFeed {
         override val id get() = if (replies) "following+replies" else "following"
     }
 
-    /** Recent notes from everyone on your relays, or on one [relay]. */
-    data class Global(val relay: String?) : HomeFeed {
-        override val title get() = if (relay == null) "Global" else "Relay: " + relay.removePrefix("wss://").removePrefix("ws://")
-        override val subtitle get() = if (relay == null) "Recent notes from everyone on your relays" else "Recent notes on $relay"
-        override val id get() = if (relay == null) "global" else "global:$relay"
-    }
-
     data class Hashtag(val tag: String) : HomeFeed {
         override val title get() = "Topic: $tag"
         override val subtitle get() = "All notes tagged #$tag"
         override val id get() = "tag:$tag"
-    }
-
-    /** A feed from a Data Vending Machine (NIP-90). */
-    data class Dvm(val pubkey: String, val dvmId: String, val name: String) : HomeFeed {
-        override val title get() = name
-        override val subtitle get() = "Picked by a feed service (DVM)"
-        override val id get() = "dvm:$pubkey:$dvmId:$name"
-    }
-
-    /** Picture posts (NIP-68) or video posts (NIP-71), by the people you follow or by [everyone]. */
-    data class Media(val videos: Boolean, val everyone: Boolean) : HomeFeed {
-        override val title get() = (if (videos) "Videos" else "Pictures") + if (everyone) ": everyone" else ""
-        override val subtitle get() = (if (videos) "Video posts" else "Picture posts") + if (everyone) " from everyone on your relays" else " by your follows"
-        override val id get() = (if (videos) "videos" else "pictures") + if (everyone) ":all" else ""
     }
 
     /** Notes by the people in a list (NIP-51 kind 30000), yours or someone else's. */
@@ -48,25 +27,15 @@ sealed interface HomeFeed {
     }
 
     companion object {
-        val DEFAULTS: List<HomeFeed> = listOf(Following(false), Following(true), Global(null))
-
-        /** Ready-made feeds offered under "Add a feed". */
-        val SUGGESTED: List<HomeFeed> = listOf(Media(false, false), Media(true, false), Media(false, true), Media(true, true))
+        val DEFAULTS: List<HomeFeed> = listOf(Following(false), Following(true))
 
         fun parse(id: String): HomeFeed? = when {
             id == "following" -> Following(false)
             id == "following+replies" -> Following(true)
-            id == "global" -> Global(null)
-            id == "pictures" -> Media(videos = false, everyone = false)
-            id == "pictures:all" -> Media(videos = false, everyone = true)
-            id == "videos" -> Media(videos = true, everyone = false)
-            id == "videos:all" -> Media(videos = true, everyone = true)
-            id.startsWith("global:") -> normalizeRelayUrl(id.removePrefix("global:"))?.let { Global(it) }
             id.startsWith("tag:") -> cleanTag(id.removePrefix("tag:"))?.let { Hashtag(it) }
-            id.startsWith("dvm:") -> id.removePrefix("dvm:").split(':', limit = 3).takeIf { it.size == 3 && Hex.isKey(it[0]) && it[1].isNotEmpty() }
-                ?.let { Dvm(it[0], it[1], it[2].ifBlank { "Feed" }) }
             id.startsWith("list:") -> id.removePrefix("list:").split(':', limit = 3).takeIf { it.size == 3 && Hex.isKey(it[0]) && it[1].isNotEmpty() }
                 ?.let { People(it[0], it[1], it[2].ifBlank { "List" }) }
+            // Feeds that no longer exist (global, relay, DVM, pictures, videos) are dropped.
             else -> null
         }
 

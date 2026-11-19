@@ -165,7 +165,7 @@ fun ArticleScreen(vm: SocialViewModel, naddr: String, navigate: (NavKey) -> Unit
     val headings = remember(blocks) {
         blocks.mapIndexedNotNull { idx, b ->
             (b as? Markdown.Block.Heading)?.let { h ->
-                val title = com.example.btcwidget.nostr.core.Highlights.textOf(h.spans).trim()
+                val title = com.example.btcwidget.nostr.core.spansText(h.spans).trim()
                 if (title.isNotEmpty()) Triple(idx, h.level, title) else null
             }
         }
@@ -585,13 +585,8 @@ private fun ArticleBody(
         }
     }
 
-    // ---- Phase 4: Interactive Highlights & Quote-Post to Feed ----
-    var reload by rememberSaveable { mutableIntStateOf(0) }
-    val highlights by produceKept(emptyList<com.example.btcwidget.nostr.core.Highlights.Highlight>(), article.event.id, reload) {
-        value = vm.highlightsOf(article)
-    }
+    // Long-press a paragraph: share it as a quote, read aloud from there, or copy it.
     var menuFor by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    var commentFor by remember { mutableStateOf<String?>(null) }
     var quoteToFeedText by remember { mutableStateOf<String?>(null) }
     var focusedBlockIdx by remember { mutableIntStateOf(-1) }
     var showShareStudio by remember { mutableStateOf(false) }
@@ -601,11 +596,6 @@ private fun ArticleBody(
             delay(2600)
             focusedBlockIdx = -1
         }
-    }
-
-    fun highlightNow(text: String, comment: String?) {
-        if (account == null) { navigate(LoginKey); return }
-        vm.highlight(article, text, comment) { reload++ }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -777,7 +767,6 @@ private fun ArticleBody(
                 items(blocks.size, key = { "b$it" }) { i ->
                     val block = blocks[i]
                     val text = remember(block) { blockText(block) }
-                    val marked = text != null && highlights.any { h -> text.contains(h.text) || (h.text.length > 20 && h.text.contains(text)) }
                     val isSpoken = currentSayingBlockIdx == i
                     val isFocused = focusedBlockIdx == i
                     Box(
@@ -793,9 +782,6 @@ private fun ArticleBody(
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                         .background(HighlightTint, RoundedCornerShape(10.dp))
                                         .border(1.5.dp, EInk.Accent, RoundedCornerShape(10.dp))
-                                    marked -> Modifier
-                                        .padding(horizontal = 10.dp)
-                                        .background(HighlightTint, RoundedCornerShape(8.dp))
                                     else -> Modifier
                                 }
                             )
@@ -815,82 +801,9 @@ private fun ArticleBody(
                     )
                 }
 
-                // ---- Phase 4: Interactive Highlights Section (Tap to Jump & Quote-Post) ----
-                if (highlights.isNotEmpty()) item(key = "highlights") {
-                    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(top = 8.dp))
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(tr("Highlights ({0})", highlights.size), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(tr("Tap to jump"), color = EInk.Caption, fontSize = 12.sp)
-                    }
-                    highlights.take(30).forEach { h ->
-                        val matchingBlockIdx = remember(h.text, blocks) {
-                            blocks.indexOfFirst { b ->
-                                val bt = blockText(b) ?: return@indexOfFirst false
-                                bt.contains(h.text) || (h.text.length > 20 && h.text.contains(bt))
-                            }
-                        }
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 5.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(EInk.Body)
-                                .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
-                                .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = matchingBlockIdx >= 0) {
-                                    if (matchingBlockIdx >= 0) {
-                                        focusedBlockIdx = matchingBlockIdx
-                                        scope.launch {
-                                            listState.animateScrollToItem(headerItemsCount + matchingBlockIdx)
-                                        }
-                                    }
-                                }
-                                .padding(12.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Avatar(profiles[h.event.pubkey], h.event.pubkey, size = 24, onClick = { actions.openProfile(h.event.pubkey) })
-                                Text(
-                                    profiles[h.event.pubkey]?.bestName ?: Profile.shortNpub(h.event.pubkey),
-                                    color = EInk.Value,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                )
-                                Box(
-                                    Modifier
-                                        .clip(RoundedCornerShape(50))
-                                        .screenBackground()
-                                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
-                                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { quoteToFeedText = h.text }
-                                        .padding(horizontal = 9.dp, vertical = 3.dp)
-                                ) {
-                                    Text(tr("Share quote"), color = EInk.Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                            Row(Modifier.padding(top = 8.dp)) {
-                                Spacer(Modifier.width(3.dp).heightIn(min = 18.dp).background(HighlightOrange))
-                                Text(
-                                    h.text,
-                                    color = EInk.Label,
-                                    fontSize = 14.sp,
-                                    fontStyle = FontStyle.Italic,
-                                    maxLines = 4,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            h.comment?.let {
-                                Text(it, color = EInk.Value, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
-                            }
-                        }
-                    }
-                }
                 item(key = "end") {
                     Text(
-                        tr("Long-press a paragraph to highlight, quote, or listen from there."),
+                        tr("Long-press a paragraph to quote it, copy it, or listen from there."),
                         color = EInk.Caption,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
@@ -972,8 +885,6 @@ private fun ArticleBody(
     menuFor?.let { (blockIdx, text) ->
         val speakIdx = speakableBlocks.indexOfFirst { it.first == blockIdx }
         ActionSheet(onDismiss = { menuFor = null }, actions = buildList {
-            add(SheetAction(Glyphs.Quote, tr("Highlight")) { highlightNow(text, null) })
-            add(SheetAction(Glyphs.Comment, tr("Highlight with a comment")) { commentFor = text })
             add(SheetAction(Glyphs.Share, tr("Share quote to feed")) { quoteToFeedText = text })
             if (speakIdx >= 0 && ttsReady) {
                 add(SheetAction(Glyphs.SoundOn, tr("Read aloud from here")) { speakAtCursor(speakIdx) })
@@ -1012,22 +923,6 @@ private fun ArticleBody(
         )
     }
 
-    commentFor?.let { text ->
-        var comment by remember { mutableStateOf("") }
-        BlockDialog(
-            onDismiss = { commentFor = null }, title = tr("Highlight with a comment"),
-            text = "“" + text.take(160) + (if (text.length > 160) "…" else "") + "”",
-            confirmLabel = tr("Highlight"), confirmEnabled = comment.isNotBlank(),
-            onConfirm = { commentFor = null; highlightNow(text, comment) }
-        ) {
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it.take(500) },
-                placeholder = { Text(tr("Your comment")) },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
 
     quoteToFeedText?.let { quoteText ->
         var userThought by remember { mutableStateOf("") }
@@ -1657,15 +1552,14 @@ private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
     }
 }
 
-private val HighlightOrange get() = EInk.Accent
 private val HighlightTint = Color(0x26F7931A)
 
-/** A block's plain text, for highlighting (null for images, code and rules). */
+/** A block's plain text, to quote, copy or read aloud (null for images, code and rules). */
 private fun blockText(block: Markdown.Block): String? = when (block) {
-    is Markdown.Block.Paragraph -> com.example.btcwidget.nostr.core.Highlights.textOf(block.spans)
-    is Markdown.Block.ListItem -> com.example.btcwidget.nostr.core.Highlights.textOf(block.spans)
-    is Markdown.Block.Quote -> com.example.btcwidget.nostr.core.Highlights.textOf(block.spans)
-    is Markdown.Block.Heading -> com.example.btcwidget.nostr.core.Highlights.textOf(block.spans)
+    is Markdown.Block.Paragraph -> com.example.btcwidget.nostr.core.spansText(block.spans)
+    is Markdown.Block.ListItem -> com.example.btcwidget.nostr.core.spansText(block.spans)
+    is Markdown.Block.Quote -> com.example.btcwidget.nostr.core.spansText(block.spans)
+    is Markdown.Block.Heading -> com.example.btcwidget.nostr.core.spansText(block.spans)
     else -> null
 }?.takeIf { it.isNotBlank() }
 

@@ -45,8 +45,7 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
     val thread by produceKept<NostrRepository.Thread?>(null, noteId, reload) { value = vm.thread(noteId) }
     Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(tr("Post"), onBack)
-        // Bitcoin cards here use the "post's page" style.
-        SocialScaffold(vm, navigate) { actions -> androidx.compose.runtime.CompositionLocalProvider(LocalEmbedPlace provides EmbedPlace.POST) {
+        SocialScaffold(vm, navigate) { actions -> run {
             val t = thread
             if (t == null) {
                 FeedSkeleton(rows = 3)

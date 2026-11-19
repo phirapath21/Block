@@ -52,15 +52,12 @@ internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
             if (repostMenu) RepostSheet(note, stats, actions, onDismiss = { repostMenu = false })
         }
         Box {
-            var picker by remember { mutableStateOf(false) }
-            // An emoji reaction shows as that emoji; a like (or custom emoji) as the heart.
+            // Like only, as on X. An emoji reaction sent from another app still shows as that emoji.
             val emoji = stats.myReaction?.takeIf { stats.likedByMe && it != "+" && com.example.btcwidget.nostr.core.CustomEmoji.code(it) == null }
             ActionButton(
                 if (stats.likedByMe) Glyphs.Liked else Glyphs.Like, stats.likes, if (stats.likedByMe) "Liked" else "Like",
-                tint = ActionColors.Like.takeIf { stats.likedByMe }, emoji = emoji,
-                onLongClick = { if (!stats.likedByMe) picker = true }
+                tint = ActionColors.Like.takeIf { stats.likedByMe }, emoji = emoji
             ) { actions.like(note) }
-            ReactionMenu(picker, note, actions, onDismiss = { picker = false })
         }
         val sats = (stats.zapMsat / 1000).toInt()
         // Not coloured: the zap total isn't split by who zapped.
@@ -123,28 +120,3 @@ internal fun RepostSheet(note: Event, stats: NoteStats, actions: NoteActions, on
     ))
 }
 
-/** Emoji to react with, like X's long-press: common ones, then the note's and your custom emoji. */
-private val QUICK_REACTIONS = listOf("🤙", "🔥", "😂", "🫂", "👀", "⚡", "🙏", "💯", "😢", "🧡")
-
-@Composable
-private fun ReactionMenu(expanded: Boolean, note: Event, actions: NoteActions, onDismiss: () -> Unit) {
-    BlockDropdown(expanded = expanded, onDismiss = onDismiss) {
-        val custom = remember(note.id) { com.example.btcwidget.nostr.core.CustomEmoji.of(note) } + actions.customEmojis
-        Column(Modifier.padding(horizontal = 8.dp).widthIn(max = 280.dp)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                QUICK_REACTIONS.forEach { emoji ->
-                    Text(
-                        emoji, fontSize = 22.sp,
-                        modifier = Modifier.clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React {0}", emoji)) { onDismiss(); actions.react(note, emoji, null) }.padding(6.dp)
-                    )
-                }
-                custom.entries.take(30).forEach { (code, url) ->
-                    AsyncImage(
-                        model = url, contentDescription = ":$code:",
-                        modifier = Modifier.size(34.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React :{0}:", code)) { onDismiss(); actions.react(note, ":$code:", url) }.padding(6.dp)
-                    )
-                }
-            }
-        }
-    }
-}

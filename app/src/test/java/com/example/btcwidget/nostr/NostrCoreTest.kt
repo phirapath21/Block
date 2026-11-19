@@ -1,6 +1,5 @@
 package com.example.btcwidget.nostr
 
-import com.example.btcwidget.nostr.core.Badges
 import com.example.btcwidget.nostr.core.Bech32
 import com.example.btcwidget.nostr.core.ClientMessage
 import com.example.btcwidget.nostr.core.Content
@@ -564,17 +563,8 @@ class OutboxTest {
     }
 
     @Test
-    fun badgesNeedARealAwardAndSuggestionsRankByShares() {
-        val issuer = "a".repeat(64); val me = "b".repeat(64); val award = "c".repeat(64)
-        val profile = Event("p", me, 1, Badges.PROFILE, listOf(listOf("d", "profile_badges"), listOf("a", "30009:$issuer:bravery"), listOf("e", award), listOf("a", "junk")), "", "")
-        val shown = Badges.shown(profile)
-        assertEquals(listOf(Badges.Ref(issuer, "bravery") to award), shown)
-        val good = Event(award, issuer, 1, Badges.AWARD, listOf(listOf("a", "30009:$issuer:bravery"), listOf("p", me)), "", "")
-        assertTrue(Badges.isValidAward(good, shown[0].first, me))
-        assertFalse(Badges.isValidAward(good.copy(pubkey = me), shown[0].first, me))
-        val def = Badges.Definition.of(Event("d", issuer, 1, Badges.DEFINITION, listOf(listOf("d", "bravery"), listOf("name", "Brave"), listOf("image", "http://x")), "", ""))!!
-        assertEquals("Brave", def.name); assertNull(def.image)
-
+    fun suggestionsRankByShares() {
+        val me = "b".repeat(64)
         val f1 = "1".repeat(64); val f2 = "2".repeat(64); val x = "3".repeat(64); val y = "4".repeat(64)
         val ranked = com.example.btcwidget.nostr.core.FollowSuggestions.rank(me, setOf(f1, f2), mapOf(f1 to listOf(x, y, f2, me), f2 to listOf(x, x)))
         assertEquals(listOf(x to 2), ranked)

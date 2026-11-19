@@ -29,7 +29,6 @@ internal fun PrivacyPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val mutes by vm.mutes.collectAsState()
     val wot by vm.wotFilter.collectAsState()
     val trustSize by vm.trustSize.collectAsState()
-    val private by vm.devicePrefs.privateLists.collectAsState()
     var input by remember { mutableStateOf("") }
 
     SettingsHeader(tr("Muted words and hashtags"))
@@ -69,11 +68,7 @@ internal fun PrivacyPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         summary = wotSummary,
         checked = wot
     ) { vm.setWotFilter(it) }
-    SettingsSwitchRow(
-        tr("Private bookmarks and mutes"),
-        summary = tr("New ones are encrypted so only you can read them (relays see only that the list exists). Off: anyone can see them. Either way they sync to your other Nostr apps."),
-        checked = private
-    ) { vm.devicePrefs.setPrivateLists(it) }
+    SettingsNote(tr("Bookmarks and mutes are private: encrypted so only you can read them (relays see only that the list exists). They sync to your other Nostr apps."))
 
     SettingsDivider()
     SettingsLinkRow(tr("Community rules"), summary = tr("What isn't allowed; mute and report")) { navigate(com.example.btcwidget.RulesKey) }

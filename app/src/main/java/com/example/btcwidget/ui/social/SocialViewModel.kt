@@ -182,7 +182,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 val feed = _homeFeed.value
                 val items = repo.feed(feed)
                 if (feed != _homeFeed.value) return@launch // switched meanwhile
-                _home.value = Paged(items, endReached = items.isEmpty() || feed is com.example.btcwidget.nostr.core.HomeFeed.Dvm)
+                _home.value = Paged(items, endReached = items.isEmpty())
                 if (feed is com.example.btcwidget.nostr.core.HomeFeed.Following) {
                     startLiveHome()
                     if (items.isNotEmpty()) repo.saveHome(items)
@@ -526,7 +526,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 viewModelScope.launch { onQueued?.invoke() }
             }
         }) {
-            val bits = this.pow.bitsFor(pow ?: this.pow.difficulty.value)
+            val bits = maxOf(pow ?: 0, this.pow.bitsNeeded())
             // Image URLs go in the text (so every client shows them) with imeta tags (NIP-92).
             val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
             val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +

@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Lists of people (NIP-51), follow packs and highlights.
+// Lists of people (NIP-51) and follow packs.
 // Extensions on SocialViewModel, kept apart from the class: they use only what it shares.
 
 suspend fun SocialViewModel.followPacks() = runCatching { repo.followPacks() }.getOrDefault(emptyList())
@@ -15,11 +15,6 @@ fun SocialViewModel.followAll(pubkeys: Collection<String>) = act(tr("Couldn't fo
     repo.followAll(pubkeys)
     say(tr("Following {0} people", pubkeys.size))
 }
-
-suspend fun SocialViewModel.highlightsOf(article: com.example.btcwidget.nostr.core.Article) = runCatching { repo.highlights.of(article) }.getOrDefault(emptyList())
-
-fun SocialViewModel.highlight(article: com.example.btcwidget.nostr.core.Article, text: String, comment: String?, onDone: () -> Unit) =
-    tracked(tr("Highlighting"), tr("Highlighted"), tr("Couldn't highlight"), finally = onDone) { repo.highlights.add(article, text, comment) }
 
 val SocialViewModel.followedTags get() = repo.followedTags
 

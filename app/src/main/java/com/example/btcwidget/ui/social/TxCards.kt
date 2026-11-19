@@ -86,66 +86,31 @@ private const val FLOW_ROWS = 4
 private val RowHeight = 36.dp
 private val CardShape = RoundedCornerShape(16.dp)
 
-/** How a transaction shows under a note: one thin row (details in a sheet) or the full card. */
-enum class TxCardStyle(val id: String, val label: String, val summary: String) {
-    ROW("row", "Single row", "Amount and confirmations; tap for the full details"),
-    FULL("full", "Full card", "Confirmations, inputs flowing to outputs and the fee, right in the post");
-
-    companion object {
-        fun of(id: String?) = entries.firstOrNull { it.id == id } ?: ROW
-    }
-}
-
-/** Where a note is shown, for [BitcoinCards]' per-place style. */
-enum class EmbedPlace { FEED, POST }
-
-/** Thread screens provide [EmbedPlace.POST]; everything else is a timeline. */
-val LocalEmbedPlace = androidx.compose.runtime.staticCompositionLocalOf { EmbedPlace.FEED }
-
 /**
- * Settings › Display › Bitcoin in posts: whether notes show transaction and block cards, and the
- * transaction style in timelines and on a post's page. Snapshot state, loaded at start-up.
+ * Settings › Display › Bitcoin in posts: one switch for transaction and block cards under notes.
+ * Snapshot state, loaded at start-up.
  */
 object BitcoinCards {
-    var showTx by mutableStateOf(true)
-        private set
-    var showBlocks by mutableStateOf(true)
-        private set
-    var feedStyle by mutableStateOf(TxCardStyle.ROW)
-        private set
-    var postStyle by mutableStateOf(TxCardStyle.ROW)
+    var show by mutableStateOf(true)
         private set
 
     fun load(context: android.content.Context) {
-        showTx = com.example.btcwidget.AppPrefs.btcTxCards(context)
-        showBlocks = com.example.btcwidget.AppPrefs.btcBlockCards(context)
-        feedStyle = TxCardStyle.of(com.example.btcwidget.AppPrefs.btcTxStyleFeed(context))
-        postStyle = TxCardStyle.of(com.example.btcwidget.AppPrefs.btcTxStylePost(context))
+        show = com.example.btcwidget.AppPrefs.btcCards(context)
     }
 
-    fun setShowTx(context: android.content.Context, on: Boolean) { showTx = on; com.example.btcwidget.AppPrefs.setBtcTxCards(context, on) }
-    fun setShowBlocks(context: android.content.Context, on: Boolean) { showBlocks = on; com.example.btcwidget.AppPrefs.setBtcBlockCards(context, on) }
-    fun setFeedStyle(context: android.content.Context, s: TxCardStyle) { feedStyle = s; com.example.btcwidget.AppPrefs.setBtcTxStyleFeed(context, s.id) }
-    fun setPostStyle(context: android.content.Context, s: TxCardStyle) { postStyle = s; com.example.btcwidget.AppPrefs.setBtcTxStylePost(context, s.id) }
+    fun setShow(context: android.content.Context, on: Boolean) { show = on; com.example.btcwidget.AppPrefs.setBtcCards(context, on) }
 }
 
 /**
- * The Bitcoin card(s) under a note, as set in [BitcoinCards]:
- * - transactions as one thin row (more folded into "+N more"), tapping opens every one in
- *   full in a sheet; or in full: one card, or a compact list with "Show all" for several;
- * - a block as a thin row, tapping opens its details in a sheet.
+ * The Bitcoin card under a note: transactions as one thin row (more folded into "+N more"),
+ * tapping opens every one in full in a sheet; a block as a thin row, tapping opens its details.
  */
 @Composable
 fun BitcoinEmbeds(refs: List<BitcoinEmbedRef>, note: Event, actions: NoteActions, modifier: Modifier = Modifier) {
+    if (!BitcoinCards.show) return
     val txs = refs.filterIsInstance<BitcoinEmbedRef.TxRef>()
-    val style = if (LocalEmbedPlace.current == EmbedPlace.POST) BitcoinCards.postStyle else BitcoinCards.feedStyle
-    when {
-        txs.isNotEmpty() -> if (!BitcoinCards.showTx) return
-            else if (style == TxCardStyle.ROW) TxRowCard(txs, note, actions, modifier)
-            else if (txs.size >= 2) TxStack(txs, note, actions, modifier)
-            else TxCard(txs[0], note, actions, modifier.padding(top = 8.dp))
-        BitcoinCards.showBlocks -> refs.filterIsInstance<BitcoinEmbedRef.BlockRef>().firstOrNull()?.let { BlockRowCard(it, note, actions, modifier) }
-    }
+    if (txs.isNotEmpty()) TxRowCard(txs, note, actions, modifier)
+    else refs.filterIsInstance<BitcoinEmbedRef.BlockRef>().firstOrNull()?.let { BlockRowCard(it, note, actions, modifier) }
 }
 
 // ---- Loading ----
@@ -519,67 +484,6 @@ private fun ExplorerButton(onClick: () -> Unit) {
 /** How many a stack lists before "Show all". */
 private const val STACK_ROWS = 3
 
-/**
- * Several transactions: a header with how many and their total, one compact row each (txid,
- * amount, inputs → outputs, confirmations), and "Show all N" opening every one in full.
- * Tapping a row opens the sheet at that transaction.
- */
-@Composable
-private fun TxStack(txs: List<BitcoinEmbedRef.TxRef>, note: Event, actions: NoteActions, modifier: Modifier) {
-    val base = mempoolBase()
-    var sheetAt by remember { mutableStateOf<Int?>(null) }
-    val accent = EInk.Accent
-    val states = txs.map { rememberTx(it.txid, base, 0) }
-    val loaded = states.filterIsInstance<TxState.Loaded>()
-    Column(
-        modifier
-            .padding(top = 8.dp)
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.10f), EInk.Body.copy(alpha = 0.55f))))
-            .border(0.75.dp, accent.copy(alpha = 0.38f), CardShape)
-            .animateContentSize()
-    ) {
-        Row(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(accent.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center
-            ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp)) }
-            Text(
-                tr("{0} transactions", txs.size), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 10.dp).weight(1f)
-            )
-            AnimatedVisibility(loaded.size == txs.size, enter = fadeIn()) {
-                Text(
-                    TxFormat.amount(loaded.sumOf { it.tx.totalOut }), color = accent, fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace
-                )
-            }
-        }
-        txs.take(STACK_ROWS).forEachIndexed { i, ref ->
-            if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(horizontal = 14.dp))
-            CompactTxRow(ref, states[i]) { sheetAt = i }
-        }
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 10.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(accent.copy(alpha = 0.12f))
-                .clickable(role = Role.Button) { sheetAt = 0 }
-                .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                if (txs.size > STACK_ROWS) tr("Show all {0} transactions", txs.size) else tr("Show details"),
-                color = accent, fontSize = 13.sp, fontWeight = FontWeight.Bold
-            )
-        }
-    }
-    sheetAt?.let { start -> TxSheet(txs, start, note, actions) { sheetAt = null } }
-}
-
 @Composable
 private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: () -> Unit) {
     Row(
@@ -828,59 +732,13 @@ private fun StatTile(label: String, value: String, modifier: Modifier) {
 
 // ---- Settings ----
 
-/**
- * Settings › Display › Bitcoin in posts: transaction and block cards on or off, and the
- * transaction style for timelines and for a post's page.
- */
+/** Settings › Display › Bitcoin in posts: transaction and block cards on or off. */
 @Composable
 internal fun BitcoinCardsSettings() {
     val context = LocalContext.current
-    SettingsHeader(tr("Bitcoin in posts"))
-    SettingsNote(tr("Notes that link to a transaction or block get a card with live data from your mempool server."))
     SettingsSwitchRow(
-        tr("Transaction cards"),
-        summary = tr("Confirmations, amount, inputs and outputs, fee"),
-        checked = BitcoinCards.showTx
-    ) { BitcoinCards.setShowTx(context, it) }
-    AnimatedVisibility(BitcoinCards.showTx) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
-            StyleChoice(tr("In timelines"), BitcoinCards.feedStyle) { BitcoinCards.setFeedStyle(context, it) }
-            StyleChoice(tr("On a post's page"), BitcoinCards.postStyle) { BitcoinCards.setPostStyle(context, it) }
-        }
-    }
-    SettingsSwitchRow(
-        tr("Block cards"),
-        summary = tr("Height, transactions, size and miner; tap for the details"),
-        checked = BitcoinCards.showBlocks
-    ) { BitcoinCards.setShowBlocks(context, it) }
-}
-
-/** "Single row | Full card" for one place, with what the chosen one means under it. */
-@Composable
-private fun StyleChoice(label: String, selected: TxCardStyle, onPick: (TxCardStyle) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, color = EInk.Value, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            Row(
-                Modifier.clip(RoundedCornerShape(50)).background(EInk.Body).padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                TxCardStyle.entries.forEach { style ->
-                    val on = style == selected
-                    Text(
-                        tr(style.label),
-                        color = if (on) EInk.OnAccent else EInk.Label,
-                        fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(if (on) EInk.Accent else Color.Transparent)
-                            .clickable(role = Role.RadioButton) { onPick(style) }
-                            .semantics { this.selected = on }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-        }
-        Text(tr(selected.summary), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-    }
+        tr("Bitcoin in posts"),
+        summary = tr("Notes that link to a transaction or block get a card with live data from your mempool server. Tap it for the details."),
+        checked = BitcoinCards.show
+    ) { BitcoinCards.setShow(context, it) }
 }
