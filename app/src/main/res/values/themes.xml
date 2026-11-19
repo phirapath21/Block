@@ -2,7 +2,7 @@
 <resources>
 
     <style name="Theme.BTCWidget" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/eink_background</item>
-        <item name="android:colorBackground">@color/eink_background</item>
+        <item name="android:windowBackground">@color/app_window</item>
+        <item name="android:colorBackground">@color/app_window</item>
     </style>
 </resources>

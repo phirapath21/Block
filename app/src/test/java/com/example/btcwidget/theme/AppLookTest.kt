@@ -59,8 +59,11 @@ class AppLookTest {
     @Test
     fun savedNamesComeBack() {
         for (look in AppLook.entries) assertEquals(look, AppLook.of(look.id))
-        assertEquals(AppLook.BLOCK, AppLook.of(null))
-        assertEquals(AppLook.BLOCK, AppLook.of("no-such-theme"))
+        // Nothing saved (or a name from a future version): the default, Aurora.
+        assertEquals(AppLook.AURORA, AppLook.of(null))
+        assertEquals(AppLook.AURORA, AppLook.of("no-such-theme"))
+        // Graphite is the old Block look, under the id people already saved.
+        assertEquals(AppLook.BLOCK, AppLook.of("block"))
     }
 
     @Test
@@ -93,6 +96,17 @@ class AppLookTest {
         // Fully opaque everywhere, and never brighter than the centre.
         assertTrue(px.all { (it ushr 24) == 0xFF })
         assertTrue(px.all { ((it shr 16) and 0xFF) <= ((glow.colors.first() shr 16) and 0xFF) })
+    }
+
+    @Test
+    fun auroraIsTheNewDefault() {
+        val c = AppLook.AURORA.colors
+        assertEquals(AppLook.AURORA, AppLook.DEFAULT)
+        assertEquals(0xFF000000.toInt(), c.background)
+        assertEquals(0xFF16181C.toInt(), c.body)
+        assertEquals(0xFFE7E9EA.toInt(), c.value)
+        assertEquals(0xFF1D9BF0.toInt(), c.accent)
+        assertEquals(0xFF000000.toInt(), c.glow!!.colors.last())
     }
 
     @Test
