@@ -232,6 +232,21 @@ fun SkeletonLine(width: Dp, height: Dp = 12.dp, modifier: Modifier = Modifier) {
     Box(modifier.width(width).height(height).clip(RoundedCornerShape(6.dp)).background(EInk.Track))
 }
 
+/**
+ * The brand's aurora (mint, sky blue, violet, pink), as in the logo: the open tab's capsule and
+ * the ring around people with something new. [OnAurora] is dark ink for icons on it.
+ */
+object Aurora {
+    val colors = listOf(Color(0xFF5EF2C6), Color(0xFF4FB6FF), Color(0xFF9B6BFF), Color(0xFFFF7AA8))
+    val brush = androidx.compose.ui.graphics.Brush.linearGradient(listOf(colors[0], colors[1], colors[2]))
+    val ringBrush = androidx.compose.ui.graphics.Brush.linearGradient(colors)
+    val OnAurora = Color(0xFF05121F)
+}
+
+/** A thin aurora ring around a round picture (people with something new). */
+fun Modifier.auroraRing(on: Boolean = true): Modifier =
+    if (!on) this else this.border(2.dp, Aurora.ringBrush, Radius.Full).padding(3.dp)
+
 /** Colours of the actions on a post, the same in every look. */
 object ActionColor {
     val Like = Color(0xFFF91880)

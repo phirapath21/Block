@@ -1115,4 +1115,6 @@ internal val THAI: Map<String, String> = hashMapOf(
     "Read" to "อ่าน",
     "Use" to "ใช้",
     "Chats" to "แชท",
+    // Menu
+    "Switch account" to "สลับบัญชี",
 )

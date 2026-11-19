@@ -70,15 +70,14 @@ Settings › Bitcoin and widgets. Its Widgets page shows every panel and which o
 ## Nostr social
 
 **Layout:**
-- **Bottom bar:** Home · Search · Wallet · Notifications · Messages.
-- **New post:** a floating + at the bottom right of Home, Search, Notifications, your profile, Bookmarks and Lists.
-- **Side bar** (swipe from the left or tap your avatar): Profile · Lists · Bookmarks · Live · Settings.
+- **Bottom bar:** a floating, rounded bar with Home · Search · **+ New post** · Notifications · Messages; the open tab sits in an aurora capsule.
+- **Your menu** (tap your avatar at the top right): Profile · Wallet · Bookmarks as big tiles, then Lists · Live · Settings · Switch account.
 
 **Getting started:**
-- **New here:** a welcome page offers three ways in: create an account, log in with a signer app, or paste an nsec.
-- **Creating an account:** setup walks you through a name and picture, topics, people to follow, and saving your key.
+- **New here:** a welcome page with Create account and "I already have an account" (signer app, paste your key, or a remote signer).
+- **Creating an account:** a name and picture, then topics and people to follow on one page. Home reminds you to save your key from the next day (or after your first post).
 - **Signer apps:** Amber (NIP-55) or a remote bunker (NIP-46), so the key never enters Block.
-- **Several accounts:** switch from the side bar.
+- **Several accounts:** switch from your menu, or long-press your avatar.
 
 **Reading:**
 - **Home feeds**, which you can add, remove and reorder:
@@ -98,7 +97,7 @@ Settings › Bitcoin and widgets. Its Widgets page shows every panel and which o
   - Link previews in notes.
   - Links open in Block's own browser, with the post underneath, like X; a setting sends them to your phone's browser instead.
 - **More to read:** long-form articles (NIP-23; long-press a paragraph to quote, copy or listen), polls (NIP-88), content warnings (NIP-36), custom emoji (NIP-30), and blurred previews while images load (BlurHash).
-- **Live streams (NIP-53):** in the side bar and in Search, with the video and live chat.
+- **Live streams (NIP-53):** in your menu and in Search, with the video and live chat.
 - **Picture-in-Picture:** a full-screen video keeps playing in a small window when you leave the app.
 
 **Writing:**
@@ -112,7 +111,7 @@ Settings › Bitcoin and widgets. Its Widgets page shows every panel and which o
 - **Profiles:** Posts, Replies, Media and Articles tabs, verified NIP-05 ✓, and a profile QR code you can show or scan.
 - **Following:** follow lists and followers, who-to-follow suggestions with follow packs (kind 39089, follow all at once), and followed hashtags (in your contact list, shown in Latest).
 - **Lists of people** (NIP-51), like X's Lists:
-  - make them from the side bar, or add someone from their profile with ☰+;
+  - make them from your menu, or add someone from their profile with ☰+;
   - read one as a feed, or pin it to Home.
 
 **Talking:**
