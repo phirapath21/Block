@@ -39,6 +39,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -269,11 +272,13 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TIP_PRESETS.forEach { (glyph, preset) ->
                     val on = !custom && sats == preset
+                    val label = tr("{0} sats", preset)
                     Column(
                         Modifier.weight(1f).clip(Radius.Large)
+                            .semantics { contentDescription = label; selected = on }
                             .background(if (on) TipGold.copy(alpha = 0.10f) else Color.Transparent)
                             .border(if (on) 2.dp else 1.dp, if (on) TipGold else EInk.BodyStroke, Radius.Large)
-                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("{0} sats", preset)) { custom = false; amount = preset.toString() }
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) { custom = false; amount = preset.toString() }
                             .padding(vertical = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
