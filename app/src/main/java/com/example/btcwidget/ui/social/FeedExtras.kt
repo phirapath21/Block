@@ -205,7 +205,7 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
         Modifier
             .width(PackCardWidth)
             .clip(shape)
-            .background(EInk.Body)
+            .background(com.example.btcwidget.ui.main.CardColors.Fill)
             .border(0.5.dp, EInk.BodyStroke, shape)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("See who's in it"), onClick = onOpen)
             .padding(14.dp)
