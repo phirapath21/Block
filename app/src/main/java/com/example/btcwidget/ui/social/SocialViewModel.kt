@@ -276,9 +276,11 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             say(tr("Couldn't create the account on this phone: {0}", e.javaClass.simpleName))
             return null
         }
-        // Shown once on the next screen; Block reminds until it's saved.
-        repo.pubkey?.let { keyBackup.needed(it) }
+        // Not shown on day one: Block reminds from tomorrow (or after the first post) until it's saved.
+        repo.pubkey?.let { keyBackup.neededLater(it) }
         afterLogin()
+        // Private messages work straight away: the inbox relay list (NIP-17) is published quietly.
+        viewModelScope.launch { runCatching { repo.dms.setUpInbox() } }
         val me = repo.pubkey
         if (name.isNotBlank() && me != null) act(tr("Couldn't publish your profile")) {
             repo.updateProfile(Profile(me, name = name.trim()))
@@ -525,7 +527,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             else -> tr("Posting") to tr("Posted")
         }
         val queued = java.util.concurrent.atomic.AtomicBoolean(onQueued == null)
-        tracked(working, done, tr("Couldn't post"), finally = { onResult(ok) }, onStage = { stage ->
+        tracked(working, done, tr("Couldn't post"), finally = { if (ok) keyBackup.posted(); onResult(ok) }, onStage = { stage ->
             if (stage is com.example.btcwidget.nostr.PublishTracker.Stage.Mining && stage.elapsedMs >= QUEUE_AFTER_MS && queued.compareAndSet(false, true)) {
                 viewModelScope.launch { onQueued?.invoke() }
             }
@@ -550,6 +552,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     // ---- Proof of work (NIP-13) ----
 
     val pow = PowSettings(application, repo, viewModelScope)
+
+    /** The name of someone who just finished signing up, for Home's one-time welcome (null: none). */
+    val welcome = MutableStateFlow<String?>(null)
 
     /** Whether the key of an account made here still needs saving, and the reminder for it. */
     val keyBackup by lazy { KeyBackupState(application, repo.account, viewModelScope) }

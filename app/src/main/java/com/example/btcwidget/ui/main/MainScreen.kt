@@ -419,9 +419,9 @@ private fun BottomBar(
 }
 
 /**
- * "New post", floating at the bottom right: the rounded square with a plus that sat in the
- * middle of the bar (as on Threads), filled with the page's surface colour so it reads as an
- * action, not a page. A little press-in; shrinks away while the bars are hidden.
+ * "New post", floating at the bottom right: a round button with a plus, as on X, filled with
+ * the page's surface colour so it reads as an action, not a page. A little press-in; shrinks
+ * away while the bars are hidden.
  */
 @Composable
 private fun ComposeButton(visible: Boolean, onCompose: () -> Unit, modifier: Modifier = Modifier) {
@@ -431,12 +431,12 @@ private fun ComposeButton(visible: Boolean, onCompose: () -> Unit, modifier: Mod
     val shown by androidx.compose.animation.core.animateFloatAsState(if (visible) 1f else 0f, label = "compose_shown")
     val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.9f else 1f, label = "compose_press")
     if (shown < 0.01f) return
-    val shape = RoundedCornerShape(16.dp)
+    val shape = androidx.compose.foundation.shape.CircleShape
     Box(
         modifier
             .graphicsLayer { alpha = shown; val s = scale * (0.6f + 0.4f * shown); scaleX = s; scaleY = s }
             .shadow(6.dp, shape)
-            .size(width = 60.dp, height = 48.dp)
+            .size(56.dp)
             .clip(shape)
             .background(EInk.Body)
             .border(0.75.dp, EInk.BodyStroke, shape)
