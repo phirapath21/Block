@@ -432,21 +432,8 @@ private fun FloatingSearchFilterBar(
 
 /** Nothing found: a magnifier, what was searched, and what to try. */
 @Composable
-private fun NoResults(q: String) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(64.dp).clip(CircleShape).background(EInk.Body), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(30.dp))
-        }
-        Text(
-            tr("No results for \"{0}\"", q), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 16.dp)
-        )
-        Text(
-            tr("Try another spelling, fewer words, or a #topic."), color = EInk.Caption, fontSize = TextSize.Body,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 6.dp)
-        )
-    }
-}
+private fun NoResults(q: String) =
+    com.example.btcwidget.ui.main.EmptyState(NavIcons.Search.outline, tr("No results for \"{0}\"", q), tr("Try another spelling, fewer words, or a #topic."))
 
 /** A #topic row: the tag in bold, a line under it, and a chevron. */
 @Composable
@@ -459,7 +446,6 @@ private fun TagRow(tag: String, detail: String?, caption: String? = null, onClic
         }
         androidx.compose.material3.Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 /**
@@ -888,5 +874,4 @@ internal fun PersonRow(profile: Profile, isFollowing: Boolean, onClick: () -> Un
             trailing()
         }
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }

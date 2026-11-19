@@ -85,13 +85,12 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 }
                 if (account != null) {
                     ChoicePill(
-                        label = "+ " + tr("Write article"),
+                        label = tr("Write article"),
                         selected = false,
                         icon = Glyphs.Quote
                     ) { composingArticle = true }
                 }
             }
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 
             if (tab == 0) {
                 when {
@@ -101,13 +100,17 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             PillButton(tr("Log in")) { navigate(LoginKey) }
                         }
                     }
-                    ids.isEmpty() -> EmptyNote(tr("No bookmarks yet. Use ⋯ › Bookmark on a note. Bookmarks are public on Nostr."))
+                    ids.isEmpty() -> com.example.btcwidget.ui.main.EmptyState(
+                        Glyphs.Bookmark, tr("Save posts for later"),
+                        tr("Tap the bookmark on any post to find it here again."),
+                        action = tr("Explore posts"), onAction = { com.example.btcwidget.OpenTabRequest.tab.value = "SEARCH" }
+                    )
                     items == null -> Spinner(Modifier.padding(top = 30.dp))
                     else -> NoteList(items.orEmpty(), stats, actions)
                 }
             } else {
                 if (savedArticles.isEmpty()) {
-                    EmptyNote(tr("Your Reading List is empty. Tap the bookmark icon inside any article to save it for offline reading."))
+                    com.example.btcwidget.ui.main.EmptyState(Glyphs.ListLine, tr("Your reading list is empty"), tr("Tap the bookmark inside any article to save it for reading offline."))
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(savedArticles, key = { it.address }) { a ->

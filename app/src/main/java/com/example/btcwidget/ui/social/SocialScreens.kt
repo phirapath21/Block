@@ -255,7 +255,11 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                 feed is com.example.btcwidget.nostr.core.HomeFeed.Following && following.size < STARTER_FOLLOWS ->
                                 StarterFollows(vm, navigate, Modifier.fillMaxSize())
                             shown.isEmpty() && !home.loading -> LazyColumn(Modifier.fillMaxSize()) {
-                                item { EmptyNote(home.error ?: tr("Nothing here yet. Follow people to fill your timeline, or write your first note.")) }
+                                item {
+                                    val err = home.error
+                                    if (err != null) EmptyNote(err)
+                                    else com.example.btcwidget.ui.main.EmptyState(NavIcons.Home.outline, tr("Your timeline is quiet"), tr("Follow people to fill it, or write your first post."))
+                                }
                             }
                             else -> NoteList(
                                 items = shown, stats = stats, actions = actions, state = listState,
@@ -315,37 +319,9 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     }
 }
 
-/** Underlined tab row, as at the top of X's timeline. */
+/** A row of tabs: the same capsules as everywhere else ([ChipTabs]). */
 @Composable
-fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth()) {
-        labels.forEachIndexed { i, label ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) { onSelect(i) }
-                    .padding(top = 12.dp)
-            ) {
-                Text(
-                    label,
-                    color = if (i == selected) EInk.Value else EInk.Caption,
-                    fontSize = TextSize.Body,
-                    fontWeight = if (i == selected) FontWeight.Bold else FontWeight.Normal
-                )
-                Box(
-                    Modifier
-                        .padding(top = 10.dp)
-                        .width(56.dp)
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (i == selected) EInk.Accent else androidx.compose.ui.graphics.Color.Transparent)
-                )
-            }
-        }
-    }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-}
+fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) = ChipTabs(labels, selected, onSelect)
 
 /** Logged out: what this is, how to join, and a public #bitcoin feed to browse. */
 @Composable
@@ -405,11 +381,12 @@ fun NotificationsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     state.loading -> LazyColumn(Modifier.fillMaxSize(), userScrollEnabled = false) { item { FeedSkeleton(rows = 8) } }
                     shown.isEmpty() -> LazyColumn(Modifier.fillMaxSize()) {
                         item {
-                            EmptyNote(state.error ?: when (tab) {
-                                0 -> tr("No notifications yet.")
-                                1 -> tr("When someone replies to or mentions you, it shows here.")
-                                else -> tr("When someone tips you, it shows here.")
-                            })
+                            val err = state.error
+                            if (err != null) EmptyNote(err) else when (tab) {
+                                0 -> com.example.btcwidget.ui.main.EmptyState(NavIcons.Bell.outline, tr("Nothing new yet"), tr("When people like, reply to or tip your posts, you'll see it here."))
+                                1 -> com.example.btcwidget.ui.main.EmptyState(Glyphs.Comment, tr("No mentions yet"), tr("When someone replies to or mentions you, it shows here."))
+                                else -> com.example.btcwidget.ui.main.EmptyState(Glyphs.Zap, tr("No tips yet"), tr("When someone tips you, it shows here."))
+                            }
                         }
                     }
                     else -> {

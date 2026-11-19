@@ -94,10 +94,10 @@ fun ListsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, owner: String? 
                         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
                     }
                     if (lists.isEmpty()) item(key = "empty") {
-                        EmptyNote(
-                            if (own) tr("Lists keep people together, a topic or a circle of friends, and read as a feed of just them. Lists are public on Nostr.")
-                            else tr("No lists.")
-                        )
+                        if (own) com.example.btcwidget.ui.main.EmptyState(
+                            Glyphs.ListLine, tr("Make your first list"),
+                            tr("Lists keep people together, a topic or a circle of friends, and read as a feed of just them. Lists are public on Nostr.")
+                        ) else EmptyNote(tr("No lists."))
                     }
                     items(lists, key = { it.address }) { l -> ListRow(l, vm) { navigate(ListKey(l.owner, l.d)) } }
                 }
@@ -131,7 +131,6 @@ private fun ListRow(list: PeopleList, vm: SocialViewModel, onClick: () -> Unit) 
             )
         }
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 private fun peopleCount(n: Int) = if (n == 1) "1 person" else "$n people"
@@ -240,7 +239,6 @@ private fun MemberRow(pubkey: String, profile: Profile?, isFollowing: Boolean, o
             modifier = Modifier.clip(Radius.Full).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 /** Search people (as you type) and add them to [list]. */

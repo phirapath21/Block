@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -142,7 +143,10 @@ fun BlockButtonFull(text: String, kind: ButtonKind = ButtonKind.Primary, enabled
  * with the accent when on; choice chips are pills that fill with the text colour, with ✓.
  */
 @Composable
-fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, filter: Boolean = true, tick: Boolean = true, onClick: () -> Unit) {
+fun BlockChip(
+    text: String, selected: Boolean, modifier: Modifier = Modifier, filter: Boolean = true, tick: Boolean = true,
+    icon: ImageVector? = null, role: Role = Role.Tab, onClick: () -> Unit
+) {
     val shape = if (filter) Radius.Small else Radius.Full
     val bg = when {
         filter && selected -> EInk.Accent
@@ -161,7 +165,7 @@ fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, fi
             .clip(shape)
             .background(bg, shape)
             .then(if (!filter) Modifier.border(1.dp, if (selected) EInk.Value else EInk.BodyStroke, shape) else Modifier)
-            .clickable(role = Role.Tab, onClick = onClick)
+            .clickable(role = role, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(horizontal = if (filter) Space.M else 14.dp, vertical = if (filter) 6.dp else 7.dp),
         contentAlignment = Alignment.Center
@@ -169,6 +173,9 @@ fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, fi
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!filter && selected && tick) {
                 Icon(com.example.btcwidget.ui.social.Glyphs.Check, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+            } else if (icon != null) {
+                Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(6.dp))
             }
             Text(text, color = fg, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, softWrap = false)
@@ -228,13 +235,36 @@ fun EmptyState(icon: ImageVector, title: String, body: String, modifier: Modifie
         modifier.fillMaxWidth().padding(horizontal = Space.XXXL, vertical = Space.XXXL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(40.dp))
-        Text(title, color = EInk.Value, fontSize = TextSize.Title, lineHeight = LineHeight.Title, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.M))
-        Text(body, color = EInk.Caption, fontSize = TextSize.Body, lineHeight = LineHeight.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.XS))
+        EmptyArt(icon)
+        Text(title, color = EInk.Value, fontSize = TextSize.Title, lineHeight = LineHeight.Title, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.L))
+        Text(body, color = EInk.Caption, fontSize = TextSize.Body, lineHeight = LineHeight.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.S))
         if (action != null && onAction != null) {
-            Spacer(Modifier.height(Space.L))
-            BlockButton(action, kind = ButtonKind.Outline, onClick = onAction)
+            Spacer(Modifier.height(Space.XL))
+            BlockButton(action, kind = ButtonKind.Primary, onClick = onAction)
         }
+    }
+}
+
+/**
+ * The drawing on an empty page: two soft cards, one tilted behind, the front one washed in
+ * Aurora with the page's icon on it.
+ */
+@Composable
+fun EmptyArt(icon: ImageVector) {
+    Box(Modifier.size(width = 150.dp, height = 130.dp)) {
+        Box(
+            Modifier.padding(start = 18.dp, top = 22.dp).size(width = 92.dp, height = 104.dp)
+                .graphicsLayer { rotationZ = -8f }
+                .clip(RoundedCornerShape(18.dp)).background(CardColors.Fill)
+                .border(1.dp, EInk.BodyStroke, RoundedCornerShape(18.dp))
+        )
+        Box(
+            Modifier.padding(start = 44.dp, top = 10.dp).size(width = 92.dp, height = 110.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(androidx.compose.ui.graphics.Brush.linearGradient(Aurora.colors.take(3).map { it.copy(alpha = 0.24f) }))
+                .border(1.dp, Aurora.colors[1].copy(alpha = 0.45f), RoundedCornerShape(18.dp)),
+            contentAlignment = Alignment.Center
+        ) { Icon(icon, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(42.dp)) }
     }
 }
 

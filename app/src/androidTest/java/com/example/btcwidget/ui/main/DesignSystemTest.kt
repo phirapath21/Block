@@ -47,6 +47,19 @@ class DesignSystemTest {
     }
 
     @Test
+    fun capsuleWithAnIconIsAButtonThatShowsItsChoice() {
+        var picked by mutableStateOf(false)
+        composeTestRule.setContent {
+            BlockChip(
+                "3 days", selected = picked, filter = false, tick = false, icon = com.example.btcwidget.ui.social.Glyphs.Calendar,
+                role = androidx.compose.ui.semantics.Role.Button
+            ) { picked = true }
+        }
+        composeTestRule.onNodeWithText("3 days").performClick()
+        composeTestRule.onNodeWithText("3 days").assertIsSelected()
+    }
+
+    @Test
     fun emptyStateOffersItsAction() {
         var asked = false
         composeTestRule.setContent {

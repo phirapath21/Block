@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation3.runtime.NavKey
 import com.example.btcwidget.nostr.core.Nwc
+import com.example.btcwidget.nostr.core.WalletTip
 import com.example.btcwidget.nostr.core.Zaps
 import com.example.btcwidget.ui.main.EInk
 
@@ -111,35 +112,45 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         }
     ) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
-            // The balance, large, with the wallet's menu at the right.
-            Box(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 8.dp)) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tr("Balance"), color = EInk.Caption, fontSize = TextSize.Caption)
+            // The balance in an Aurora card: sats large, about how much that is, Send and Receive.
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp).clip(RoundedCornerShape(24.dp))
+                    .background(androidx.compose.ui.graphics.Brush.linearGradient(com.example.btcwidget.ui.main.Aurora.colors.take(3).map { it.copy(alpha = 0.18f) }))
+                    .border(1.dp, com.example.btcwidget.ui.main.Aurora.colors[1].copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 20.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Balance"), color = EInk.Label, fontSize = TextSize.Caption, modifier = Modifier.weight(1f))
+                    Box(
+                        Modifier.size(44.dp).clip(CircleShape)
+                            .clickable(role = Role.Button, onClickLabel = tr("Wallet options")) { menu = true }
+                            .semantics { contentDescription = tr("Wallet options") },
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Glyphs.MoreHoriz, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(22.dp)) }
+                }
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = balanceMsat?.let { tr("Balance {0} sats", formatSats(it / 1000)) } ?: tr("Balance not loaded")
+                    }
+                ) {
                     Text(
                         balanceMsat?.let { formatSats(it / 1000) } ?: if (loading) "…" else "–",
-                        color = EInk.Value, fontSize = 36.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 2.dp).semantics {
-                            contentDescription = balanceMsat?.let { tr("Balance {0} sats", formatSats(it / 1000)) } ?: tr("Balance not loaded")
-                        }
+                        color = EInk.Value, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold
                     )
-                    Text(tr("sats"), color = EInk.Caption, fontSize = TextSize.Body)
+                    Text(tr("sats"), color = EInk.Label, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
                 }
-                Box(
-                    Modifier.align(Alignment.TopEnd).padding(end = 8.dp).size(44.dp).clip(CircleShape)
-                        .clickable(role = Role.Button, onClickLabel = tr("Wallet options")) { menu = true }
-                        .semantics { contentDescription = tr("Wallet options") },
-                    contentAlignment = Alignment.Center
-                ) { Icon(Glyphs.MoreHoriz, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(22.dp)) }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val about = remember(balanceMsat) { balanceMsat?.let { aboutInMoney(context, it / 1000) } }
+                if (about != null) Text(tr("about {0}", about), color = EInk.Caption, fontSize = TextSize.Caption)
+                Row(Modifier.fillMaxWidth().padding(top = 18.dp, end = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WalletAction(Glyphs.ArrowUp, tr("Send"), primary = true) { sending = true }
+                    WalletAction(Glyphs.ArrowDown, tr("Receive"), primary = false) { receiving = true }
+                }
             }
 
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                WalletAction(Glyphs.ArrowDown, tr("Receive")) { receiving = true }
-                WalletAction(Glyphs.ArrowUp, tr("Send")) { sending = true }
-            }
-
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             Text(
-                tr("Recent transactions"), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold,
+                tr("Recent"), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
             )
             if (transactions.isEmpty()) {
@@ -148,7 +159,11 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             } else {
-                transactions.forEach { TransactionRow(it) }
+                val profiles by vm.profiles.collectAsState()
+                // Tips say who: "Tip from Dev", "You tipped Mali" (from the zap request in the invoice).
+                val tips = remember(transactions) { transactions.associateWith { WalletTip.of(it.description, it.isIncoming) } }
+                LaunchedEffect(tips) { vm.repo.loadProfilesLater(tips.values.mapNotNull { it?.person }.distinct()) }
+                transactions.forEach { tx -> TransactionRow(tx, tips[tx], tips[tx]?.let { profiles[it.person] }) }
             }
         }
     }
@@ -170,48 +185,69 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     )
 }
 
-/** One of the two large buttons under the balance. */
+/** One of the two large buttons in the balance card: Send (filled) and Receive. */
 @Composable
-private fun RowScope.WalletAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun RowScope.WalletAction(icon: ImageVector, label: String, primary: Boolean, onClick: () -> Unit) {
     val haptics = rememberHaptics()
-    val shape = Radius.Large
+    val fill = if (primary) EInk.Value else Color.Black.copy(alpha = 0.25f)
+    val ink = if (primary) EInk.Background else EInk.Value
     Row(
-        Modifier.weight(1f).height(56.dp).clip(shape).background(EInk.Accent)
+        Modifier.weight(1f).height(52.dp).clip(Radius.Full).background(fill)
+            .then(if (primary) Modifier else Modifier.border(1.dp, EInk.BodyStroke, Radius.Full))
             .clickable(role = Role.Button, onClickLabel = label) { haptics.tick(); onClick() },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(20.dp))
-        Text(label, color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(20.dp))
+        Text(label, color = ink, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
+/** A payment: a tip says who it was with and their message; others say Received or Sent. */
 @Composable
-private fun TransactionRow(tx: Nwc.Transaction) {
+private fun TransactionRow(tx: Nwc.Transaction, tip: WalletTip?, person: com.example.btcwidget.nostr.core.Profile?) {
     val incoming = tx.isIncoming
+    val gold = com.example.btcwidget.ui.main.ActionColor.Zap
+    val (icon, tint) = when {
+        tip != null -> Glyphs.Zap to gold
+        incoming -> Glyphs.ArrowDown to EInk.Success
+        else -> Glyphs.ArrowUp to EInk.Value
+    }
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(36.dp).clip(CircleShape).background(EInk.Body),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                if (incoming) Glyphs.ArrowDown else Glyphs.ArrowUp, contentDescription = null,
-                tint = if (incoming) EInk.Success else EInk.Value, modifier = Modifier.size(18.dp)
-            )
+        Box(Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            val name = tip?.let { person?.bestName ?: com.example.btcwidget.nostr.core.Profile.shortNpub(it.person) }
             Text(
-                tx.description.takeIf { it.isNotBlank() } ?: if (incoming) tr("Received") else tr("Paid"),
-                color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis
+                when {
+                    tip != null && incoming -> tr("Tip from {0}", name.orEmpty())
+                    tip != null -> tr("You tipped {0}", name.orEmpty())
+                    tx.description.isNotBlank() -> tx.description
+                    incoming -> tr("Received")
+                    else -> tr("Sent")
+                },
+                color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             val at = (tx.settledAt.takeIf { it > 0 } ?: tx.createdAt).takeIf { it > 0 }
-            if (at != null) Text(relativeTime(at), color = EInk.Caption, fontSize = TextSize.Caption)
+            val line = listOfNotNull(tip?.comment?.takeIf { it.isNotBlank() }?.let { "“$it”" }, at?.let { relativeTime(it) }).joinToString(" · ")
+            if (line.isNotEmpty()) Text(line, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Text(
             (if (incoming) "+" else "−") + formatSats(tx.amountSat),
             color = if (incoming) EInk.Success else EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold
         )
     }
+}
+
+/** About how much [sats] is in the currency picked for prices (from the last price fetched), or null. */
+private fun aboutInMoney(context: android.content.Context, sats: Long): String? {
+    val data = com.example.btcwidget.PriceRepository.getFromPrefs(context) ?: return null
+    val price = com.example.btcwidget.PriceFormat.price(data, data.currency)
+    if (price <= 0) return null
+    val value = sats / 100_000_000.0 * price
+    val symbol = if (data.currency == "THB") "฿" else "$"
+    return if (value < 10) symbol + String.format(java.util.Locale.US, "%.2f", value) else com.example.btcwidget.PriceFormat.format(value, data.currency)
 }
 
 /** Receive: an amount and an optional note, then the invoice as a QR code to copy or share. */
@@ -325,32 +361,71 @@ private fun SendSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
 }
 
 /** Connecting a wallet: paste the Nostr Wallet Connect link from Alby Hub, Primal, Coinos… */
+/**
+ * No wallet yet: what it's for ("Tip in one tap"), three plain steps, then Paste link or Scan.
+ * The link is never shown on screen; it's kept encrypted on the phone.
+ */
 @Composable
 private fun ConnectWallet(vm: SocialViewModel) {
-    var uri by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var error by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = com.example.btcwidget.ui.main.ActionColor.Zap, modifier = Modifier.padding(top = 12.dp).size(40.dp))
-        Text(tr("Connect a wallet"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+    fun connect(raw: String?) {
+        val link = raw?.trim().orEmpty()
+        error = if (link.isEmpty()) tr("Copy the link from your wallet app first.") else vm.wallet.connect(link)
+    }
+    val scan = QrScanner.rememberScanner { raw -> if (raw != null) connect(raw) }
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp).padding(top = 24.dp, bottom = 110.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            Modifier.size(92.dp).clip(RoundedCornerShape(28.dp))
+                .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(com.example.btcwidget.ui.main.ActionColor.Zap.copy(alpha = 0.25f), com.example.btcwidget.ui.main.Aurora.colors[2].copy(alpha = 0.25f)))),
+            contentAlignment = Alignment.Center
+        ) { Icon(NavIcons.Wallet.outline, contentDescription = null, tint = com.example.btcwidget.ui.main.ActionColor.Zap, modifier = Modifier.size(46.dp)) }
+        Text(tr("Tip in one tap"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 18.dp))
         Text(
-            tr("In your wallet (Alby Hub, Primal, Coinos, Mutiny…) create a Nostr Wallet Connect link and paste it here. ") +
-                tr("Set a spending budget there: anyone with this link can spend up to it. It's stored encrypted on this phone."),
-            color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+            tr("Connect the Lightning wallet you already use. Tips then go out with one tap, and tips to you land there."),
+            color = EInk.Label, fontSize = TextSize.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp, start = 14.dp, end = 14.dp)
         )
-        SettingsTextField(
-            value = uri, onValueChange = { uri = it.trim(); error = null }, placeholder = "nostr+walletconnect://…",
-            isError = error != null, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
-        )
-        error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp)) }
-        Spacer(Modifier.height(12.dp))
-        SheetButton(tr("Connect"), enabled = uri.isNotBlank()) {
-            val e = vm.wallet.connect(uri)
-            if (e == null) uri = "" else error = e
+        Column(
+            Modifier.fillMaxWidth().padding(top = 20.dp).clip(Radius.Large)
+                .background(com.example.btcwidget.ui.main.CardColors.Fill).border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
+        ) {
+            listOf(
+                tr("In your wallet app, find Connect an app (Nostr Wallet Connect)"),
+                tr("Set a spending limit, then copy the link"),
+                tr("Paste it here, or scan its QR code")
+            ).forEachIndexed { i, step ->
+                if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = com.example.btcwidget.ui.main.CardColors.Edge)
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(32.dp).clip(CircleShape).background(SettingsAccent.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                        Text("${i + 1}", color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.ExtraBold)
+                    }
+                    Text(step, color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(start = 12.dp))
+                }
+            }
         }
-        Text(
-            tr("Without a wallet here, tipping opens your Lightning wallet app to pay."),
-            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 16.dp)
-        )
+        Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            com.example.btcwidget.ui.main.BlockButton(
+                tr("Paste link"), Modifier.weight(1f), kind = com.example.btcwidget.ui.main.ButtonKind.Accent, size = com.example.btcwidget.ui.main.ButtonSize.Large
+            ) {
+                val clip = (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
+                connect(clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString())
+            }
+            com.example.btcwidget.ui.main.BlockButton(
+                tr("Scan"), Modifier.weight(1f), kind = com.example.btcwidget.ui.main.ButtonKind.Outline, size = com.example.btcwidget.ui.main.ButtonSize.Large,
+                icon = Glyphs.Qr, onClick = scan
+            )
+        }
+        error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp)) }
+        Row(Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 8.dp), verticalAlignment = Alignment.Top) {
+            Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(top = 2.dp).size(15.dp))
+            Text(
+                tr("Block never holds your money. The link stays encrypted on this phone. Without a wallet here, tipping opens your wallet app."),
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 8.dp)
+            )
+        }
     }
 }
 
