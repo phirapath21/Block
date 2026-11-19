@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.example.btcwidget.AppPrefs
 import com.example.btcwidget.theme.AppLook
 import com.example.btcwidget.ui.main.EInk
@@ -40,7 +41,8 @@ class LookPickerTest {
     @Test
     fun tappingEmberAppliesAndSavesIt() {
         composeTestRule.setContent { LookPicker() }
-        composeTestRule.onNodeWithContentDescription("Ember", substring = true).performClick()
+        // Aurora and Graphite come first, so Ember may be past the screen's edge: scroll to it.
+        composeTestRule.onNodeWithContentDescription("Ember", substring = true).performScrollTo().performClick()
         composeTestRule.onNodeWithContentDescription("Ember", substring = true).assertIsSelected()
         composeTestRule.runOnIdle {
             assertEquals(AppLook.EMBER, EInk.look)

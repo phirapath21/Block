@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.runtime.key
 import android.app.Activity
 import android.content.Context
@@ -260,7 +262,7 @@ fun VideoPlayer(url: String, note: Event, actions: NoteActions) {
         onDispose { player?.let { VideoPositions[url] = it.currentPosition; it.release() }; player = null }
     }
 
-    val shape = RoundedCornerShape(14.dp)
+    val shape = Radius.Large
     Box(
         Modifier
             .padding(top = 8.dp)
@@ -289,7 +291,7 @@ fun VideoPlayer(url: String, note: Event, actions: NoteActions) {
                 Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (remaining.isNotEmpty()) VideoBadge { Text(remaining, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                if (remaining.isNotEmpty()) VideoBadge { Text(remaining, color = Color.White, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold) }
                 Box(Modifier.weight(1f))
                 VideoBadge(onClick = { muted = !muted; p.volume = if (muted) 0f else 1f }, label = if (muted) "Turn sound on" else "Mute") {
                     Icon(if (muted) Glyphs.SoundOff else Glyphs.SoundOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -302,7 +304,7 @@ fun VideoPlayer(url: String, note: Event, actions: NoteActions) {
 @Composable
 private fun VideoBadge(onClick: (() -> Unit)? = null, label: String? = null, content: @Composable () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
+        Modifier.clip(Radius.Full).background(Color(0x99000000))
             .then(if (onClick != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick) else Modifier)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
@@ -353,13 +355,13 @@ internal fun VideoControls(player: ExoPlayer, url: String, landscape: Boolean, o
             val shown = dragging?.let { (it * total).toLong() } ?: position
             Text(
                 clockLabel(shown) + (if (duration > 0) "  /  " + clockLabel(duration) else ""),
-                color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp)
+                color = Color.White, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 8.dp)
             )
             Box(Modifier.weight(1f))
             QualityButton(player)
             Text(
-                SPEED_LABELS[speedIndex], color = if (speedIndex == 0) Color.White else VideoAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, if (speedIndex == 0) Color(0x55FFFFFF) else VideoAccent, RoundedCornerShape(50))
+                SPEED_LABELS[speedIndex], color = if (speedIndex == 0) Color.White else VideoAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(Radius.Full).border(1.dp, if (speedIndex == 0) Color(0x55FFFFFF) else VideoAccent, Radius.Full)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Playback speed")) {
                         speedIndex = (speedIndex + 1) % SPEEDS.size
                         player.setPlaybackSpeed(SPEEDS[speedIndex])
@@ -430,8 +432,8 @@ private fun QualityButton(player: ExoPlayer) {
     val label = if (manual) (player.videoSize.height.takeIf { it > 0 }?.let { "${it}p" } ?: tr("Auto")) else tr("Auto")
     Box {
         Text(
-            "$label ▾", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Video quality")) { open = true }.padding(horizontal = 10.dp, vertical = 8.dp)
+            "$label ▾", color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Video quality")) { open = true }.padding(horizontal = 10.dp, vertical = 8.dp)
         )
         BlockDropdown(expanded = open, onDismiss = { open = false }) {
             BlockDropdownItem(tr("Auto"), selected = !manual) { open = false; player.chooseQuality(null, context) }

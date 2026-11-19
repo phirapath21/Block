@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.RepeatMode
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.animation.core.tween
@@ -89,14 +91,14 @@ internal fun LiveList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 @Composable
 internal fun LiveRow(live: LiveStreams.Live, host: Profile?, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(120.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)).background(EInk.Body)) {
+        Box(Modifier.width(120.dp).aspectRatio(16f / 9f).clip(Radius.Small).background(EInk.Body)) {
             live.image?.let { AsyncImage(it, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
             if (live.isLive) LiveBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(live.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(host?.bestName ?: Profile.shortNpub(live.host), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(statusLine(live), color = if (live.isLive) LiveRed else EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(live.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(host?.bestName ?: Profile.shortNpub(live.host), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(statusLine(live), color = if (live.isLive) LiveRed else EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
         }
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -111,7 +113,7 @@ private fun statusLine(live: LiveStreams.Live): String = when (live.status) {
 @Composable
 internal fun LiveBadge(modifier: Modifier = Modifier) {
     Text(
-        "LIVE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+        "LIVE", color = Color.White, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold,
         modifier = modifier.clip(RoundedCornerShape(4.dp)).background(LiveRed).padding(horizontal = 5.dp, vertical = 1.dp)
     )
 }
@@ -326,7 +328,7 @@ private fun LiveVideo(
                 }
             }
             Text(
-                tr("REPLAY"), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                tr("REPLAY"), color = Color.White, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopStart).padding(10.dp).clip(RoundedCornerShape(4.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp)
             )
         } else {
@@ -339,9 +341,9 @@ private fun LiveVideo(
                         LiveStreams.Status.PLANNED -> tr("Starting soon")
                         else -> tr("This stream has ended")
                     },
-                    color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold
+                    color = Color.White, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold
                 )
-                Text(statusLine(live), color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                Text(statusLine(live), color = Color.White.copy(alpha = 0.75f), fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
@@ -366,23 +368,23 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
     ) {
         Avatar(host, live.host, size = 32, onClick = onHost)
         Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-            Text(live.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(live.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (live.isLive) { PulsingDot(); Spacer(Modifier.width(5.dp)) }
                 Text(
                     (if (live.isLive) live.viewers?.let { tr("{0} watching", compactCount(it)) } ?: tr("Live now") else statusLine(live)) + " · " + hostName,
-                    color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
         }
         if (!isMe) Row(
-            Modifier.clip(RoundedCornerShape(50)).background(SettingsAccent)
+            Modifier.clip(Radius.Full).background(SettingsAccent)
                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Zap the streamer"), onClick = onZap)
                 .padding(start = 9.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Glyphs.Zap, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(15.dp))
-            Text(tr("Zap"), color = EInk.OnAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
+            Text(tr("Zap"), color = EInk.OnAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
         }
         Icon(
             Glyphs.Chevron, contentDescription = tr("Stream details"), tint = EInk.Caption,
@@ -405,46 +407,46 @@ private fun LiveInfoSheet(
 ) {
     BlockSheet(onDismiss = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 28.dp)) {
-            Text(live.title, color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
+            Text(live.title, color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
             Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (live.isLive) {
                     PulsingDot()
                     Text(
                         live.viewers?.let { tr("{0} watching", compactCount(it)) } ?: tr("Live now"),
-                        color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp)
+                        color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(start = 6.dp)
                     )
-                } else Text(statusLine(live), color = EInk.Caption, fontSize = 14.sp)
+                } else Text(statusLine(live), color = EInk.Caption, fontSize = TextSize.Body)
                 live.starts?.takeIf { live.isLive }?.let {
-                    Text(" · " + tr("Started {0}", relativeTime(it)), color = EInk.Caption, fontSize = 14.sp)
+                    Text(" · " + tr("Started {0}", relativeTime(it)), color = EInk.Caption, fontSize = TextSize.Body)
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Avatar(host, live.host, size = 44, onClick = onHost)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onHost)) {
                     DisplayName(host, live.host, EInk.Value, 16.sp)
-                    Text(handleText(host, live.host), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(handleText(host, live.host), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (!isMe) Text(
                     if (isFollowing) tr("Following") else tr("Follow"),
-                    color = if (isFollowing) EInk.Value else EInk.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clip(RoundedCornerShape(50))
-                        .then(if (isFollowing) Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)) else Modifier.background(EInk.Accent))
+                    color = if (isFollowing) EInk.Value else EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clip(Radius.Full)
+                        .then(if (isFollowing) Modifier.border(1.dp, EInk.BodyStroke, Radius.Full) else Modifier.background(EInk.Accent))
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onFollow).padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
             if (!isMe) Row(
-                Modifier.padding(top = 14.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(50)).background(SettingsAccent)
+                Modifier.padding(top = 14.dp).fillMaxWidth().height(46.dp).clip(Radius.Full).background(SettingsAccent)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Zap the streamer")) { onDismiss(); onZap() },
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(Glyphs.Zap, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(18.dp))
-                Text(tr("Zap the streamer"), color = EInk.OnAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+                Text(tr("Zap the streamer"), color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
             }
             live.summary?.takeIf { it.isNotBlank() }?.let { summary ->
-                Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(14.dp)).background(EInk.Body).padding(14.dp)) {
-                    Text(tr("About this stream"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(Radius.Large).background(EInk.Body).padding(14.dp)) {
+                    Text(tr("About this stream"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                     androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(summary.trim(), color = EInk.Value, fontSize = 15.sp, lineHeight = 21.sp, modifier = Modifier.padding(top = 6.dp))
+                        Text(summary.trim(), color = EInk.Value, fontSize = TextSize.Body, lineHeight = 21.sp, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
             }
@@ -452,7 +454,7 @@ private fun LiveInfoSheet(
             if (tags.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
                 Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                tags.forEach { Text("#$it", color = EInk.Label, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).padding(horizontal = 10.dp, vertical = 5.dp)) }
+                tags.forEach { Text("#$it", color = EInk.Label, fontSize = TextSize.Caption, modifier = Modifier.clip(Radius.Full).background(EInk.Track).padding(horizontal = 10.dp, vertical = 5.dp)) }
             }
         }
     }

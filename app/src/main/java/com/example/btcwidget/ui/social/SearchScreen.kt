@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
@@ -192,8 +194,8 @@ fun SearchScreen(
             else leadingMenu?.invoke()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp).clip(RoundedCornerShape(50)).background(EInk.Body)
-                    .then(if (focused) Modifier.border(1.dp, SettingsAccent, RoundedCornerShape(50)) else Modifier)
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp).clip(Radius.Full).background(EInk.Body)
+                    .then(if (focused) Modifier.border(1.dp, SettingsAccent, Radius.Full) else Modifier)
                     .padding(start = 14.dp, end = 4.dp)
             ) {
                 androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = if (focused) SettingsAccent else EInk.Caption, modifier = Modifier.size(18.dp))
@@ -201,14 +203,14 @@ fun SearchScreen(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = 16.sp),
+                    textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = TextSize.Body),
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(SettingsAccent),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, autoCorrectEnabled = false),
                     keyboardActions = KeyboardActions(onSearch = { run() }),
                     modifier = Modifier.weight(1f).padding(horizontal = 10.dp).focusRequester(focus).onFocusChanged { focused = it.isFocused },
                     decorationBox = { field ->
                         Box {
-                            if (query.isEmpty()) Text(tr("Search Block"), color = EInk.Caption, fontSize = 16.sp, maxLines = 1)
+                            if (query.isEmpty()) Text(tr("Search Block"), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1)
                             field()
                         }
                     }
@@ -225,8 +227,8 @@ fun SearchScreen(
                 }
             }
             if (focused) Text(
-                tr("Cancel"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { query = searched.orEmpty(); focusManager.clearFocus() }.padding(horizontal = 10.dp, vertical = 8.dp)
+                tr("Cancel"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button) { query = searched.orEmpty(); focusManager.clearFocus() }.padding(horizontal = 10.dp, vertical = 8.dp)
             ) else Box(
                 Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Scan a QR code"), onClick = scanQr),
                 contentAlignment = Alignment.Center
@@ -373,7 +375,7 @@ private fun FloatingSearchFilterBar(
     onSelectResultTab: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(50)
+    val shape = Radius.Full
     val resultTabs = remember { listOf("Top", "Latest", "People", "Media", "Articles") }
     val rowState = rememberLazyListState()
     val activeIndex = if (searched) selectedResultTab else exploreTabs.indexOf(selectedExploreTab)
@@ -437,11 +439,11 @@ private fun NoResults(q: String) {
             androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(30.dp))
         }
         Text(
-            tr("No results for \"{0}\"", q), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+            tr("No results for \"{0}\"", q), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 16.dp)
         )
         Text(
-            tr("Try another spelling, fewer words, or a #topic."), color = EInk.Caption, fontSize = 15.sp,
+            tr("Try another spelling, fewer words, or a #topic."), color = EInk.Caption, fontSize = TextSize.Body,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 6.dp)
         )
     }
@@ -452,9 +454,9 @@ private fun NoResults(q: String) {
 private fun TagRow(tag: String, detail: String?, caption: String? = null, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            caption?.let { Text(it, color = EInk.Caption, fontSize = 13.sp) }
-            Text("#$tag", color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            detail?.let { Text(it, color = EInk.Caption, fontSize = 13.sp, maxLines = 1) }
+            caption?.let { Text(it, color = EInk.Caption, fontSize = TextSize.Caption) }
+            Text("#$tag", color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            detail?.let { Text(it, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1) }
         }
         androidx.compose.material3.Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
     }
@@ -484,14 +486,14 @@ private fun SearchSuggestions(
             if (recents.isEmpty() && recentProfiles.isEmpty()) item(key = "hint") {
                 Text(
                     tr("Try searching for people, #topics or keywords. You can also paste an npub, a note link or name@domain."),
-                    color = EInk.Caption, fontSize = 15.sp, lineHeight = 21.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp)
+                    color = EInk.Caption, fontSize = TextSize.Body, lineHeight = 21.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp)
                 )
             } else item(key = "head") {
                 Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Recent"), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(tr("Recent"), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     Text(
-                        tr("Clear all"), color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClearRecents).padding(horizontal = 10.dp, vertical = 6.dp)
+                        tr("Clear all"), color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClearRecents).padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -499,12 +501,12 @@ private fun SearchSuggestions(
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 6.dp)) {
                     recentProfiles.forEach { (pk, p) ->
                         Column(
-                            Modifier.width(76.dp).clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onProfile(pk) }.padding(vertical = 6.dp),
+                            Modifier.width(76.dp).clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button) { onProfile(pk) }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Avatar(p, pk, size = 54)
                             Text(
-                                p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = 12.sp, maxLines = 1,
+                                p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = TextSize.Caption, maxLines = 1,
                                 overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp)
                             )
                         }
@@ -517,7 +519,7 @@ private fun SearchSuggestions(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     androidx.compose.material3.Icon(Glyphs.Clock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
-                    Text(q, color = EInk.Value, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+                    Text(q, color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
                     Box(
                         Modifier.size(44.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove")) { onRemoveRecent(q) },
                         contentAlignment = Alignment.Center
@@ -533,7 +535,7 @@ private fun SearchSuggestions(
             ) {
                 androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = SettingsAccent, modifier = Modifier.size(20.dp))
                 Text(
-                    tr("Search for \"{0}\"", query), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                    tr("Search for \"{0}\"", query), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 14.dp)
                 )
             }
@@ -546,7 +548,7 @@ private fun SearchSuggestions(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 androidx.compose.material3.Icon(Glyphs.Hashtag, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
-                Text("#$tag", color = EInk.Value, fontSize = 16.sp, modifier = Modifier.padding(start = 14.dp))
+                Text("#$tag", color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(start = 14.dp))
             }
         }
         items(people, key = { "p:" + it.pubkey }) { p ->
@@ -557,9 +559,9 @@ private fun SearchSuggestions(
                 Avatar(p, p.pubkey, size = 42)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     DisplayName(p, p.pubkey, EInk.Value, 15.sp)
-                    Text(handleText(p, p.pubkey), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(handleText(p, p.pubkey), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (p.pubkey in following) Text(tr("Following"), color = EInk.Caption, fontSize = 12.sp)
+                if (p.pubkey in following) Text(tr("Following"), color = EInk.Caption, fontSize = TextSize.Caption)
             }
         }
     }
@@ -569,11 +571,11 @@ private fun SearchSuggestions(
 @Composable
 private fun SectionTitle(title: String, more: String?, onMore: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = EInk.Value, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         more?.let {
             Text(
-                it, color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onMore).padding(horizontal = 8.dp, vertical = 4.dp)
+                it, color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onMore).padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
@@ -612,7 +614,7 @@ private fun Trending(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             item(key = "note") {
                 Text(
                     tr("Topics the most people on your relays used in the last 24 hours."),
-                    color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 )
             }
             items(l.size, key = { "t:" + l[it].tag }) { i ->
@@ -691,7 +693,7 @@ private fun ArticleList(list: List<com.example.btcwidget.nostr.core.Article>, ac
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Avatar(actions.profileOf(a.pubkey), a.pubkey, size = 20, onClick = { actions.openProfile(a.pubkey) })
                     Text(
-                        actions.profileOf(a.pubkey)?.bestName ?: Profile.shortNpub(a.pubkey), color = EInk.Label, fontSize = 13.sp,
+                        actions.profileOf(a.pubkey)?.bestName ?: Profile.shortNpub(a.pubkey), color = EInk.Label, fontSize = TextSize.Caption,
                         fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(start = 6.dp)
                     )
                 }
@@ -766,7 +768,7 @@ private fun WhoToFollow(vm: SocialViewModel, actions: NoteActions, navigate: (Na
                     val on = person.pubkey in following
                     Column {
                         Text(
-                            tr("Followed by {0} people you follow", shared), color = EInk.Caption, fontSize = 12.sp,
+                            tr("Followed by {0} people you follow", shared), color = EInk.Caption, fontSize = TextSize.Caption,
                             modifier = Modifier.padding(start = 68.dp, top = 8.dp)
                         )
                         PersonRow(person, isFollowing = on, onClick = { actions.openProfile(person.pubkey) }) {
@@ -794,12 +796,12 @@ internal fun PersonRow(profile: Profile, isFollowing: Boolean, onClick: () -> Un
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DisplayName(profile, profile.pubkey, EInk.Value, 15.sp, Modifier.weight(1f, fill = false))
-                if (isFollowing) Text(tr("  · Following"), color = EInk.Caption, fontSize = 12.sp)
+                if (isFollowing) Text(tr("  · Following"), color = EInk.Caption, fontSize = TextSize.Caption)
             }
-            Text(handleText(profile, profile.pubkey), color = EInk.Caption, fontSize = 13.sp, maxLines = 1)
+            Text(handleText(profile, profile.pubkey), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1)
             profile.about?.let {
                 Spacer(Modifier.height(2.dp))
-                Text(it, color = EInk.Label, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(it, color = EInk.Label, fontSize = TextSize.Body, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         if (trailing != null) {

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.border
@@ -144,9 +146,9 @@ fun BlockStampBadge(
     Row(
         modifier = modifier
             .padding(top = 3.dp, bottom = 2.dp)
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .background(bitcoinOrange.copy(alpha = 0.12f))
-            .border(0.5.dp, bitcoinOrange.copy(alpha = 0.45f), RoundedCornerShape(50))
+            .border(0.5.dp, bitcoinOrange.copy(alpha = 0.45f), Radius.Full)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Proof of Blockheight")) { showSheet = true }
             .padding(horizontal = 8.dp, vertical = 2.5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -173,7 +175,7 @@ fun BlockStampBadge(
                 }
             },
             color = bitcoinOrange,
-            fontSize = 11.5.sp,
+            fontSize = TextSize.Micro,
             fontWeight = FontWeight.Bold,
             maxLines = 1
         )
@@ -193,15 +195,15 @@ fun BlockStampBadge(
                 Text(
                     tr("This note was signed with a Bitcoin Timechain snapshot attached to the Nostr event."),
                     color = EInk.Label,
-                    fontSize = 13.sp,
+                    fontSize = TextSize.Caption,
                     lineHeight = 18.sp
                 )
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(Radius.Small)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Small)
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -230,11 +232,11 @@ private fun SnapshotRow(label: String, value: String, highlight: Boolean = false
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = EInk.Caption, fontSize = 13.sp)
+        Text(label, color = EInk.Caption, fontSize = TextSize.Caption)
         Text(
             value,
             color = if (highlight) EInk.Accent else EInk.Value,
-            fontSize = 13.sp,
+            fontSize = TextSize.Caption,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace
         )

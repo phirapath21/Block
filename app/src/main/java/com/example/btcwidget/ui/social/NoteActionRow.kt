@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,20 +85,20 @@ private fun ActionButton(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .heightIn(min = 40.dp)
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .combinedClickable(
                 onClickLabel = label, role = Role.Button, onClick = onClick,
                 onLongClickLabel = if (onLongClick != null) "React with an emoji" else null, onLongClick = onLongClick
             )
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
-        if (emoji != null) Text(emoji, fontSize = 16.sp)
+        if (emoji != null) Text(emoji, fontSize = TextSize.Body)
         else Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
         if (count > 0) {
             Text(
                 text = compactCount(count),
                 color = color,
-                fontSize = 13.sp,
+                fontSize = TextSize.Caption,
                 fontWeight = if (tint != null) FontWeight.Bold else FontWeight.Normal,
                 modifier = Modifier.padding(start = 5.dp)
             )

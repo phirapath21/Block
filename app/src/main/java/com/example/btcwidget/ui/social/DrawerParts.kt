@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -26,8 +27,8 @@ fun DrawerAccountHeader(vm: SocialViewModel, onLogin: () -> Unit, navigate: (and
     val me = account?.pubkey
     if (me == null) {
         Column {
-            Text(tr("Block"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(tr("Log in to post, follow and zap."), color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+            Text(tr("Block"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
+            Text(tr("Log in to post, follow and zap."), color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
             PillButton(tr("Log in"), onClick = onLogin)
         }
         return
@@ -45,7 +46,7 @@ fun DrawerAccountHeader(vm: SocialViewModel, onLogin: () -> Unit, navigate: (and
         DisplayName(profile, me, EInk.Value, 19.sp, Modifier.padding(top = 12.dp))
         Text(
             handleText(profile, me),
-            color = EInk.Caption, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis
         )
         // "120 Following", as on X: the number bold; opens the list.
         Text(
@@ -55,7 +56,7 @@ fun DrawerAccountHeader(vm: SocialViewModel, onLogin: () -> Unit, navigate: (and
                 pop()
                 append(" " + tr("Following"))
             },
-            color = EInk.Caption, fontSize = 15.sp,
+            color = EInk.Caption, fontSize = TextSize.Body,
             modifier = Modifier.padding(top = 10.dp)
                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Following")) { navigate(com.example.btcwidget.FollowsKey(me, followers = false)) }
         )
@@ -68,7 +69,7 @@ fun MenuAvatar(vm: SocialViewModel) {
     val account by vm.account.collectAsState()
     val profiles by vm.profiles.collectAsState()
     val me = account?.pubkey
-    if (me == null) Text("≡", color = EInk.Value, fontSize = 24.sp) else Avatar(profiles[me], me, size = 28)
+    if (me == null) Text("≡", color = EInk.Value, fontSize = TextSize.Title) else Avatar(profiles[me], me, size = 28)
 }
 
 /**
@@ -84,7 +85,7 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
     androidx.compose.runtime.LaunchedEffect(saved) { saved.forEach { vm.refreshProfile(it.pubkey) } }
     BlockSheet(onDismiss = onDismiss) {
         Column(Modifier.padding(bottom = 16.dp)) {
-            Text(tr("Accounts"), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+            Text(tr("Accounts"), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
             val rows = listOfNotNull(account?.pubkey) + saved.map { it.pubkey }.filter { it != account?.pubkey }
             rows.forEach { pk ->
                 val current = pk == account?.pubkey
@@ -98,14 +99,14 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
                     Avatar(profiles[pk], pk, size = 44)
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         DisplayName(profiles[pk], pk, EInk.Value, 16.sp)
-                        Text(handleText(profiles[pk], pk), color = EInk.Caption, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(handleText(profiles[pk], pk), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (current) Text("✓", color = EInk.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    if (current) Text("✓", color = EInk.Accent, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                 }
             }
             androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 6.dp))
             Text(
-                tr("+ Add account"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                tr("+ Add account"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onDismiss(); navigate(com.example.btcwidget.LoginKey) }
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             )

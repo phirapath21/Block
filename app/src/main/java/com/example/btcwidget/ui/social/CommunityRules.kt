@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,19 +49,19 @@ fun CommunityRulesScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().screenBackground()) {
         SocialTopBar(CommunityRules.TITLE, onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-            Text(CommunityRules.INTRO, color = EInk.Label, fontSize = 15.sp)
+            Text(CommunityRules.INTRO, color = EInk.Label, fontSize = TextSize.Body)
             Section(tr("Not allowed"), CommunityRules.RULES)
             Section(tr("Your tools"), CommunityRules.TOOLS)
-            Text(CommunityRules.OUTRO, color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 18.dp))
+            Text(CommunityRules.OUTRO, color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 18.dp))
         }
     }
 }
 
 @Composable
 private fun Section(title: String, items: List<Pair<String, String>>) {
-    Text(title, color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp, bottom = 4.dp))
+    Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp, bottom = 4.dp))
     items.forEach { (head, body) ->
-        Text(head, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
-        Text(body, color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(head, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
+        Text(body, color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 2.dp))
     }
 }

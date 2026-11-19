@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.app.Application
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -96,19 +98,19 @@ internal fun KeyBackupBanner(vm: SocialViewModel) {
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(Radius.Large)
                 .background(EInk.Accent.copy(alpha = 0.10f))
-                .border(1.dp, EInk.Accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                .border(1.dp, EInk.Accent.copy(alpha = 0.35f), Radius.Large)
                 .padding(14.dp)
                 .testTag("key_backup_banner"),
             verticalAlignment = Alignment.Top
         ) {
             Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.padding(top = 2.dp).size(22.dp))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(tr("Save your key"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(tr("Save your key"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
                 Text(
                     tr("It's the only way back into your account. Nobody can reset it for you."),
-                    color = EInk.Label, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 2.dp)
+                    color = EInk.Label, fontSize = TextSize.Body, lineHeight = 19.sp, modifier = Modifier.padding(top = 2.dp)
                 )
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PillButton(tr("Save now")) { sheet = true }
@@ -131,21 +133,21 @@ internal fun KeyBackupSheet(vm: SocialViewModel, onDone: () -> Unit) {
     BlockSheet(onDismiss = onDone) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(EInk.Accent.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(40.dp).clip(Radius.Small).background(EInk.Accent.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
                     Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(22.dp))
                 }
-                Text(tr("Save your key"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
+                Text(tr("Save your key"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
             }
-            Text(keyBackupExplainer(), color = EInk.Label, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 12.dp, bottom = 16.dp))
+            Text(keyBackupExplainer(), color = EInk.Label, fontSize = TextSize.Body, lineHeight = 20.sp, modifier = Modifier.padding(top = 12.dp, bottom = 16.dp))
             val shown = nsec
             if (shown == null) {
                 PillButton(tr("Show my key")) { nsec = vm.exportNsec() }
-                Text(tr("Make sure no one is looking at your screen."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                Text(tr("Make sure no one is looking at your screen."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 8.dp))
             } else {
                 SecureScreen()
                 Text(
-                    shown, color = EInk.Value, fontSize = 13.sp, fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(EInk.Body).padding(12.dp)
+                    shown, color = EInk.Value, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.fillMaxWidth().clip(Radius.Small).background(EInk.Body).padding(12.dp)
                 )
                 Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PillButton(tr("Copy"), filled = false) {

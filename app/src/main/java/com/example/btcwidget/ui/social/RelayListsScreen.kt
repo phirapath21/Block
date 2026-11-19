@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +38,7 @@ import com.example.btcwidget.nostr.core.RelayInfo
 import com.example.btcwidget.nostr.core.RelayLists
 import com.example.btcwidget.nostr.core.normalizeRelayUrl
 import com.example.btcwidget.ui.main.EInk
-import com.example.btcwidget.ui.main.EInkChip
+import com.example.btcwidget.ui.main.BlockChip
 
 /**
  * Your NIP-65 relays: where you write (others read your notes there) and where you read (others
@@ -53,23 +55,23 @@ internal fun MyRelaysTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
         item(key = "about") {
             Text(
                 tr("Your relay list (NIP-65) tells other apps where to find your notes (write) and where to send you replies and mentions (read). Block also reads from them."),
-                color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(16.dp)
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(16.dp)
             )
         }
         items(entries, key = { it.url }) { e ->
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
-                    e.url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    e.url.removePrefix("wss://"), color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("About this relay")) { onInfo(e.url) }
                 )
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     fun set(read: Boolean, write: Boolean) { entries = entries.map { if (it.url == e.url) it.copy(read = read, write = write) else it } }
-                    EInkChip(text = (if (e.read && e.write) "✓ " else "") + "BOTH", selected = e.read && e.write, onClick = { set(true, true) })
-                    EInkChip(text = (if (e.read && !e.write) "✓ " else "") + "READ", selected = e.read && !e.write, onClick = { set(true, false) })
-                    EInkChip(text = (if (!e.read && e.write) "✓ " else "") + "WRITE", selected = !e.read && e.write, onClick = { set(false, true) })
+                    BlockChip(text = (if (e.read && e.write) "✓ " else "") + tr("Both"), selected = e.read && e.write, onClick = { set(true, true) })
+                    BlockChip(text = (if (e.read && !e.write) "✓ " else "") + tr("Read"), selected = e.read && !e.write, onClick = { set(true, false) })
+                    BlockChip(text = (if (!e.read && e.write) "✓ " else "") + tr("Write"), selected = !e.read && e.write, onClick = { set(false, true) })
                     Spacer(Modifier.weight(1f))
                     Text(
-                        tr("Remove"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        tr("Remove"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { entries = entries.filter { it.url != e.url } }.padding(6.dp)
                     )
                 }
@@ -84,7 +86,7 @@ internal fun MyRelaysTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
             }
             if (entries.isEmpty()) Text(
                 tr("With no relays here, other apps can't find your notes reliably. Add two or three."),
-                color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp)
+                color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }
@@ -103,13 +105,13 @@ internal fun RelaySetTab(vm: SocialViewModel, blocked: Boolean, onInfo: (String)
             Text(
                 if (blocked) tr("Block never connects to these relays, even to read someone who posts there. The list is public (NIP-51) so your other apps can use it.")
                 else tr("Search (people, notes, hashtags) asks these relays. Empty: Block's defaults, relay.nostr.band and search.nos.today."),
-                color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(16.dp)
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(16.dp)
             )
         }
         items(urls, key = { it }) { url ->
             Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { onInfo(url) }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text(tr("Remove"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { urls = urls - url }.padding(6.dp))
+                Text(url.removePrefix("wss://"), color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(tr("Remove"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { urls = urls - url }.padding(6.dp))
             }
             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         }
@@ -136,12 +138,12 @@ private fun AddRelayRow(onAdd: (String) -> Unit) {
                 placeholder = { Text("relay.example.com") }, isError = error != null, modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
-            EInkChip(text = "ADD", selected = input.isNotBlank(), onClick = {
+            BlockChip(text = tr("Add"), selected = input.isNotBlank(), onClick = {
                 val url = normalizeRelayUrl(if (input.startsWith("ws")) input else "wss://$input")
                 if (url == null) error = tr("Not a relay address") else { onAdd(url); input = "" }
             })
         }
-        error?.let { Text(it, color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+        error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp)) }
     }
 }
 
@@ -152,14 +154,14 @@ internal fun RelayInfoSheet(vm: SocialViewModel, url: String, onDismiss: () -> U
     val info by produceKept<Any?>(Unit, url) { value = vm.relayInfo(url) }
     BlockSheet(onDismiss = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text(url.removePrefix("wss://"), color = EInk.Caption, fontSize = 13.sp)
+            Text(url.removePrefix("wss://"), color = EInk.Caption, fontSize = TextSize.Caption)
             when (val i = info) {
                 Unit -> Spinner(Modifier.padding(top = 20.dp))
-                !is RelayInfo -> Text(tr("This relay doesn't describe itself (no NIP-11 page)."), color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp))
+                !is RelayInfo -> Text(tr("This relay doesn't describe itself (no NIP-11 page)."), color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 12.dp))
                 else -> {
                     LaunchedEffect(i.operator) { i.operator?.let { vm.loadProfiles(listOf(it)) } }
-                    Text(i.name ?: tr("Relay"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
-                    i.description?.let { Text(it, color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp)) }
+                    Text(i.name ?: tr("Relay"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                    i.description?.let { Text(it, color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 6.dp)) }
                     FlowRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (i.paymentRequired) Tag(tr("Paid"))
                         if (i.authRequired) Tag(tr("Login required"))
@@ -179,13 +181,13 @@ internal fun RelayInfoSheet(vm: SocialViewModel, url: String, onDismiss: () -> U
 
 @Composable
 private fun Tag(text: String) {
-    Text(text, color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).padding(horizontal = 10.dp, vertical = 4.dp))
+    Text(text, color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.clip(Radius.Full).background(EInk.Track).padding(horizontal = 10.dp, vertical = 4.dp))
 }
 
 @Composable
 private fun Line(label: String, value: String) {
     Row(Modifier.padding(top = 10.dp)) {
-        Text(label, color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.width(110.dp))
-        Text(value, color = EInk.Value, fontSize = 13.sp)
+        Text(label, color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.width(110.dp))
+        Text(value, color = EInk.Value, fontSize = TextSize.Caption)
     }
 }

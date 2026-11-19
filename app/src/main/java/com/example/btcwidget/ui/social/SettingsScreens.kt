@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -169,8 +170,8 @@ internal fun AccountRow(profile: Profile?, pubkey: String, note: String, actions
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Avatar(profile, pubkey, size = 36)
         Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-            Text(profile?.bestName ?: Profile.shortNpub(pubkey), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(note, color = EInk.Caption, fontSize = 12.sp)
+            Text(profile?.bestName ?: Profile.shortNpub(pubkey), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(note, color = EInk.Caption, fontSize = TextSize.Caption)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { actions() }
     }

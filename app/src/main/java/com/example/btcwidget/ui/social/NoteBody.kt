@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,16 +59,16 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
             modifier = Modifier
                 .padding(top = 6.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(Radius.Small)
                 .background(EInk.Body)
                 .padding(12.dp)
         ) {
             Column(Modifier.weight(1f)) {
-                Text(tr("⚠ Sensitive content"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                warning.getOrNull(1)?.takeIf { it.isNotBlank() }?.let { Text(it, color = EInk.Label, fontSize = 13.sp) }
+                Text(tr("⚠ Sensitive content"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+                warning.getOrNull(1)?.takeIf { it.isNotBlank() }?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption) }
             }
             Text(
-                tr("Show"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                tr("Show"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show sensitive content")) { revealed = true }.padding(8.dp)
             )
         }
@@ -198,12 +200,12 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
         segments.filterIsInstance<Content.Segment.AddressRef>().filter { it.address.kind == com.example.btcwidget.nostr.core.LiveStreams.KIND }
             .take(1).forEach { ref ->
                 Row(
-                    Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+                    Modifier.padding(top = 8.dp).fillMaxWidth().clip(Radius.Large).border(0.5.dp, EInk.BodyStroke, Radius.Large)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Watch the stream")) { actions.openArticle(ref.address) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(tr("● LIVE"), color = EInk.Alert, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(tr("  Live stream · tap to watch"), color = EInk.Value, fontSize = 14.sp)
+                    Text(tr("● LIVE"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
+                    Text(tr("  Live stream · tap to watch"), color = EInk.Value, fontSize = TextSize.Body)
                 }
             }
     }
@@ -218,8 +220,8 @@ private fun LinkCard(url: String, note: Event, actions: NoteActions) {
         Modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+            .clip(Radius.Large)
+            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open link")) { actions.openLink(url, note) }
     ) {
         p.image?.let {
@@ -229,9 +231,9 @@ private fun LinkCard(url: String, note: Event, actions: NoteActions) {
             )
         }
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(p.site, color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(p.title, color = EInk.Value, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            p.description?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            Text(p.site, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(p.title, color = EInk.Value, fontSize = TextSize.Body, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            p.description?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -259,8 +261,8 @@ private const val QUOTE_LINES = 5
 @Composable
 private fun ShowMore(label: String = tr("Show more"), onClick: () -> Unit) {
     Text(
-        label, color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(6.dp))
+        label, color = EInk.Accent, fontSize = TextSize.Body, fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(top = 2.dp).clip(Radius.Small)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Read the whole post"), onClick = onClick).padding(vertical = 4.dp)
     )
 }

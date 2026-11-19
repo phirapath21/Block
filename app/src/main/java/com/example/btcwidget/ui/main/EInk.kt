@@ -91,8 +91,8 @@ object EInk {
     val Sheet get() = Color(ui.sheet)
     val Success get() = Color(ui.success)
 
-    val BodyShape = RoundedCornerShape(16.dp)
-    val ChipShape = RoundedCornerShape(50)
+    val BodyShape = Radius.Large
+    val ChipShape = Radius.Full
 }
 
 /**
@@ -153,38 +153,10 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         color = EInk.Caption,
-        fontSize = 13.sp,
+        fontSize = TextSize.Caption,
         fontWeight = FontWeight.Bold,
         modifier = modifier
     )
-}
-
-/** Selectable pill chip in X style: orange fill when selected, subtle dark pill otherwise. */
-@Composable
-fun EInkChip(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(EInk.ChipShape)
-            .background(if (selected) EInk.Accent else EInk.Body, EInk.ChipShape)
-            .then(if (!selected) Modifier.border(1.dp, EInk.BodyStroke, EInk.ChipShape) else Modifier)
-            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (selected) Color.Black else EInk.Value,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            softWrap = false
-        )
-    }
 }
 
 @Composable

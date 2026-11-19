@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
@@ -102,7 +104,7 @@ internal fun ChatTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Radius.Small)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpenProfile)
                     .padding(horizontal = 6.dp, vertical = 4.dp)
             ) {
@@ -112,7 +114,7 @@ internal fun ChatTopBar(
                         Text(
                             text = title,
                             color = EInk.Value,
-                            fontSize = 16.sp,
+                            fontSize = TextSize.Body,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -127,7 +129,7 @@ internal fun ChatTopBar(
                         Text(
                             text = if (isGroup) tr("{0} members · Encrypted", peers.size + 1) else tr("NIP-17 encrypted"),
                             color = EInk.Caption,
-                            fontSize = 11.sp,
+                            fontSize = TextSize.Micro,
                             maxLines = 1,
                             modifier = Modifier.padding(start = 4.dp)
                         )
@@ -197,7 +199,7 @@ internal fun EncryptedAttachment(
                 Modifier
                     .width(244.dp)
                     .aspectRatio(ratio.coerceIn(0.55f, 1.9f))
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(Radius.Large)
                     .background(EInk.Track)
                     .then(
                         if (bitmap != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { showFullscreen = true } else Modifier
@@ -232,7 +234,7 @@ internal fun EncryptedAttachment(
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(15.dp))
-                        Text(tr("Encrypted photo"), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp))
+                        Text(tr("Encrypted photo"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 6.dp))
                     }
                 }
             }
@@ -318,7 +320,7 @@ internal fun EncryptedAttachment(
                 Modifier
                     .width(248.dp)
                     .aspectRatio(ratio.coerceIn(0.6f, 1.85f))
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(Radius.Large)
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
@@ -379,7 +381,7 @@ internal fun EncryptedAttachment(
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(color = EInk.Accent, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
-                        Text(tr("Encrypted video"), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+                        Text(tr("Encrypted video"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -470,7 +472,7 @@ internal fun EncryptedAttachment(
                     Text(
                         text = displayName,
                         color = fg,
-                        fontSize = 13.sp,
+                        fontSize = TextSize.Caption,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -478,7 +480,7 @@ internal fun EncryptedAttachment(
                     Text(
                         text = listOfNotNull(extBadge, sizeLabel.takeIf { it.isNotEmpty() }, "NIP-17").joinToString(" · "),
                         color = subFg,
-                        fontSize = 11.sp,
+                        fontSize = TextSize.Micro,
                         maxLines = 1
                     )
                 }

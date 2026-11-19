@@ -175,7 +175,7 @@ fun MainScreenContent(
     /** Unread counts shown on bottom-bar tabs. */
     badges: Map<MainTab, Int> = emptyMap(),
     /** The top-left button that opens the side bar (the user's avatar when logged in). */
-    menuButtonIcon: @Composable () -> Unit = { Text("≡", color = EInk.Value, fontSize = 22.sp) },
+    menuButtonIcon: @Composable () -> Unit = { Text("≡", color = EInk.Value, fontSize = TextSize.Title) },
     /** Long-pressing the side panel's button: switch accounts (null: nothing). */
     accountSwitcher: (@Composable (onDismiss: () -> Unit) -> Unit)? = null
 ) {
@@ -472,7 +472,7 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
         modifier.height(18.dp).widthIn(min = 18.dp).clip(CircleShape).background(Accent).border(1.5.dp, EInk.Background, CircleShape)
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
-    ) { Text(if (count > 99) "99+" else "$count", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold, lineHeight = 10.sp) }
+    ) { Text(if (count > 99) "99+" else "$count", color = Color.Black, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold, lineHeight = 10.sp) }
 }
 
 @Composable
@@ -522,7 +522,7 @@ private fun TopBar(title: String, menuButton: (@Composable () -> Unit)?) {
         Text(
             text = title,
             color = EInk.Value,
-            fontSize = 20.sp,
+            fontSize = TextSize.Title,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = if (menuButton != null) 10.dp else 8.dp)
         )
@@ -554,7 +554,7 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp, vertical = 2.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                    .clip(Radius.Large)
                     .background(if (selected) EInk.Body else Color.Transparent)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open {0}", tr(tab.title))) { onOpen(tab) }
                     .padding(horizontal = 14.dp, vertical = 13.dp)
@@ -563,7 +563,7 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
                 Text(
                     text = tr(tab.title),
                     color = EInk.Value,
-                    fontSize = 20.sp,
+                    fontSize = TextSize.Title,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     modifier = Modifier.padding(start = 20.dp)
                 )

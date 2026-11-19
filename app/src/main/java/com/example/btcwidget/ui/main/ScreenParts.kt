@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.sp
 
 /** Shared building blocks for the dashboard and widgets screens. */
 
-internal val CardShape = RoundedCornerShape(14.dp)
+internal val CardShape = Radius.Large
 
 @Composable
 fun HeaderSection(title: String, subtitle: String) {
@@ -45,7 +45,7 @@ fun HeaderSection(title: String, subtitle: String) {
         Text(
             text = title,
             color = EInk.Value,
-            fontSize = 22.sp,
+            fontSize = TextSize.Title,
             fontWeight = FontWeight.Bold
         )
         if (subtitle.isNotBlank()) {
@@ -53,7 +53,7 @@ fun HeaderSection(title: String, subtitle: String) {
             Text(
                 text = subtitle,
                 color = EInk.Caption,
-                fontSize = 13.sp
+                fontSize = TextSize.Caption
             )
         }
     }
@@ -75,17 +75,17 @@ internal fun StackSetupCard(onSetUp: () -> Unit) {
             Text(
                 text = tr("Your stack"),
                 color = EInk.Value,
-                fontSize = 15.sp,
+                fontSize = TextSize.Body,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = tr("See what your bitcoin is worth here and on the widget."),
                 color = EInk.Caption,
-                fontSize = 13.sp,
+                fontSize = TextSize.Caption,
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
-        EInkChip(text = tr("Set up"), selected = true, onClick = onSetUp)
+        BlockChip(text = tr("Set up"), selected = true, onClick = onSetUp)
     }
 }
 
@@ -97,7 +97,7 @@ internal fun CategoryHeader(title: String, count: Int, collapsed: Boolean, onCli
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 10.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(Radius.Small)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (collapsed) tr("Expand") else tr("Collapse"), onClick = onClick)
             .semantics { stateDescription = if (collapsed) "Collapsed" else "Expanded" }
             .padding(horizontal = 6.dp, vertical = 8.dp),
@@ -106,13 +106,13 @@ internal fun CategoryHeader(title: String, count: Int, collapsed: Boolean, onCli
         Text(
             text = title,
             color = EInk.Value,
-            fontSize = 16.sp,
+            fontSize = TextSize.Body,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = " · $count",
             color = EInk.Caption,
-            fontSize = 14.sp
+            fontSize = TextSize.Body
         )
         Spacer(modifier = Modifier.weight(1f))
         Icon(

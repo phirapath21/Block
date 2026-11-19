@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -77,21 +79,21 @@ fun FeedSkeleton(modifier: Modifier = Modifier, rows: Int = 6) {
                 Bone(Modifier.size(44.dp).clip(CircleShape), sweep, base, light)
                 Column(Modifier.weight(1f).padding(start = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Bone(Modifier.width((96 + 24 * (i % 3)).dp).height(12.dp).clip(RoundedCornerShape(50)), sweep, base, light)
+                        Bone(Modifier.width((96 + 24 * (i % 3)).dp).height(12.dp).clip(Radius.Full), sweep, base, light)
                         Spacer(Modifier.width(8.dp))
-                        Bone(Modifier.width(36.dp).height(10.dp).clip(RoundedCornerShape(50)), sweep, base, light)
+                        Bone(Modifier.width(36.dp).height(10.dp).clip(Radius.Full), sweep, base, light)
                     }
                     // Three, two or four lines, so the column doesn't look stamped out.
                     val lines = intArrayOf(3, 2, 4, 2, 3, 1)[i % 6]
                     repeat(lines) { l ->
                         Bone(
-                            Modifier.fillMaxWidth(if (l == lines - 1) 0.6f else 1f).height(11.dp).clip(RoundedCornerShape(50)),
+                            Modifier.fillMaxWidth(if (l == lines - 1) 0.6f else 1f).height(11.dp).clip(Radius.Full),
                             sweep, base, light
                         )
                     }
-                    if (i % 3 == 1) Bone(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(14.dp)), sweep, base, light)
+                    if (i % 3 == 1) Bone(Modifier.fillMaxWidth().height(150.dp).clip(Radius.Large), sweep, base, light)
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(0.85f).padding(top = 2.dp)) {
-                        repeat(4) { Bone(Modifier.size(width = 22.dp, height = 10.dp).clip(RoundedCornerShape(50)), sweep, base, light) }
+                        repeat(4) { Bone(Modifier.size(width = 22.dp, height = 10.dp).clip(Radius.Full), sweep, base, light) }
                     }
                 }
             }
@@ -131,16 +133,16 @@ fun StarterFollows(vm: SocialViewModel, navigate: (NavKey) -> Unit, modifier: Mo
         item {
             Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 8.dp)) {
                 Box(
-                    Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(EInk.Accent.copy(alpha = 0.15f)),
+                    Modifier.size(52.dp).clip(Radius.Large).background(EInk.Accent.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) { Icon(Glyphs.Following, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(28.dp)) }
                 Text(
-                    tr("Your timeline starts with who you follow"), color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                    tr("Your timeline starts with who you follow"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
                     lineHeight = 28.sp, modifier = Modifier.padding(top = 14.dp)
                 )
                 Text(
                     tr("Follow a pack to get going: people someone on Nostr recommends, all at once. You can unfollow anyone later."),
-                    color = EInk.Label, fontSize = 15.sp, lineHeight = 21.sp, modifier = Modifier.padding(top = 6.dp)
+                    color = EInk.Label, fontSize = TextSize.Body, lineHeight = 21.sp, modifier = Modifier.padding(top = 6.dp)
                 )
             }
         }
@@ -151,7 +153,7 @@ fun StarterFollows(vm: SocialViewModel, navigate: (NavKey) -> Unit, modifier: Mo
                 }
                 else -> if (l.isEmpty()) Text(
                     tr("No follow packs found on your relays. Search for people you know instead."),
-                    color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                    color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                 ) else LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -174,18 +176,18 @@ fun StarterFollows(vm: SocialViewModel, navigate: (NavKey) -> Unit, modifier: Mo
                     .padding(horizontal = 16.dp, vertical = 16.dp)
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(50))
-                    .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                    .clip(Radius.Full)
+                    .border(1.dp, EInk.BodyStroke, Radius.Full)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(SearchKey) },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(Glyphs.Search, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(18.dp))
-                Text(tr("Find people you know"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                Text(tr("Find people you know"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
             }
             if (following.isNotEmpty()) Text(
                 tr("Following {0}. Pull down to refresh your timeline.", following.size),
-                color = EInk.Caption, fontSize = 13.sp, textAlign = TextAlign.Center,
+                color = EInk.Caption, fontSize = TextSize.Caption, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
             )
         }
@@ -196,7 +198,7 @@ private val PackCardWidth: Dp = 236.dp
 
 @Composable
 private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed: Boolean, onOpen: () -> Unit, onFollowAll: () -> Unit) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = Radius.Large
     var tapped by remember(pack.address) { mutableStateOf(false) }
     val done = followed || tapped
     Column(
@@ -214,13 +216,13 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
                 Box(Modifier.padding(start = (i * 26).dp).clip(CircleShape).border(2.dp, EInk.Body, CircleShape)) { Avatar(profiles[pk], pk, size = 40) }
             }
         }
-        Text(pack.title, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
+        Text(pack.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
         Text(
             tr("{0} people · by ", pack.members.size) + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)),
-            color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
         )
         Text(
-            pack.description.orEmpty(), color = EInk.Label, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            pack.description.orEmpty(), color = EInk.Label, fontSize = TextSize.Caption, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp).heightIn(min = 36.dp)
         )
         Box(
@@ -228,15 +230,15 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
                 .padding(top = 10.dp)
                 .fillMaxWidth()
                 .heightIn(min = 40.dp)
-                .clip(RoundedCornerShape(50))
+                .clip(Radius.Full)
                 .background(if (done) Color.Transparent else EInk.Accent)
-                .border(1.dp, if (done) EInk.BodyStroke else Color.Transparent, RoundedCornerShape(50))
+                .border(1.dp, if (done) EInk.BodyStroke else Color.Transparent, Radius.Full)
                 .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !done) { tapped = true; onFollowAll() },
             contentAlignment = Alignment.Center
         ) {
             Text(
                 if (done) "✓ " + tr("Following") else tr("Follow all {0}", pack.members.size),
-                color = if (done) EInk.Value else EInk.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                color = if (done) EInk.Value else EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold
             )
         }
     }
@@ -245,7 +247,7 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
 @Composable
 private fun PackCardSkeleton() {
     Box(
-        Modifier.width(PackCardWidth).height(206.dp).clip(RoundedCornerShape(18.dp)).background(EInk.Body)
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(18.dp))
+        Modifier.width(PackCardWidth).height(206.dp).clip(Radius.Large).background(EInk.Body)
+            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
     )
 }

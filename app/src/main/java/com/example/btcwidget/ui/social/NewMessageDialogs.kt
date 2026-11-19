@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -89,9 +91,9 @@ internal fun NewMessageDialog(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(Radius.Large)
                 .screenBackground()
-                .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+                .border(0.5.dp, EInk.BodyStroke, Radius.Large)
                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onNewGroup)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
@@ -105,8 +107,8 @@ internal fun NewMessageDialog(
                 Icon(Glyphs.Group, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(18.dp))
             }
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(tr("New group chat"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(tr("Up to {0} people · NIP-17 encrypted", MAX_GROUP), color = EInk.Caption, fontSize = 12.sp)
+                Text(tr("New group chat"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+                Text(tr("Up to {0} people · NIP-17 encrypted", MAX_GROUP), color = EInk.Caption, fontSize = TextSize.Caption)
             }
             Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(20.dp))
         }
@@ -124,16 +126,16 @@ internal fun NewMessageDialog(
             Text(
                 error!!,
                 color = EInk.Alert,
-                fontSize = 12.sp,
+                fontSize = TextSize.Caption,
                 modifier = Modifier.padding(top = 6.dp)
             )
         }
 
         if (suggestedFollows.isNotEmpty()) {
             Text(
-                tr("PEOPLE YOU FOLLOW"),
+                tr("People you follow"),
                 color = EInk.Caption,
-                fontSize = 11.sp,
+                fontSize = TextSize.Micro,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 14.dp, bottom = 4.dp)
             )
@@ -143,7 +145,7 @@ internal fun NewMessageDialog(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(Radius.Small)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button) { onOpen(pk) }
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -154,7 +156,7 @@ internal fun NewMessageDialog(
                                 Text(
                                     p?.bestName ?: Profile.shortNpub(pk),
                                     color = EInk.Value,
-                                    fontSize = 14.sp,
+                                    fontSize = TextSize.Body,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -167,7 +169,7 @@ internal fun NewMessageDialog(
                             Text(
                                 handleText(p, pk),
                                 color = EInk.Caption,
-                                fontSize = 12.sp,
+                                fontSize = TextSize.Caption,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -220,9 +222,9 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
+                            .clip(Radius.Full)
                             .background(EInk.Accent.copy(alpha = 0.16f))
-                            .border(0.5.dp, EInk.Accent, RoundedCornerShape(50))
+                            .border(0.5.dp, EInk.Accent, Radius.Full)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button) { picked = picked - pk }
                             .padding(start = 4.dp, end = 8.dp, top = 3.dp, bottom = 3.dp)
                     ) {
@@ -230,7 +232,7 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
                         Text(
                             profiles[pk]?.bestName ?: Profile.shortNpub(pk),
                             color = EInk.Value,
-                            fontSize = 12.sp,
+                            fontSize = TextSize.Caption,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             modifier = Modifier.padding(horizontal = 6.dp)
@@ -247,7 +249,7 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(Radius.Small)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { picked = if (on) picked - pk else (picked + pk).take(MAX_GROUP) }
                         .padding(vertical = 7.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -257,7 +259,7 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
                         Text(
                             profiles[pk]?.bestName ?: Profile.shortNpub(pk),
                             color = EInk.Value,
-                            fontSize = 14.sp,
+                            fontSize = TextSize.Body,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -265,7 +267,7 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
                         Text(
                             handleText(profiles[pk], pk),
                             color = EInk.Caption,
-                            fontSize = 12.sp,
+                            fontSize = TextSize.Caption,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -285,7 +287,7 @@ internal fun NewGroupDialog(vm: SocialViewModel, onDismiss: () -> Unit, onStart:
         Text(
             tr("Everyone in the group sees each other and every message. Up to {0} people.", MAX_GROUP),
             color = EInk.Caption,
-            fontSize = 12.sp,
+            fontSize = TextSize.Caption,
             modifier = Modifier.padding(top = 8.dp)
         )
     }

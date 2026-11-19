@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.Context
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -238,7 +240,7 @@ private fun ArticleTopBar(
             Text(
                 text = title,
                 color = EInk.Value,
-                fontSize = 16.sp,
+                fontSize = TextSize.Body,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -292,9 +294,9 @@ private fun ArticleTopBar(
             Box(
                 Modifier
                     .padding(end = 4.dp)
-                    .clip(RoundedCornerShape(50))
+                    .clip(Radius.Full)
                     .background(if (showReaderSettings) EInk.Accent else EInk.Body)
-                    .border(0.5.dp, if (showReaderSettings) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
+                    .border(0.5.dp, if (showReaderSettings) EInk.Accent else EInk.BodyStroke, Radius.Full)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Reading settings"), onClick = onToggleReaderSettings)
                     .padding(horizontal = 11.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
@@ -302,7 +304,7 @@ private fun ArticleTopBar(
                 Text(
                     "Aa",
                     color = if (showReaderSettings) Color.Black else EInk.Value,
-                    fontSize = 13.sp,
+                    fontSize = TextSize.Caption,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -502,14 +504,14 @@ private fun ArticleBody(
                     Text(
                         tr("Resume where you left off ({0}%)", initialSavedPct),
                         color = EInk.Value,
-                        fontSize = 13.sp,
+                        fontSize = TextSize.Caption,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(1f)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             Modifier
-                                .clip(RoundedCornerShape(50))
+                                .clip(Radius.Full)
                                 .background(EInk.Accent)
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                     showResumeBanner = false
@@ -519,7 +521,7 @@ private fun ArticleBody(
                                 }
                                 .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
-                            Text(tr("Jump"), color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(tr("Jump"), color = Color.Black, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                         }
                         Box(
                             Modifier
@@ -551,7 +553,7 @@ private fun ArticleBody(
                         Text(
                             article.title,
                             color = EInk.Value,
-                            fontSize = 24.sp,
+                            fontSize = TextSize.Title,
                             fontFamily = readerPrefs.fontFamily,
                             fontWeight = FontWeight.Bold,
                             lineHeight = 31.sp
@@ -566,13 +568,13 @@ private fun ArticleBody(
                                 Text(
                                     author?.bestName ?: Profile.shortNpub(article.pubkey),
                                     color = EInk.Value,
-                                    fontSize = 14.sp,
+                                    fontSize = TextSize.Body,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     fullTimestamp(article.publishedAt) + " · " + tr("{0} min read", readingMinutes),
                                     color = EInk.Caption,
-                                    fontSize = 12.sp
+                                    fontSize = TextSize.Caption
                                 )
                             }
                         }
@@ -597,9 +599,9 @@ private fun ArticleBody(
                             if (speakableBlocks.isNotEmpty() && ttsReady) {
                                 Box(
                                     Modifier
-                                        .clip(RoundedCornerShape(50))
+                                        .clip(Radius.Full)
                                         .background(if (ttsActive) EInk.Accent else EInk.Body)
-                                        .border(0.5.dp, if (ttsActive) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
+                                        .border(0.5.dp, if (ttsActive) EInk.Accent else EInk.BodyStroke, Radius.Full)
                                         .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                             if (ttsPlaying) {
                                                 ttsRef.value?.stop()
@@ -620,7 +622,7 @@ private fun ArticleBody(
                                         Text(
                                             if (ttsPlaying) tr("Listening…") else tr("Listen"),
                                             color = if (ttsActive) Color.Black else EInk.Value,
-                                            fontSize = 12.sp,
+                                            fontSize = TextSize.Caption,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -646,12 +648,12 @@ private fun ArticleBody(
                                 when {
                                     isSpoken -> Modifier
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        .background(HighlightTint, RoundedCornerShape(10.dp))
-                                        .border(1.dp, EInk.Accent, RoundedCornerShape(10.dp))
+                                        .background(HighlightTint, Radius.Small)
+                                        .border(1.dp, EInk.Accent, Radius.Small)
                                     isFocused -> Modifier
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        .background(HighlightTint, RoundedCornerShape(10.dp))
-                                        .border(1.5.dp, EInk.Accent, RoundedCornerShape(10.dp))
+                                        .background(HighlightTint, Radius.Small)
+                                        .border(1.5.dp, EInk.Accent, Radius.Small)
                                     else -> Modifier
                                 }
                             )
@@ -675,7 +677,7 @@ private fun ArticleBody(
                     Text(
                         tr("Long-press a paragraph to quote it, copy it, or listen from there."),
                         color = EInk.Caption,
-                        fontSize = 12.sp,
+                        fontSize = TextSize.Caption,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
                     )
                     Spacer(Modifier.padding(bottom = if (ttsActive) 84.dp else 40.dp))
@@ -743,7 +745,7 @@ private fun ArticleBody(
                 Text(
                     tr("Table of contents"),
                     color = EInk.Value,
-                    fontSize = 15.sp,
+                    fontSize = TextSize.Body,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
                 )
@@ -767,7 +769,7 @@ private fun ArticleBody(
             Text(
                 "“" + text.take(200) + (if (text.length > 200) "…" else "") + "”",
                 color = EInk.Label,
-                fontSize = 14.sp,
+                fontSize = TextSize.Body,
                 fontStyle = FontStyle.Italic,
                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 6.dp)
             )

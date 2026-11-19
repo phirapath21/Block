@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -111,7 +113,7 @@ internal fun LiveChat(
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
                         item(key = "head") {
                             Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                                Text(note, color = EInk.Caption, fontSize = 12.sp)
+                                Text(note, color = EInk.Caption, fontSize = TextSize.Caption)
                                 action?.let { (label, run) ->
                                     if (account != null) Row(Modifier.padding(top = 6.dp)) { ChoicePill(label, selected = false) { run() } }
                                 }
@@ -136,7 +138,7 @@ internal fun LiveChat(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp)
                     ) {
                         Row(
-                            Modifier.clip(RoundedCornerShape(50)).background(SettingsAccent)
+                            Modifier.clip(Radius.Full).background(SettingsAccent)
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show new messages")) { scope.launch { listState.animateScrollToItem(messages?.size ?: 0) }; unseen = 0 }
                                 .padding(horizontal = 14.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -144,29 +146,29 @@ internal fun LiveChat(
                             androidx.compose.material3.Icon(Glyphs.ArrowDown, contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black, modifier = Modifier.size(16.dp))
                             Text(
                                 tr("{0} new message{1}", unseen, plural(unseen)), color = androidx.compose.ui.graphics.Color.Black,
-                                fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp)
+                                fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp)
                             )
                         }
                     }
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-                error?.let { Text(it, color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) }
+                error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) }
                 if (account == null) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.Center) { PillButton(tr("Log in to chat")) { navigate(LoginKey) } }
                 } else Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom) {
                     account?.let { Box(Modifier.padding(bottom = 6.dp)) { Avatar(profiles[it.pubkey], it.pubkey, size = 30) } }
                     Box(
-                        Modifier.weight(1f).padding(horizontal = 8.dp).clip(RoundedCornerShape(22.dp)).background(EInk.Body)
+                        Modifier.weight(1f).padding(horizontal = 8.dp).clip(Radius.Large).background(EInk.Body)
                             .padding(horizontal = 16.dp, vertical = 11.dp)
                     ) {
                         androidx.compose.foundation.text.BasicTextField(
                             value = text, onValueChange = { text = it; error = null }, maxLines = 4,
-                            textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = 15.sp),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = TextSize.Body),
                             cursorBrush = androidx.compose.ui.graphics.SolidColor(SettingsAccent),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { field ->
                                 Box {
-                                    if (text.isEmpty()) Text(tr("Chat…"), color = EInk.Caption, fontSize = 15.sp)
+                                    if (text.isEmpty()) Text(tr("Chat…"), color = EInk.Caption, fontSize = TextSize.Body)
                                     field()
                                 }
                             }
@@ -203,16 +205,16 @@ private fun ChatRow(m: Event, author: Profile?, mine: Boolean, host: Boolean, on
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     if (mine) tr("You") else author?.bestName ?: Profile.shortNpub(m.pubkey),
-                    color = if (host) SettingsAccent else EInk.Label, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    color = if (host) SettingsAccent else EInk.Label, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
                 )
                 if (host) Text(
                     tr("HOST"), color = androidx.compose.ui.graphics.Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(4.dp)).background(SettingsAccent).padding(horizontal = 4.dp, vertical = 1.dp)
                 )
-                Text("  " + relativeTime(m.createdAt), color = EInk.Caption, fontSize = 11.sp)
+                Text("  " + relativeTime(m.createdAt), color = EInk.Caption, fontSize = TextSize.Micro)
             }
-            Text(m.content, color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp)
+            Text(m.content, color = EInk.Value, fontSize = TextSize.Body, lineHeight = 20.sp)
         }
     }
 }
@@ -222,8 +224,8 @@ private fun ChatRow(m: Event, author: Profile?, mine: Boolean, host: Boolean, on
 private fun ZapChatCard(z: com.example.btcwidget.nostr.core.Zaps.Receipt, profiles: Map<String, Profile>, onProfile: (String) -> Unit) {
     val sender = z.sender
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(14.dp))
-            .background(SettingsAccent.copy(alpha = 0.14f)).border(1.dp, SettingsAccent.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(Radius.Large)
+            .background(SettingsAccent.copy(alpha = 0.14f)).border(1.dp, SettingsAccent.copy(alpha = 0.5f), Radius.Large)
             .padding(10.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -234,16 +236,16 @@ private fun ZapChatCard(z: com.example.btcwidget.nostr.core.Zaps.Receipt, profil
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    sender?.let { profiles[it]?.bestName ?: Profile.shortNpub(it) } ?: tr("Someone"), color = EInk.Value, fontSize = 13.sp,
+                    sender?.let { profiles[it]?.bestName ?: Profile.shortNpub(it) } ?: tr("Someone"), color = EInk.Value, fontSize = TextSize.Caption,
                     fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
                 )
                 androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = SettingsAccent, modifier = Modifier.padding(start = 6.dp).size(14.dp))
                 Text(
-                    tr("{0} sats", "%,d".format(z.amountMsat / 1000)), color = SettingsAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    tr("{0} sats", "%,d".format(z.amountMsat / 1000)), color = SettingsAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 2.dp)
                 )
             }
-            if (z.comment.isNotBlank()) Text(z.comment, color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 2.dp))
+            if (z.comment.isNotBlank()) Text(z.comment, color = EInk.Value, fontSize = TextSize.Body, lineHeight = 20.sp, modifier = Modifier.padding(top = 2.dp))
         }
     }
 }
@@ -258,15 +260,15 @@ private fun TopZaps(zaps: List<com.example.btcwidget.nostr.core.Zaps.Receipt>, p
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(tr("Top zaps"), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(tr("Top zaps"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
         top.forEach { (who, sats) ->
             Row(
-                Modifier.clip(RoundedCornerShape(50)).background(SettingsAccent.copy(alpha = 0.14f)).padding(start = 3.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),
+                Modifier.clip(Radius.Full).background(SettingsAccent.copy(alpha = 0.14f)).padding(start = 3.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (who != null) Avatar(profiles[who], who, size = 20)
                 androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = SettingsAccent, modifier = Modifier.padding(start = 4.dp).size(12.dp))
-                Text(compactCount(sats.toInt()), color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(compactCount(sats.toInt()), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -51,17 +53,17 @@ fun SidePanel(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         PanelCard(tr("Trending")) {
             when (val l = trends) {
                 null -> NotesSkeleton(2)
-                else -> if (l.isEmpty()) Text(tr("Nothing trending on your relays right now."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                else -> if (l.isEmpty()) Text(tr("Nothing trending on your relays right now."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                 else l.take(5).forEachIndexed { i, t ->
                     Column(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.HashtagKey(t.tag)) }.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                        Text(tr("{0} · Trending", i + 1), color = EInk.Caption, fontSize = 12.sp)
-                        Text("#" + t.tag, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(tr("{0} people · {1} posts", compactCount(t.people), compactCount(t.notes)), color = EInk.Caption, fontSize = 12.sp)
+                        Text(tr("{0} · Trending", i + 1), color = EInk.Caption, fontSize = TextSize.Caption)
+                        Text("#" + t.tag, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr("{0} people · {1} posts", compactCount(t.people), compactCount(t.notes)), color = EInk.Caption, fontSize = TextSize.Caption)
                     }
                 }
             }
             if (!trends.isNullOrEmpty()) Text(
-                tr("Show more"), color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                tr("Show more"), color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.SearchKey) }.padding(horizontal = 14.dp, vertical = 12.dp)
             )
         }
@@ -72,15 +74,15 @@ fun SidePanel(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(com.example.btcwidget.LiveKey(l.address)) }.padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.width(76.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(8.dp)).background(EInk.Track)) {
+                    Box(Modifier.width(76.dp).aspectRatio(16f / 9f).clip(Radius.Small).background(EInk.Track)) {
                         l.image?.let { AsyncImage(it, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                         LiveBadge(Modifier.align(Alignment.TopStart).padding(4.dp))
                     }
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text(l.title, color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(l.title, color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(
                             (profiles[l.host]?.bestName ?: Profile.shortNpub(l.host)) + (l.viewers?.let { " · " + tr("{0} watching", compactCount(it)) } ?: ""),
-                            color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -92,8 +94,8 @@ fun SidePanel(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 /** A rounded card with a bold title, as X's right-column boxes. */
 @Composable
 private fun PanelCard(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(EInk.Body).padding(vertical = 6.dp)) {
-        Text(title, color = EInk.Value, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+    Column(modifier.fillMaxWidth().clip(Radius.Large).background(EInk.Body).padding(vertical = 6.dp)) {
+        Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
         content()
     }
 }

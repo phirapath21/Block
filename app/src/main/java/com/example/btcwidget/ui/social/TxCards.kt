@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -80,7 +82,7 @@ private const val REFRESH_MS = 60_000L
 private const val FLOW_ROWS = 4
 
 private val RowHeight = 36.dp
-private val CardShape = RoundedCornerShape(16.dp)
+private val CardShape = Radius.Large
 
 /**
  * Settings › Display › Bitcoin in posts: one switch for transaction and block cards under notes.
@@ -182,7 +184,7 @@ private fun TxCard(ref: BitcoinEmbedRef.TxRef, note: Event, actions: NoteActions
             TxState.Loading -> TxSkeleton()
             TxState.Failed -> Text(
                 tr("Couldn't load it from {0}. Tap to try again.", base.removePrefix("https://")),
-                color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp)
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp)
             )
             is TxState.Loaded -> {
                 if (state.confirmations < SETTLED) ConfirmationMeter(state.confirmations, Modifier.padding(top = 10.dp))
@@ -208,12 +210,12 @@ private fun txDescription(s: TxState.Loaded): String {
 private fun TxHeader(txid: String, state: TxState) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Accent.copy(alpha = 0.16f)),
+            Modifier.size(32.dp).clip(Radius.Small).background(EInk.Accent.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center
         ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(18.dp)) }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
             Text(
-                TxFormat.shortTxid(txid), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                TxFormat.shortTxid(txid), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace, maxLines = 1
             )
             Text(
@@ -222,7 +224,7 @@ private fun TxHeader(txid: String, state: TxState) {
                     TxState.Failed -> tr("Bitcoin transaction")
                     is TxState.Loaded -> statusLine(state)
                 },
-                color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
         if (state is TxState.Loaded) ConfirmationChip(state.confirmations, Modifier.padding(start = 8.dp))
@@ -247,7 +249,7 @@ private fun ConfirmationChip(confirmations: Int, modifier: Modifier = Modifier) 
         else -> EInk.Caption
     }
     Row(
-        modifier.clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.15f)).padding(horizontal = 9.dp, vertical = 4.dp),
+        modifier.clip(Radius.Full).background(color.copy(alpha = 0.15f)).padding(horizontal = 9.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (confirmations == 0) {
@@ -263,7 +265,7 @@ private fun ConfirmationChip(confirmations: Int, modifier: Modifier = Modifier) 
                 confirmations > 0 -> tr("{0}/6 conf.", confirmations)
                 else -> tr("In mempool")
             },
-            color = if (confirmations == 0) EInk.Value else color, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1
+            color = if (confirmations == 0) EInk.Value else color, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold, maxLines = 1
         )
     }
 }
@@ -282,13 +284,13 @@ private fun ConfirmationMeter(confirmations: Int, modifier: Modifier = Modifier)
                     i == confirmations -> EInk.Accent.copy(alpha = pulse)
                     else -> EInk.Track
                 }
-                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(50)).background(color))
+                Box(Modifier.weight(1f).height(5.dp).clip(Radius.Full).background(color))
             }
         }
         Text(
             if (confirmations == 0) tr("Not in a block yet. Most wallets count it as settled after 6 confirmations.")
             else tr("{0} of 6 confirmations. About {1} min to go.", confirmations, (SETTLED - confirmations) * 10),
-            color = EInk.Caption, fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 5.dp)
+            color = EInk.Caption, fontSize = TextSize.Micro, lineHeight = 15.sp, modifier = Modifier.padding(top = 5.dp)
         )
     }
 }
@@ -301,9 +303,9 @@ private fun TxSkeleton() {
     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         repeat(3) { i ->
             Row {
-                Box(Modifier.weight(1f).height(12.dp).clip(RoundedCornerShape(50)).background(EInk.Track.copy(alpha = shimmer)))
+                Box(Modifier.weight(1f).height(12.dp).clip(Radius.Full).background(EInk.Track.copy(alpha = shimmer)))
                 Spacer(Modifier.width(if (i == 1) 60.dp else 36.dp))
-                Box(Modifier.weight(1f).height(12.dp).clip(RoundedCornerShape(50)).background(EInk.Track.copy(alpha = shimmer)))
+                Box(Modifier.weight(1f).height(12.dp).clip(Radius.Full).background(EInk.Track.copy(alpha = shimmer)))
             }
         }
     }
@@ -331,9 +333,9 @@ private fun TxFlow(tx: TxDetails) {
     LaunchedEffect(tx.txid) { draw.animateTo(1f, tween(750, easing = FastOutSlowInEasing)) }
 
     Row(Modifier.fillMaxWidth()) {
-        Text(tr("{0} inputs", TxFormat.count(tx.inputs.size)), color = EInk.Caption, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Text(tr("{0} inputs", TxFormat.count(tx.inputs.size)), color = EInk.Caption, fontSize = TextSize.Micro, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
         Text(
-            tr("{0} outputs", TxFormat.count(tx.outputs.size)), color = EInk.Caption, fontSize = 11.sp, fontWeight = FontWeight.Medium,
+            tr("{0} outputs", TxFormat.count(tx.outputs.size)), color = EInk.Caption, fontSize = TextSize.Micro, fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End, modifier = Modifier.weight(1f)
         )
     }
@@ -361,13 +363,13 @@ private fun FlowColumn(rows: List<TxIo>, more: TxFormat.More?, count: Int, of: I
         rows.forEach { IoRow(it, start) }
         more?.let { m ->
             Column(
-                Modifier.fillMaxWidth().height(RowHeight).clip(RoundedCornerShape(8.dp))
+                Modifier.fillMaxWidth().height(RowHeight).clip(Radius.Small)
                     .clickable(role = Role.Button, onClickLabel = tr("Show all")) { onMore() },
                 horizontalAlignment = if (start) Alignment.Start else Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(tr("+{0} more", TxFormat.count(m.count)), color = EInk.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(TxFormat.amount(m.sats), color = EInk.Caption, fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                Text(tr("+{0} more", TxFormat.count(m.count)), color = EInk.Accent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(TxFormat.amount(m.sats), color = EInk.Caption, fontSize = TextSize.Micro, fontFamily = FontFamily.Monospace, maxLines = 1)
             }
         }
     }
@@ -385,11 +387,11 @@ private fun IoRow(io: TxIo, start: Boolean) {
                 TxIo.Kind.SCRIPT -> tr("Script")
             },
             color = if (io.kind == TxIo.Kind.ADDRESS) EInk.Value else EInk.Label,
-            fontSize = 12.sp, fontFamily = if (io.kind == TxIo.Kind.ADDRESS) FontFamily.Monospace else FontFamily.Default,
+            fontSize = TextSize.Caption, fontFamily = if (io.kind == TxIo.Kind.ADDRESS) FontFamily.Monospace else FontFamily.Default,
             maxLines = 1, overflow = TextOverflow.Ellipsis
         )
         if (io.kind != TxIo.Kind.COINBASE && !(io.kind == TxIo.Kind.OP_RETURN && io.sats == 0L)) Text(
-            TxFormat.amount(io.sats), color = EInk.Caption, fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1
+            TxFormat.amount(io.sats), color = EInk.Caption, fontSize = TextSize.Micro, fontFamily = FontFamily.Monospace, maxLines = 1
         )
     }
 }
@@ -439,19 +441,19 @@ private fun FlowLines(inShares: List<Float>, outShares: List<Float>, rows: Int, 
 private fun TxFooter(tx: TxDetails, showLink: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(tr("Total out"), color = EInk.Caption, fontSize = 11.sp)
-            Text(TxFormat.amount(tx.totalOut), color = EInk.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
+            Text(tr("Total out"), color = EInk.Caption, fontSize = TextSize.Micro)
+            Text(TxFormat.amount(tx.totalOut), color = EInk.Accent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(if (tx.isCoinbase) tr("Block reward") else tr("Fee"), color = EInk.Caption, fontSize = 11.sp)
+            Text(if (tx.isCoinbase) tr("Block reward") else tr("Fee"), color = EInk.Caption, fontSize = TextSize.Micro)
             Text(
                 if (tx.isCoinbase) "—" else "%.1f sat/vB".format(tx.feeRate) + " · " + TxFormat.amount(tx.feeSats),
-                color = EInk.Label, fontSize = 12.sp, fontFamily = FontFamily.Monospace, maxLines = 1
+                color = EInk.Label, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace, maxLines = 1
             )
         }
     }
     if (showLink) Text(
-        tr("View on mempool ›"), color = EInk.Caption, fontSize = 11.sp,
+        tr("View on mempool ›"), color = EInk.Caption, fontSize = TextSize.Micro,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.End
     )
 }
@@ -464,13 +466,13 @@ private fun ExplorerButton(onClick: () -> Unit) {
             .padding(top = 14.dp)
             .fillMaxWidth()
             .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .background(EInk.Accent)
             .clickable(role = Role.Button, onClick = onClick),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(tr("View on mempool"), color = EInk.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(tr("View on mempool"), color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
         Icon(Glyphs.OpenInBrowser, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.padding(start = 8.dp).size(16.dp))
     }
 }
@@ -490,7 +492,7 @@ private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: ()
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text(TxFormat.shortTxid(ref.txid), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
+            Text(TxFormat.shortTxid(ref.txid), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
             Text(
                 when (state) {
                     TxState.Loading -> tr("Checking the blockchain…")
@@ -498,12 +500,12 @@ private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: ()
                     is TxState.Loaded -> tr("{0} in → {1} out", TxFormat.count(state.tx.inputs.size), TxFormat.count(state.tx.outputs.size)) +
                         " · " + "%.1f sat/vB".format(state.tx.feeRate)
                 },
-                color = EInk.Caption, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Caption, fontSize = TextSize.Micro, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
         if (state is TxState.Loaded) {
             Column(horizontalAlignment = Alignment.End) {
-                Text(TxFormat.amount(state.tx.totalOut), color = EInk.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
+                Text(TxFormat.amount(state.tx.totalOut), color = EInk.Accent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
                 Spacer(Modifier.height(3.dp))
                 ConfirmationChip(state.confirmations)
             }
@@ -518,18 +520,18 @@ private fun TxSheet(txs: List<BitcoinEmbedRef.TxRef>, start: Int, note: Event, a
     BlockSheet(onDismiss = onDismiss) {
         Text(
             if (txs.size == 1) tr("Transaction") else tr("Transactions in this post"),
-            color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+            color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Text(
             (if (txs.size == 1) "" else tr("{0} transactions", txs.size) + " · ") + tr("from {0}", mempoolBase().removePrefix("https://")),
-            color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
         val list = rememberLazyListState(initialFirstVisibleItemIndex = start.coerceIn(0, txs.lastIndex))
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
             itemsIndexed(txs, key = { _, t -> t.txid }) { i, ref ->
                 if (txs.size > 1) Text(
-                    tr("{0} of {1}", i + 1, txs.size), color = EInk.Caption, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                    tr("{0} of {1}", i + 1, txs.size), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(start = 18.dp, top = 12.dp)
                 )
                 TxCard(ref, note, actions, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), inSheet = true)
@@ -561,11 +563,11 @@ private fun TxRowCard(txs: List<BitcoinEmbedRef.TxRef>, note: Event, actions: No
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    tr("+{0} more transactions", txs.size - 1), color = EInk.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    tr("+{0} more transactions", txs.size - 1), color = EInk.Accent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 if (loaded.size == txs.size) Text(
-                    tr("Total {0}", TxFormat.amount(loaded.sumOf { it.tx.totalOut })), color = EInk.Caption, fontSize = 11.sp, fontFamily = FontFamily.Monospace
+                    tr("Total {0}", TxFormat.amount(loaded.sumOf { it.tx.totalOut })), color = EInk.Caption, fontSize = TextSize.Micro, fontFamily = FontFamily.Monospace
                 )
                 Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(start = 6.dp).size(16.dp))
             }
@@ -608,7 +610,7 @@ private fun BlockRowCard(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: No
             contentAlignment = Alignment.Center
         ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(17.dp)) }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
-            Text(blockTitle(ref, b), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
+            Text(blockTitle(ref, b), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1)
             Text(
                 if (b == null) tr("Checking the blockchain…")
                 else listOfNotNull(
@@ -616,10 +618,10 @@ private fun BlockRowCard(ref: BitcoinEmbedRef.BlockRef, note: Event, actions: No
                     com.example.btcwidget.formatBytes(b.sizeBytes),
                     b.extras?.pool
                 ).joinToString(" · "),
-                color = EInk.Caption, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Caption, fontSize = TextSize.Micro, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
-        b?.let { Text(relativeTime(it.timestamp), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp)) }
+        b?.let { Text(relativeTime(it.timestamp), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 8.dp)) }
         Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(start = 4.dp).size(18.dp))
     }
     if (open) BlockDetailsSheet(ref, note, actions) { open = false }
@@ -647,17 +649,17 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
             val b = state?.first
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(EInk.Accent.copy(alpha = 0.16f)),
+                    Modifier.size(40.dp).clip(Radius.Small).background(EInk.Accent.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) { Icon(Glyphs.BlockCube, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(22.dp)) }
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(blockTitle(ref, b), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(blockTitle(ref, b), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                     Text(
                         b?.let {
                             java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp * 1000)) +
                                 " · " + relativeTime(it.timestamp)
                         } ?: if (state == null) tr("Checking the blockchain…") else "",
-                        color = EInk.Caption, fontSize = 13.sp
+                        color = EInk.Caption, fontSize = TextSize.Caption
                     )
                 }
                 if (b != null) ConfirmationChip(b.confirmations(state?.second))
@@ -666,17 +668,17 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
                 state == null -> TxSkeleton()
                 b == null -> Text(
                     tr("Couldn't load it from {0}. Tap to try again.", base.removePrefix("https://")),
-                    color = EInk.Caption, fontSize = 13.sp,
+                    color = EInk.Caption, fontSize = TextSize.Caption,
                     modifier = Modifier.padding(top = 16.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { retry++ }
                 )
                 else -> {
                     // How full: weight against the 4 MWU limit.
                     Row(Modifier.padding(top = 18.dp)) {
-                        Text(tr("Block space"), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                        Text(tr("{0}% full", "%.1f".format(b.fullness * 100)), color = EInk.Label, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                        Text(tr("Block space"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.weight(1f))
+                        Text(tr("{0}% full", "%.1f".format(b.fullness * 100)), color = EInk.Label, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace)
                     }
-                    Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50)).background(EInk.Track)) {
-                        Box(Modifier.fillMaxWidth(b.fullness).height(8.dp).clip(RoundedCornerShape(50)).background(EInk.Accent))
+                    Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(8.dp).clip(Radius.Full).background(EInk.Track)) {
+                        Box(Modifier.fillMaxWidth(b.fullness).height(8.dp).clip(Radius.Full).background(EInk.Accent))
                     }
                     val x = b.extras
                     val stats = listOfNotNull(
@@ -699,14 +701,14 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
                     }
                     // The hash, to copy.
                     Row(
-                        Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(EInk.Body)
+                        Modifier.padding(top = 12.dp).fillMaxWidth().clip(Radius.Small).background(EInk.Body)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Copy")) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(b.hash)) }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(tr("Hash"), color = EInk.Caption, fontSize = 11.sp)
-                            Text(b.hash.take(16) + "…" + b.hash.takeLast(12), color = EInk.Value, fontSize = 12.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                            Text(tr("Hash"), color = EInk.Caption, fontSize = TextSize.Micro)
+                            Text(b.hash.take(16) + "…" + b.hash.takeLast(12), color = EInk.Value, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace, maxLines = 1)
                         }
                         Icon(Glyphs.Copy, contentDescription = tr("Copy"), tint = EInk.Caption, modifier = Modifier.size(18.dp))
                     }
@@ -719,9 +721,9 @@ private fun BlockDetailsSheet(ref: BitcoinEmbedRef.BlockRef, note: Event, action
 
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(12.dp)).background(EInk.Body).padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Text(label, color = EInk.Caption, fontSize = 11.sp, maxLines = 1)
-        Text(value, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Column(modifier.clip(Radius.Small).background(EInk.Body).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(label, color = EInk.Caption, fontSize = TextSize.Micro, maxLines = 1)
+        Text(value, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

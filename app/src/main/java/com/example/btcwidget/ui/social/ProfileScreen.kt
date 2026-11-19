@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import android.content.ClipData
 import com.example.btcwidget.ui.main.screenBackground
 import android.content.ClipboardManager
@@ -284,11 +285,11 @@ private fun ProfileHeader(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     handleText(profile, pubkey),
-                    color = EInk.Caption, fontSize = 14.sp
+                    color = EInk.Caption, fontSize = TextSize.Body
                 )
                 if (followsYou) {
                     Text(
-                        tr("Follows you"), color = EInk.Caption, fontSize = 11.sp,
+                        tr("Follows you"), color = EInk.Caption, fontSize = TextSize.Micro,
                         modifier = Modifier.padding(start = 8.dp).background(EInk.Track, RoundedCornerShape(4.dp)).padding(horizontal = 5.dp, vertical = 1.dp)
                     )
                 }
@@ -312,17 +313,17 @@ private fun ProfileHeader(
             Row(Modifier.padding(top = 8.dp)) {
                 Text(
                     (followingCount?.let { compactCount(it) } ?: "…") + tr(" Following"),
-                    color = EInk.Label, fontSize = 14.sp,
+                    color = EInk.Label, fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show who they follow"), onClick = onOpenFollowing).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Followers"),
-                    color = EInk.Label, fontSize = 14.sp,
+                    color = EInk.Label, fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their followers"), onClick = onOpenFollowers).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Lists"),
-                    color = EInk.Label, fontSize = 14.sp,
+                    color = EInk.Label, fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their lists"), onClick = onOpenLists).padding(vertical = 2.dp)
                 )
             }
@@ -355,30 +356,30 @@ private fun ProfileRelaysSheet(vm: SocialViewModel, pubkey: String, name: String
     val entries by androidx.compose.runtime.produceState<List<com.example.btcwidget.nostr.core.RelayLists.Entry>?>(null, pubkey) { value = vm.relayListOf(pubkey) }
     val mine by vm.relayEntries.collectAsState()
     BlockSheet(onDismiss) {
-        Text(tr("{0}'s relays", name), color = EInk.Value, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+        Text(tr("{0}'s relays", name), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         Text(tr("From their relay list (NIP-65). Add one to your relays to see their posts and profile when your relays don't have them."),
-            color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp))
+            color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp))
         val list = entries
         when {
             list == null -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             }
-            list.isEmpty() -> Text(tr("{0} hasn't published a relay list.", name), color = EInk.Caption, fontSize = 14.sp,
+            list.isEmpty() -> Text(tr("{0} hasn't published a relay list.", name), color = EInk.Caption, fontSize = TextSize.Body,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp))
             else -> list.forEach { e ->
                 val have = mine.any { it.url.trimEnd('/') == e.url.trimEnd('/') }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(e.url.removePrefix("wss://").trimEnd('/'), color = EInk.Value, fontSize = 15.sp, maxLines = 1,
+                        Text(e.url.removePrefix("wss://").trimEnd('/'), color = EInk.Value, fontSize = TextSize.Body, maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         Text(
                             when { e.read && e.write -> tr("Posts and reads here"); e.write -> tr("Posts here"); else -> tr("Reads here") },
-                            color = EInk.Caption, fontSize = 12.sp
+                            color = EInk.Caption, fontSize = TextSize.Caption
                         )
                     }
                     if (canAdd) {
-                        if (have) Text(tr("Added"), color = EInk.Caption, fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        if (have) Text(tr("Added"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                         else PillButton(tr("Add"), filled = false) { vm.addRelayToMine(e.url) }
                     }
                 }

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -77,7 +79,7 @@ internal fun LookPicker() {
 @Composable
 private fun LookCard(look: AppLook, selected: Boolean, onClick: () -> Unit) {
     val c = look.colors
-    val shape = RoundedCornerShape(18.dp)
+    val shape = Radius.Large
     val ring by animateDpAsState(if (selected) 2.dp else 1.dp, label = "ring")
     val press by animateFloatAsState(if (selected) 1f else 0.97f, spring(dampingRatio = 0.6f), label = "scale")
     Column(
@@ -106,9 +108,9 @@ private fun LookCard(look: AppLook, selected: Boolean, onClick: () -> Unit) {
         }
         Text(
             tr(look.title), color = if (selected) EInk.Accent else EInk.Value,
-            fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, start = 4.dp)
+            fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, start = 4.dp)
         )
-        Text(tr(look.summary), color = EInk.Caption, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp))
+        Text(tr(look.summary), color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 16.sp, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp))
     }
 }
 

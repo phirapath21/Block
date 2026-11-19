@@ -115,12 +115,12 @@ fun WidgetsScreen(
                     Text(
                         text = tr("Switch metrics on or off. Hold and drag to set the order taps cycle through."),
                         color = EInk.Caption,
-                        fontSize = 13.sp,
+                        fontSize = TextSize.Caption,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
                 if (!BlockclockMetrics.isDefaultOrder(workingOrder)) {
-                    EInkChip(
+                    BlockChip(
                         text = tr("Reset"),
                         selected = false,
                         onClick = {
@@ -141,7 +141,7 @@ fun WidgetsScreen(
                 Text(
                     text = tr("Metrics appear after the first refresh."),
                     color = EInk.Caption,
-                    fontSize = 14.sp,
+                    fontSize = TextSize.Body,
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp)
                 )
             }
@@ -236,7 +236,7 @@ private fun WidgetToggle(on: Boolean, onToggle: (Boolean) -> Unit) {
         Text(
             text = if (on) tr("On widget") else tr("Off widget"),
             color = if (on) EInk.Value else EInk.Caption,
-            fontSize = 12.sp,
+            fontSize = TextSize.Caption,
             modifier = Modifier.weight(1f)
         )
         EInkSwitch(checked = on, onCheckedChange = null, modifier = Modifier.scale(0.75f))
@@ -249,14 +249,14 @@ private fun Step(number: Int, text: String) {
         Text(
             text = "$number.",
             color = EInk.Accent,
-            fontSize = 14.sp,
+            fontSize = TextSize.Body,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             modifier = Modifier.width(22.dp)
         )
         Text(
             text = tr(text),
             color = EInk.Value,
-            fontSize = 14.sp,
+            fontSize = TextSize.Body,
             lineHeight = 20.sp
         )
     }

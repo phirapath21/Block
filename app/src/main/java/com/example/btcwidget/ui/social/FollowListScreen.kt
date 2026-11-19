@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +45,7 @@ fun FollowListScreen(vm: SocialViewModel, pubkey: String, followers: Boolean, na
                     item(key = "count") {
                         Text(
                             if (followers && list.size >= 500) tr("At least {0} (relays return up to 500)", list.size) else tr("{0} people", list.size),
-                            color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                         )
                     }
                     // People you follow first, then the rest, each by name.

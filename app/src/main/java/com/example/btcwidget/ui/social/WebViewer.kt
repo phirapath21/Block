@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.ClipData
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -71,10 +73,10 @@ fun WebViewer(url: String, note: Event?, stats: NoteStats, actions: NoteActions,
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 BarButton("✕", "Close", onDismiss)
                 Column(Modifier.weight(1f).padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(page.title.ifBlank { tr("Loading…") }, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(page.title.ifBlank { tr("Loading…") }, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         (if ((page.url.ifBlank { url }).startsWith("https://")) "🔒 " else "") + hostOf(page.url.ifBlank { url }),
-                        color = EInk.Caption, fontSize = 12.sp, maxLines = 1
+                        color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
                     )
                 }
                 BarButton("↻", "Reload") { page.reload() }
@@ -127,13 +129,13 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
             Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show more or less of the post")) { onSheet(if (level == 2) 0 else level + 1) }
                 .semantics { contentDescription = tr("Show more or less of the post") }.padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
-        ) { Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(50)).background(EInk.Caption)) }
+        ) { Box(Modifier.size(width = 36.dp, height = 4.dp).clip(Radius.Full).background(EInk.Caption)) }
         if (level >= 1) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Avatar(author, note.pubkey, size = 40, onClick = { onLeave(); actions.openProfile(note.pubkey) })
                 Column(Modifier.weight(1f).padding(start = 10.dp)) {
                     DisplayName(author, note.pubkey, EInk.Value, 15.sp)
-                    Text(handleText(author, note.pubkey), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(handleText(author, note.pubkey), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (note.pubkey != actions.me) PillButton(
                     text = if (following) tr("Following") else tr("Follow"),
@@ -142,7 +144,7 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
                 )
             }
             if (level >= 2) Text(
-                plainText(note, actions), color = EInk.Value, fontSize = 15.sp, maxLines = 8, overflow = TextOverflow.Ellipsis,
+                plainText(note, actions), color = EInk.Value, fontSize = TextSize.Body, maxLines = 8, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open post")) { onLeave(); actions.openNote(note) }
             )
             ActionRow(note, stats, actions)
@@ -156,7 +158,7 @@ private fun BarButton(glyph: String, label: String, onClick: () -> Unit) {
     // 48 dp, named for TalkBack (the glyph itself would be read as a symbol).
     Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label), onClick = onClick)
         .semantics { contentDescription = tr(label) }, contentAlignment = Alignment.Center) {
-        Text(glyph, color = EInk.Value, fontSize = 20.sp)
+        Text(glyph, color = EInk.Value, fontSize = TextSize.Title)
     }
 }
 

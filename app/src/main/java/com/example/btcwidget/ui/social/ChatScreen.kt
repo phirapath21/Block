@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -100,18 +102,18 @@ private fun formatChatSectionTime(epochSec: Long): String {
     val diffSec = (System.currentTimeMillis() / 1000L) - epochSec
 
     return when {
-        sameDay -> tr("TODAY AT {0}", timeStr)
-        isYesterday -> tr("YESTERDAY AT {0}", timeStr)
+        sameDay -> tr("Today at {0}", timeStr)
+        isYesterday -> tr("Yesterday at {0}", timeStr)
         diffSec in 0..(6 * 86_400L) -> {
-            val dayStr = SimpleDateFormat("EEE", locale).format(date).uppercase(locale)
+            val dayStr = SimpleDateFormat("EEE", locale).format(date)
             tr("{0} AT {1}", dayStr, timeStr)
         }
         nowCal.get(Calendar.YEAR) == msgCal.get(Calendar.YEAR) -> {
-            val dateStr = SimpleDateFormat("MMM d", locale).format(date).uppercase(locale)
+            val dateStr = SimpleDateFormat("MMM d", locale).format(date)
             tr("{0} AT {1}", dateStr, timeStr)
         }
         else -> {
-            val dateStr = SimpleDateFormat("MMM d, yyyy", locale).format(date).uppercase(locale)
+            val dateStr = SimpleDateFormat("MMM d, yyyy", locale).format(date)
             tr("{0} AT {1}", dateStr, timeStr)
         }
     }
@@ -251,7 +253,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 20.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(Radius.Large)
                                     .clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(primaryPeer)) }
                                     .padding(12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -264,7 +266,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     Text(
                                         title,
                                         color = EInk.Value,
-                                        fontSize = 17.sp,
+                                        fontSize = TextSize.Subtitle,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -277,7 +279,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     Text(
                                         handleText(primaryProfile, primaryPeer),
                                         color = EInk.Caption,
-                                        fontSize = 13.sp,
+                                        fontSize = TextSize.Caption,
                                         modifier = Modifier.padding(top = 2.dp)
                                     )
                                 }
@@ -285,16 +287,16 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .padding(top = 8.dp)
-                                        .clip(RoundedCornerShape(50))
+                                        .clip(Radius.Full)
                                         .background(EInk.Body)
-                                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(13.dp))
                                     Text(
                                         tr("End-to-end encrypted (NIP-17)"),
                                         color = EInk.Label,
-                                        fontSize = 11.sp,
+                                        fontSize = TextSize.Micro,
                                         fontWeight = FontWeight.Medium,
                                         modifier = Modifier.padding(start = 5.dp)
                                     )
@@ -303,7 +305,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     Text(
                                         tr("Older messages marked \"old format\" use NIP-04: relays could see who talked and when."),
                                         color = EInk.Caption,
-                                        fontSize = 11.sp,
+                                        fontSize = TextSize.Micro,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.padding(top = 6.dp, start = 20.dp, end = 20.dp)
                                     )
@@ -350,7 +352,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                     Text(
                                         text = formatChatSectionTime(m.createdAt),
                                         color = EInk.Caption,
-                                        fontSize = 11.sp,
+                                        fontSize = TextSize.Micro,
                                         fontWeight = FontWeight.SemiBold,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier
@@ -375,7 +377,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                         Text(
                                             text = senderName,
                                             color = EInk.Caption,
-                                            fontSize = 11.sp,
+                                            fontSize = TextSize.Micro,
                                             fontWeight = FontWeight.Medium,
                                             modifier = Modifier.padding(start = 40.dp, bottom = 3.dp)
                                         )
@@ -423,7 +425,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                     Text(
                                                         text = if (mine) tr("You unsent a message") else tr("{0} unsent a message", senderName),
                                                         color = EInk.Caption,
-                                                        fontSize = 13.sp,
+                                                        fontSize = TextSize.Caption,
                                                         fontStyle = FontStyle.Italic,
                                                         modifier = Modifier.padding(start = 6.dp)
                                                     )
@@ -464,7 +466,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                     top = if (isVisualAttachment) 4.dp else 0.dp
                                                                 )
                                                                 .height(IntrinsicSize.Min)
-                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .clip(Radius.Small)
                                                                 .background(
                                                                     if (mine) Color.Black.copy(alpha = 0.12f)
                                                                     else EInk.Background.copy(alpha = 0.45f)
@@ -481,7 +483,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                 Text(
                                                                     profiles[parent.sender]?.bestName ?: Profile.shortNpub(parent.sender),
                                                                     color = if (mine) Color.Black else EInk.Accent,
-                                                                    fontSize = 11.sp,
+                                                                    fontSize = TextSize.Micro,
                                                                     fontWeight = FontWeight.Bold,
                                                                     maxLines = 1
                                                                 )
@@ -492,7 +494,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                         else -> parent.content.replace('\n', ' ')
                                                                     },
                                                                     color = fg.copy(alpha = 0.78f),
-                                                                    fontSize = 12.sp,
+                                                                    fontSize = TextSize.Caption,
                                                                     fontStyle = if (parentUnsent) FontStyle.Italic else FontStyle.Normal,
                                                                     maxLines = 2,
                                                                     overflow = TextOverflow.Ellipsis
@@ -508,7 +510,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                             onSaveFile = ::requestSaveFile
                                                         )
                                                     } else {
-                                                        Text(m.content, color = fg, fontSize = 15.sp, lineHeight = 20.sp)
+                                                        Text(m.content, color = fg, fontSize = TextSize.Body, lineHeight = 20.sp)
                                                     }
                                                 }
                                             }
@@ -560,7 +562,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                             DM_REACTIONS.forEach { e ->
                                                                 Text(
                                                                     e,
-                                                                    fontSize = 26.sp,
+                                                                    fontSize = TextSize.Display,
                                                                     modifier = Modifier
                                                                         .clip(CircleShape)
                                                                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React {0}", e)) {
@@ -586,12 +588,12 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                         reactions[m.id]?.takeIf { it.isNotEmpty() }?.let { rs ->
                                             Text(
                                                 rs.groupingBy { it }.eachCount().entries.joinToString(" ") { (e, n) -> if (n > 1) "$e $n" else e },
-                                                fontSize = 13.sp,
+                                                fontSize = TextSize.Caption,
                                                 color = EInk.Value,
                                                 modifier = Modifier
                                                     .padding(top = 3.dp, start = if (!mine) 36.dp else 0.dp)
-                                                    .background(EInk.Body, RoundedCornerShape(50))
-                                                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                                    .background(EInk.Body, Radius.Full)
+                                                    .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                                             )
                                         }
@@ -607,7 +609,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                             text = formatBubbleDetailTime(m.createdAt) +
                                                 if (m.isLegacy) tr(" · old format") else "",
                                             color = EInk.Caption,
-                                            fontSize = 11.sp,
+                                            fontSize = TextSize.Micro,
                                             modifier = Modifier.padding(
                                                 top = 3.dp,
                                                 bottom = 2.dp,
@@ -640,14 +642,14 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             Text(
                                 tr("Replying to ") + (if (r.sender == me) tr("yourself") else profiles[r.sender]?.bestName ?: Profile.shortNpub(r.sender)),
                                 color = EInk.Accent,
-                                fontSize = 12.sp,
+                                fontSize = TextSize.Caption,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
                             Text(
                                 if (r.kind == Nip17.FILE) attachmentSummaryLabel(r) else r.content.replace('\n', ' '),
                                 color = EInk.Label,
-                                fontSize = 13.sp,
+                                fontSize = TextSize.Caption,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -707,22 +709,22 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                         Modifier
                             .weight(1f)
                             .padding(horizontal = 8.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(Radius.Large)
                             .background(EInk.Body)
-                            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(22.dp))
+                            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
                             .padding(horizontal = 16.dp, vertical = 11.dp)
                     ) {
                         BasicTextField(
                             value = text,
                             onValueChange = { text = it },
                             maxLines = 5,
-                            textStyle = TextStyle(color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp),
+                            textStyle = TextStyle(color = EInk.Value, fontSize = TextSize.Body, lineHeight = 20.sp),
                             cursorBrush = SolidColor(EInk.Accent),
                             modifier = Modifier.fillMaxWidth(),
                             decorationBox = { field ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (text.isEmpty()) {
-                                        Text(tr("Message…"), color = EInk.Caption, fontSize = 15.sp)
+                                        Text(tr("Message…"), color = EInk.Caption, fontSize = TextSize.Body)
                                     }
                                     field()
                                 }
@@ -800,7 +802,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     Text(
                         tr("Send encrypted attachment (NIP-17 · up to 25 MB)"),
                         color = EInk.Label,
-                        fontSize = 12.sp,
+                        fontSize = TextSize.Caption,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 6.dp)
                     )

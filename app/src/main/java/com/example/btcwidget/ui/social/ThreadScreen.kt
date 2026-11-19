@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -106,7 +107,7 @@ fun HashtagScreen(vm: SocialViewModel, tag: String, navigate: (NavKey) -> Unit, 
                 Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (isFollowed) tr("Notes with #{0} are in your Latest.", tag) else tr("Follow to see notes with #{0} in your Latest.", tag),
-                        color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.weight(1f)
+                        color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.weight(1f)
                     )
                     PillButton(if (isFollowed) tr("Following") else tr("Follow"), filled = !isFollowed) {
                         if (account == null) navigate(LoginKey) else vm.followHashtag(tag, !isFollowed)

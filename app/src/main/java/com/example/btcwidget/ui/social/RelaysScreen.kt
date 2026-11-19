@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
@@ -55,7 +57,7 @@ fun RelaysScreen(vm: SocialViewModel, onBack: () -> Unit) {
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
             listOf("STATUS", "MY RELAYS", "SEARCH", "BLOCKED").forEachIndexed { i, t ->
-                com.example.btcwidget.ui.main.EInkChip(text = t, selected = tab == i, onClick = { tab = i })
+                com.example.btcwidget.ui.main.BlockChip(text = t, selected = tab == i, onClick = { tab = i })
             }
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -86,7 +88,7 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
             item(key = "summary") {
                 val up = mine.count { it.state == RelayStatus.State.CONNECTED }
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("{0} of {1} connected", up, mine.size), color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("{0} of {1} connected", up, mine.size), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                     Text(
                         when {
                             mine.isEmpty() -> tr("No relays set.")
@@ -94,9 +96,9 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                             up < mine.size -> tr("Some relays are down; the rest keep things working.")
                             else -> tr("All your relays are working.")
                         },
-                        color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp)
+                        color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp)
                     )
-                    Text(tr("Tap a relay to see what it says about itself."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+                    Text(tr("Tap a relay to see what it says about itself."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 2.dp))
                     PillButton(tr("Check and tidy relays"), filled = up < mine.size, modifier = Modifier.padding(top = 12.dp)) { checkup = true }
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -108,10 +110,10 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(tr("Other relays ({0}/{1})", others.count { it.state == RelayStatus.State.CONNECTED }, others.size), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text(tr("Opened to read people who post on their own relays"), color = EInk.Caption, fontSize = 13.sp)
+                        Text(tr("Other relays ({0}/{1})", others.count { it.state == RelayStatus.State.CONNECTED }, others.size), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+                        Text(tr("Opened to read people who post on their own relays"), color = EInk.Caption, fontSize = TextSize.Caption)
                     }
-                    Text(if (showOthers) "⌃" else "⌄", color = EInk.Value, fontSize = 18.sp)
+                    Text(if (showOthers) "⌃" else "⌄", color = EInk.Value, fontSize = TextSize.Subtitle)
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             }
@@ -135,18 +137,18 @@ private fun RelayRow(s: RelayStatus, onInfo: () -> Unit, onRetry: () -> Unit) {
     ) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(color))
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(s.url.removePrefix("wss://").removeSuffix("/"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(s.url.removePrefix("wss://").removeSuffix("/"), color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 label + (if (s.events > 0) " · ${s.events} messages" else ""),
-                color = EInk.Caption, fontSize = 13.sp, maxLines = 1
+                color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
             )
             if (s.state != RelayStatus.State.CONNECTED) s.lastError?.let {
-                Text(it, color = EInk.Caption, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(it, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         if (canRetry) Text(
-            tr("Retry"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRetry).padding(horizontal = 12.dp, vertical = 6.dp)
+            tr("Retry"), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(Radius.Full).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRetry).padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -179,22 +181,22 @@ internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
             .sortedWith(compareBy({ -it.second }, { it.first.connectMs ?: Long.MAX_VALUE })).take(5)
     }
     BlockSheet(onDismiss) {
-        Text(tr("Check your relays"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+        Text(tr("Check your relays"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
         val r = report
         if (r == null) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-                Text(tr("Testing {0} relays…", mineUrls.size), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
+                Text(tr("Testing {0} relays…", mineUrls.size), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(start = 12.dp))
             }
             return@BlockSheet
         }
         if (r.offline) {
             Text(tr("None of your relays answered. Check your internet connection and try again: nothing was changed."),
-                color = Red, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                color = Red, fontSize = TextSize.Body, lineHeight = 19.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         } else {
             val ok = r.probes.count { it.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.DOWN }
-            Text(tr("{0} of {1} answered. Tick the ones to remove.", ok, r.probes.size), color = EInk.Caption, fontSize = 14.sp,
+            Text(tr("{0} of {1} answered. Tick the ones to remove.", ok, r.probes.size), color = EInk.Caption, fontSize = TextSize.Body,
                 modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 6.dp))
         }
         r.probes.forEach { p ->
@@ -214,8 +216,8 @@ internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
             ) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(if (gone) EInk.Track else color))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(p.url.removePrefix("wss://"), color = if (gone) EInk.Caption else EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (gone) tr("Removed") else detail, color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(p.url.removePrefix("wss://"), color = if (gone) EInk.Caption else EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (gone) tr("Removed") else detail, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (!gone && !r.offline && p.health != com.example.btcwidget.nostr.core.RelayCheckup.Health.OK) androidx.compose.material3.Checkbox(
                     checked = p.url in ticked, onCheckedChange = { ticked = if (it) ticked + p.url else ticked - p.url },
@@ -227,7 +229,7 @@ internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
         val remaining = mineUrls.filter { it !in removed }
         if (!r.offline && toRemove.isNotEmpty()) {
             val allowed = com.example.btcwidget.nostr.core.RelayCheckup.canRemove(remaining, toRemove)
-            if (!allowed) Text(tr("Keep at least two relays."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            if (!allowed) Text(tr("Keep at least two relays."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
             PillButton(
                 tr("Remove {0}", toRemove.size), filled = allowed,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).fillMaxWidth()
@@ -238,25 +240,25 @@ internal fun RelayCheckupSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
         // Suggestions: what the people you follow use, that answered just now.
         if (!r.offline) {
             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(top = 10.dp))
-            Text(tr("Suggested relays"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            Text(tr("Suggested relays"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp).padding(top = 12.dp))
-            Text(tr("Where most of the people you follow post. Adding one helps their posts reach you."), color = EInk.Caption, fontSize = 13.sp,
+            Text(tr("Where most of the people you follow post. Adding one helps their posts reach you."), color = EInk.Caption, fontSize = TextSize.Caption,
                 lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 4.dp))
             val list = suggestions
             when {
                 list == null -> Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.CircularProgressIndicator(color = SettingsAccent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                    Text(tr("Finding relays…"), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
+                    Text(tr("Finding relays…"), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(start = 12.dp))
                 }
-                list.isEmpty() -> Text(tr("No suggestions right now."), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
+                list.isEmpty() -> Text(tr("No suggestions right now."), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(20.dp))
                 else -> list.forEach { (p, n) ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(10.dp).clip(CircleShape).background(if ((p.connectMs ?: 0) > com.example.btcwidget.nostr.core.RelayCheckup.SLOW_MS) Orange else Green))
                         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                            Text(p.url.removePrefix("wss://"), color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(tr("Used by {0} you follow · {1} ms", n, p.connectMs ?: 0), color = EInk.Caption, fontSize = 12.sp, maxLines = 1)
+                            Text(p.url.removePrefix("wss://"), color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(tr("Used by {0} you follow · {1} ms", n, p.connectMs ?: 0), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1)
                         }
-                        if (p.url in added) Text(tr("Added"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        if (p.url in added) Text(tr("Added"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                         else PillButton(tr("Add"), filled = false) { haptics.tick(); vm.addRelayToMine(p.url); added = added + p.url }
                     }
                 }
