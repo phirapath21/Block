@@ -594,8 +594,11 @@ private fun ArticleBody(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(top = 14.dp).horizontalScroll(rememberScrollState())
                         ) {
-                            ArticleAction((if (stats.likedByMe) "♥ " else "♡ ") + stats.likes) { actions.like(article.event) }
-                            ArticleAction("⚡ " + stats.zapMsat / 1000) { actions.zap(article.event) }
+                            ArticleAction(
+                                "${stats.likes}", if (stats.likedByMe) Glyphs.Liked else Glyphs.Like,
+                                if (stats.likedByMe) com.example.btcwidget.ui.main.ActionColor.Like else EInk.Value
+                            ) { actions.like(article.event) }
+                            ArticleAction("${stats.zapMsat / 1000}", Glyphs.Zap, com.example.btcwidget.ui.main.ActionColor.Zap) { actions.zap(article.event) }
                             if (speakableBlocks.isNotEmpty() && ttsReady) {
                                 Box(
                                     Modifier
@@ -733,7 +736,7 @@ private fun ArticleBody(
                 val indentPrefix = when (level) {
                     1 -> ""
                     2 -> "  · "
-                    else -> "      ◦ "
+                    else -> "      · "
                 }
                 SheetAction(Glyphs.Hashtag, indentPrefix + title) {
                     scope.launch {

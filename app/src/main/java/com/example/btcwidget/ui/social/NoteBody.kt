@@ -64,7 +64,10 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
                 .padding(12.dp)
         ) {
             Column(Modifier.weight(1f)) {
-                Text(tr("⚠ Sensitive content"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.Icon(Glyphs.Warning, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(18.dp))
+                Text(tr("Sensitive content"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+            }
                 warning.getOrNull(1)?.takeIf { it.isNotBlank() }?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption) }
             }
             Text(
@@ -204,7 +207,10 @@ fun NoteBody(note: Event, actions: NoteActions, fontSize: Int = 15, depth: Int =
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Watch the stream")) { actions.openArticle(ref.address) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(tr("● LIVE"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.foundation.layout.Box(Modifier.size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(EInk.Alert))
+                    Text(tr("LIVE"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 5.dp))
+                }
                     Text(tr("  Live stream · tap to watch"), color = EInk.Value, fontSize = TextSize.Body)
                 }
             }

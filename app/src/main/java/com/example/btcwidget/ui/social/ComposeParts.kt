@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import androidx.compose.ui.draw.rotate
 import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
@@ -183,13 +184,13 @@ internal fun AttachmentTile(
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Move left"), onClick = onMoveLeft)
                             .semantics { contentDescription = tr("Move left") },
                         contentAlignment = Alignment.Center
-                    ) { Text("←", color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
+                    ) { androidx.compose.material3.Icon(Glyphs.Back, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)) }
                     if (onMoveRight != null) Box(
                         Modifier.size(28.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f))
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Move right"), onClick = onMoveRight)
                             .semantics { contentDescription = tr("Move right") },
                         contentAlignment = Alignment.Center
-                    ) { Text("→", color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
+                    ) { androidx.compose.material3.Icon(Glyphs.Back, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp).rotate(180f)) }
                 }
             }
         }

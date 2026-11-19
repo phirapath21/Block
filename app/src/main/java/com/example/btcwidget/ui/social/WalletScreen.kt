@@ -84,7 +84,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(tr("Log in to use a wallet"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text(
-                tr("Connect your Lightning wallet to zap, send and receive sats from Block."),
+                tr("Connect your Lightning wallet to tip, send and receive sats from Block."),
                 color = EInk.Caption, fontSize = TextSize.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
             )
             SettingsButton(tr("Log in or create account"), primary = true) { navigate(com.example.btcwidget.LoginKey) }
@@ -116,7 +116,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(tr("Balance"), color = EInk.Caption, fontSize = TextSize.Caption)
                     Text(
-                        balanceMsat?.let { "⚡ " + formatSats(it / 1000) } ?: if (loading) "⚡ …" else "⚡ –",
+                        balanceMsat?.let { formatSats(it / 1000) } ?: if (loading) "…" else "–",
                         color = EInk.Value, fontSize = 36.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 2.dp).semantics {
                             contentDescription = balanceMsat?.let { tr("Balance {0} sats", formatSats(it / 1000)) } ?: tr("Balance not loaded")
@@ -163,7 +163,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     )
     if (disconnecting) ConfirmDialog(
         title = tr("Disconnect wallet?"),
-        text = tr("Zaps will open your Lightning wallet app to pay instead. You can connect again any time."),
+        text = tr("Tips will open your Lightning wallet app to pay instead. You can connect again any time."),
         confirmLabel = tr("Disconnect"),
         onConfirm = { disconnecting = false; vm.wallet.disconnect() },
         onDismiss = { disconnecting = false }
@@ -246,7 +246,7 @@ private fun ReceiveSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
                     QrCode("lightning:${inv.uppercase()}", Modifier.size(220.dp).semantics { contentDescription = tr("Invoice QR code") })
                 }
                 Zaps.invoiceAmountMsat(inv)?.let {
-                    Text("⚡ " + formatSats(it / 1000) + " " + tr("sats"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+                    Text(formatSats(it / 1000) + " " + tr("sats"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
                 }
                 Text(
                     inv.take(18) + "…" + inv.takeLast(10), color = EInk.Caption, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace,
@@ -302,7 +302,7 @@ private fun SendSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
                 !looksLikeInvoice -> Text(tr("That isn't a Lightning invoice."), color = EInk.Alert, fontSize = TextSize.Caption)
                 amountSat == null -> Text(tr("This invoice has no amount. Ask for one with an amount."), color = EInk.Alert, fontSize = TextSize.Caption)
                 else -> Text(
-                    "⚡ " + formatSats(amountSat) + " " + tr("sats"),
+                    formatSats(amountSat) + " " + tr("sats"),
                     color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
                 )
             }
@@ -330,7 +330,7 @@ private fun ConnectWallet(vm: SocialViewModel) {
     var uri by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Text("⚡", fontSize = 40.sp, modifier = Modifier.padding(top = 12.dp))
+        androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = com.example.btcwidget.ui.main.ActionColor.Zap, modifier = Modifier.padding(top = 12.dp).size(40.dp))
         Text(tr("Connect a wallet"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         Text(
             tr("In your wallet (Alby Hub, Primal, Coinos, Mutiny…) create a Nostr Wallet Connect link and paste it here. ") +
@@ -348,7 +348,7 @@ private fun ConnectWallet(vm: SocialViewModel) {
             if (e == null) uri = "" else error = e
         }
         Text(
-            tr("Without a wallet here, zapping opens your Lightning wallet app to pay."),
+            tr("Without a wallet here, tipping opens your Lightning wallet app to pay."),
             color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 16.dp)
         )
     }

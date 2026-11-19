@@ -136,24 +136,24 @@ private fun WelcomeArt(modifier: Modifier = Modifier) {
     fun bob(phase: Float) = (kotlin.math.sin((t + phase) * 2 * Math.PI) * 4).toFloat().dp
     BoxWithConstraints(modifier) {
         val w = maxWidth
-        Face("🙂", listOf(Color(0xFFFFB199), Color(0xFFFF4D6D)), 70.dp, Modifier.offset(w * 0.04f, 30.dp + bob(0f)))
-        Face("😎", listOf(Color(0xFFA1C4FD), Color(0xFFC2E9FB)), 54.dp, Modifier.offset(w * 0.78f, 12.dp + bob(0.3f)))
-        Face("🌿", listOf(Color(0xFFD4FC79), Color(0xFF96E6A1)), 60.dp, Modifier.offset(w * 0.74f, 168.dp + bob(0.55f)))
-        Face("🎧", listOf(Color(0xFFFBC2EB), Color(0xFFA6C1EE)), 46.dp, Modifier.offset(w * 0.08f, 180.dp + bob(0.8f)))
-        Bubble(tr("Morning! Coffee first ☕"), mine = false, Modifier.offset(w * 0.24f, 44.dp + bob(0.15f)))
-        Bubble(tr("Just joined, hi everyone 👋"), mine = true, Modifier.offset(w * 0.28f, 108.dp + bob(0.4f)))
-        Bubble(tr("Welcome! 🎉"), mine = false, Modifier.offset(w * 0.27f, 190.dp + bob(0.65f)))
-        Text("❤️", fontSize = TextSize.Subtitle, modifier = Modifier.offset(w * 0.86f, 96.dp + bob(0.9f)))
-        Text("✨", fontSize = TextSize.Subtitle, modifier = Modifier.offset(0.dp, 132.dp + bob(0.2f)))
+        Face(Glyphs.Smile, listOf(Color(0xFFFFB199), Color(0xFFFF4D6D)), 70.dp, Modifier.offset(w * 0.04f, 30.dp + bob(0f)))
+        Face(Glyphs.Smile, listOf(Color(0xFFA1C4FD), Color(0xFFC2E9FB)), 54.dp, Modifier.offset(w * 0.78f, 12.dp + bob(0.3f)))
+        Face(Glyphs.Sparkle, listOf(Color(0xFFD4FC79), Color(0xFF96E6A1)), 60.dp, Modifier.offset(w * 0.74f, 168.dp + bob(0.55f)))
+        Face(Glyphs.Smile, listOf(Color(0xFFFBC2EB), Color(0xFFA6C1EE)), 46.dp, Modifier.offset(w * 0.08f, 180.dp + bob(0.8f)))
+        Bubble(tr("Morning! Coffee first"), mine = false, Modifier.offset(w * 0.24f, 44.dp + bob(0.15f)))
+        Bubble(tr("Just joined, hi everyone"), mine = true, Modifier.offset(w * 0.28f, 108.dp + bob(0.4f)))
+        Bubble(tr("Welcome!"), mine = false, Modifier.offset(w * 0.27f, 190.dp + bob(0.65f)))
+        Icon(Glyphs.Liked, contentDescription = null, tint = com.example.btcwidget.ui.main.ActionColor.Like, modifier = Modifier.offset(w * 0.86f, 96.dp + bob(0.9f)).size(20.dp))
+        Icon(Glyphs.Sparkle, contentDescription = null, tint = com.example.btcwidget.ui.main.Aurora.colors[0], modifier = Modifier.offset(0.dp, 132.dp + bob(0.2f)).size(20.dp))
     }
 }
 
 @Composable
-private fun Face(emoji: String, colors: List<Color>, size: androidx.compose.ui.unit.Dp, modifier: Modifier) {
+private fun Face(glyph: androidx.compose.ui.graphics.vector.ImageVector, colors: List<Color>, size: androidx.compose.ui.unit.Dp, modifier: Modifier) {
     Box(
         modifier.size(size).shadow(10.dp, CircleShape).clip(CircleShape).background(Brush.linearGradient(colors)),
         contentAlignment = Alignment.Center
-    ) { Text(emoji, fontSize = (size.value * 0.38f).sp) }
+    ) { Icon(glyph, contentDescription = null, tint = Color(0xCC1A1A2E), modifier = Modifier.size(size * 0.55f)) }
 }
 
 @Composable
@@ -423,7 +423,7 @@ internal fun FirstHomeWelcome(vm: SocialViewModel) {
                 .background(EInk.Body).border(1.dp, EInk.BodyStroke, Radius.Large).padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Text("👋", fontSize = TextSize.Display)
+            Icon(Glyphs.Sparkle, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(28.dp))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(tr("Welcome, {0}!", name.orEmpty()), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
                 Text(

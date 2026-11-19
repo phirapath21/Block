@@ -431,10 +431,13 @@ private fun QualityButton(player: ExoPlayer) {
     val manual = player.trackSelectionParameters.overrides.values.any { it.type == C.TRACK_TYPE_VIDEO }
     val label = if (manual) (player.videoSize.height.takeIf { it > 0 }?.let { "${it}p" } ?: tr("Auto")) else tr("Auto")
     Box {
-        Text(
-            "$label ▾", color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Video quality")) { open = true }.padding(horizontal = 10.dp, vertical = 8.dp)
-        )
+        ) {
+            Text(label, color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+            androidx.compose.material3.Icon(Glyphs.ArrowDown, contentDescription = null, tint = Color.White, modifier = Modifier.padding(start = 4.dp).size(14.dp))
+        }
         BlockDropdown(expanded = open, onDismiss = { open = false }) {
             BlockDropdownItem(tr("Auto"), selected = !manual) { open = false; player.chooseQuality(null, context) }
             options.forEach { o ->

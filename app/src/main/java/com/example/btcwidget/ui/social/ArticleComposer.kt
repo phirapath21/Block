@@ -278,8 +278,8 @@ internal fun ArticleComposerDialog(
                             MarkdownToolButton("I") { content += "*italic*" }
                             MarkdownToolButton("“”") { content += (if (content.endsWith("\n") || content.isEmpty()) "" else "\n") + "> " }
                             MarkdownToolButton("<>") { content += "\n```\ncode\n```\n" }
-                            MarkdownToolButton("🔗") { content += "[title](https://)" }
-                            MarkdownToolButton(if (uploadingInline) "…" else "🖼️") {
+                            MarkdownToolButton("", Glyphs.Link) { content += "[title](https://)" }
+                            MarkdownToolButton(if (uploadingInline) "…" else "", if (uploadingInline) null else Glyphs.PhotoLine) {
                                 if (!uploadingInline) {
                                     inlineImagePicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                                 }
@@ -401,7 +401,7 @@ internal fun ArticleComposerDialog(
 }
 
 @Composable
-private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
+private fun MarkdownToolButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(Radius.Small)
@@ -411,6 +411,7 @@ private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
             .padding(horizontal = 9.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
+        if (icon != null) androidx.compose.material3.Icon(icon, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(16.dp))
+        else Text(label, color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
     }
 }

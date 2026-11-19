@@ -154,7 +154,7 @@ private fun ScheduledRow(vm: SocialViewModel) {
     LaunchedEffect(Unit) { vm.scheduledPosts.refresh() }
     SettingsLinkRow(
         tr("Scheduled posts"),
-        summary = tr("Sent at their time if your phone is on and online. Schedule one with 🕒 in the composer."),
+        summary = tr("Sent at their time if your phone is on and online. Schedule one with the calendar button in the composer."),
         value = if (posts.isEmpty()) tr("None") else posts.size.toString(),
         chevron = posts.isNotEmpty()
     ) { open = !open }

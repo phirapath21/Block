@@ -51,10 +51,10 @@ class WalletState(private val vm: SocialViewModel) {
     fun payInvoice(invoice: String, onDone: (Boolean) -> Unit = {}) {
         var ok = false
         vm.act(tr("Payment failed"), finally = { onDone(ok) }) {
-            vm.say(tr("⚡ Paying invoice…"))
+            vm.say(tr("Paying invoice…"))
             repo.wallet.pay(invoice.trim().removePrefix("lightning:").removePrefix("LIGHTNING:"))
             ok = true
-            vm.say(tr("⚡ Payment sent"))
+            vm.say(tr("Payment sent"))
             refresh()
         }
     }

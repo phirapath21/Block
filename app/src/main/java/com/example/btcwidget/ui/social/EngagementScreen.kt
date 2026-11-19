@@ -46,7 +46,7 @@ fun EngagementScreen(vm: SocialViewModel, noteId: String, initialTab: Int, navig
             listOf(
                 tr("Reposts") + (d?.reposts?.size?.let { " $it" } ?: ""),
                 tr("Likes") + (d?.likes?.size?.let { " $it" } ?: ""),
-                tr("Zaps") + (d?.zaps?.size?.let { " $it" } ?: "")
+                tr("Tips") + (d?.zaps?.size?.let { " $it" } ?: "")
             ),
             selected = tab
         ) { tab = it }
@@ -55,11 +55,11 @@ fun EngagementScreen(vm: SocialViewModel, noteId: String, initialTab: Int, navig
             else -> {
                 val rows: List<Triple<String, String?, String?>> = when (tab) {
                     0 -> d.reposts.map { Triple(it, null, null) }
-                    1 -> d.likes.map { (pk, reaction) -> Triple(pk, if (reaction == "+") "♥" else reaction, null) }
-                    else -> d.zaps.mapNotNull { z -> z.sender?.let { Triple(it, "⚡ ${compactCount((z.amountMsat / 1000).toInt())}", z.comment.ifBlank { null }) } }
+                    1 -> d.likes.map { (pk, reaction) -> Triple(pk, if (reaction == "+") null else reaction, null) }
+                    else -> d.zaps.mapNotNull { z -> z.sender?.let { Triple(it, tr("{0} sats", compactCount((z.amountMsat / 1000).toInt())), z.comment.ifBlank { null }) } }
                 }
                 if (rows.isEmpty()) {
-                    EmptyNote(listOf("No reposts yet.", "No likes yet.", "No zaps yet.")[tab])
+                    EmptyNote(listOf("No reposts yet.", "No likes yet.", "No tips yet.")[tab])
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.first + it.second + it.third }) { (pk, badge, comment) ->

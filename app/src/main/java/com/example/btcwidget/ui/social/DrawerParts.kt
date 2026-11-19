@@ -28,7 +28,7 @@ fun DrawerAccountHeader(vm: SocialViewModel, onLogin: () -> Unit, navigate: (and
     if (me == null) {
         Column {
             Text(tr("Block"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
-            Text(tr("Log in to post, follow and zap."), color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+            Text(tr("Log in to post, follow and tip."), color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
             PillButton(tr("Log in"), onClick = onLogin)
         }
         return
@@ -101,7 +101,7 @@ fun AccountSwitcherSheet(vm: SocialViewModel, navigate: (androidx.navigation3.ru
                         DisplayName(profiles[pk], pk, EInk.Value, 16.sp)
                         Text(handleText(profiles[pk], pk), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (current) Text("✓", color = EInk.Accent, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
+                    if (current) androidx.compose.material3.Icon(Glyphs.Check, contentDescription = tr("Current account"), tint = EInk.Accent, modifier = Modifier.size(22.dp))
                 }
             }
             androidx.compose.material3.HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 6.dp))

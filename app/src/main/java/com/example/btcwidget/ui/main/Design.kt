@@ -142,7 +142,7 @@ fun BlockButtonFull(text: String, kind: ButtonKind = ButtonKind.Primary, enabled
  * with the accent when on; choice chips are pills that fill with the text colour, with ✓.
  */
 @Composable
-fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, filter: Boolean = true, onClick: () -> Unit) {
+fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, filter: Boolean = true, tick: Boolean = true, onClick: () -> Unit) {
     val shape = if (filter) Radius.Small else Radius.Full
     val bg = when {
         filter && selected -> EInk.Accent
@@ -166,10 +166,13 @@ fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, fi
             .padding(horizontal = if (filter) Space.M else 14.dp, vertical = if (filter) 6.dp else 7.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            (if (!filter && selected) "✓ " else "") + text, color = fg, fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, softWrap = false
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!filter && selected && tick) {
+                Icon(com.example.btcwidget.ui.social.Glyphs.Check, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(text, color = fg, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, softWrap = false)
+        }
     }
 }
 
@@ -209,14 +212,14 @@ fun ListRow(
     }
 }
 
-/** An empty page: an emoji, what's missing, what it'll show, and maybe a way forward. */
+/** An empty page: an icon, what's missing, what it'll show, and maybe a way forward. */
 @Composable
-fun EmptyState(emoji: String, title: String, body: String, modifier: Modifier = Modifier, action: String? = null, onAction: (() -> Unit)? = null) {
+fun EmptyState(icon: ImageVector, title: String, body: String, modifier: Modifier = Modifier, action: String? = null, onAction: (() -> Unit)? = null) {
     Column(
         modifier.fillMaxWidth().padding(horizontal = Space.XXXL, vertical = Space.XXXL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(emoji, fontSize = 36.sp)
+        Icon(icon, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(40.dp))
         Text(title, color = EInk.Value, fontSize = TextSize.Title, lineHeight = LineHeight.Title, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.M))
         Text(body, color = EInk.Caption, fontSize = TextSize.Body, lineHeight = LineHeight.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Space.XS))
         if (action != null && onAction != null) {

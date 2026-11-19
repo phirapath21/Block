@@ -279,6 +279,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         // Not shown on day one: Block reminds from tomorrow (or after the first post) until it's saved.
         repo.pubkey?.let { keyBackup.neededLater(it) }
         afterLogin()
+        // Someone new starts without Bitcoin cards under posts (Settings › Display turns them on);
+        // a phone that already chose keeps its choice.
+        if (!com.example.btcwidget.AppPrefs.hasBtcCards(app)) BitcoinCards.setShow(app, false)
         // Private messages work straight away: the inbox relay list (NIP-17) is published quietly.
         viewModelScope.launch { runCatching { repo.dms.setUpInbox() } }
         val me = repo.pubkey
@@ -653,12 +656,12 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
      * invoice goes to [onInvoice], which opens a wallet app.
      */
     fun zap(recipient: String, amountSat: Long, note: Event?, comment: String, address: String? = null, onInvoice: (String) -> Unit) {
-        act(tr("Couldn't zap")) {
+        act(tr("Couldn't send the tip")) {
             val invoice = repo.zaps.invoice(recipient, amountSat, note, comment, address)
             if (repo.wallet.connection.value != null) {
-                say(tr("⚡ Paying {0} sats…", amountSat))
+                say(tr("Sending a {0} sat tip…", amountSat))
                 repo.wallet.pay(invoice)
-                say(tr("⚡ Zapped {0} sats", amountSat))
+                say(tr("Tipped {0} sats", amountSat))
                 note?.let { n -> runCatching { repo.loadStats(listOf(n.id)) } }
                 wallet.refresh()
             } else {
@@ -765,7 +768,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 withContext(tracker) { block() }
                 finishedFlag.set(true)
-                show(PublishActivity(id, "$done ✓", tr("Sent"), 1f, PublishActivity.State.DONE))
+                show(PublishActivity(id, done, tr("Sent"), 1f, PublishActivity.State.DONE))
                 clearLater(1_800)
             } catch (e: CancellationException) {
                 finishedFlag.set(true)

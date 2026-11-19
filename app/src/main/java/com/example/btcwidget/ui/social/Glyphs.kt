@@ -127,6 +127,29 @@ object Glyphs {
     val ArrowUp = stroked("ArrowUp", "M12,19V5M6,11l6,-6 6,6", 2f)
     val ArrowDown = stroked("ArrowDown", "M12,5V19M6,13l6,6 6,-6", 2f)
     val Plus = stroked("Plus", "M12,5v14M5,12h14", 2f)
+    // Drawn here instead of emoji (no emoji anywhere in the app's own UI).
+    /** A cup of coffee: the smallest tip. */
+    val Coffee = stroked("Coffee", "M5,9h11v5a5,5 0,0 1,-5,5h-1a5,5 0,0 1,-5,-5zM16,10.5h1.5a2.5,2.5 0,0 1,0,5H16M8.5,3.5c0,1.2 1,1.3 1,2.5M12,3.5c0,1.2 1,1.3 1,2.5")
+    /** A bowl of noodles with chopsticks. */
+    val Bowl = stroked("Bowl", "M3.5,11.5h17a8.5,7.5 0,0 1,-17,0zM9,20.5h6M12.5,10.5l6.5,-7M9.5,10.5l6.5,-6")
+    /** A wrapped gift. */
+    val Gift = stroked("Gift", "M4.5,10.5h15v9a1,1 0,0 1,-1,1h-13a1,1 0,0 1,-1,-1zM3.5,7.5h17v3h-17zM12,7.5v13M12,7.5C10.5,4 7,4 7.5,6.3S12,7.5 12,7.5M12,7.5C13.5,4 17,4 16.5,6.3S12,7.5 12,7.5")
+    /** An empty check box, and one ticked. */
+    val CheckBox = stroked("CheckBox", "M6,5h12a1,1 0,0 1,1,1v12a1,1 0,0 1,-1,1h-12a1,1 0,0 1,-1,-1v-12a1,1 0,0 1,1,-1z")
+    val CheckBoxOn = stroked("CheckBoxOn", "M6,5h12a1,1 0,0 1,1,1v12a1,1 0,0 1,-1,1h-12a1,1 0,0 1,-1,-1v-12a1,1 0,0 1,1,-1zM8.5,12l2.5,2.5 4.5,-5")
+    /** Three lines: a list to drag or a menu. */
+    val Menu = stroked("Menu", "M4.5,7h15M4.5,12h15M4.5,17h15")
+    /** Previous and next (paragraph, track). */
+    val SkipBack = stroked("SkipBack", "M6.5,5.5v13M18,5.5l-8.5,6.5 8.5,6.5z")
+    val SkipForward = stroked("SkipForward", "M17.5,5.5v13M6,5.5l8.5,6.5 -8.5,6.5z")
+    /** A small chain link: a Bitcoin block. */
+    val Chain = stroked("Chain", "M10,14l4,-4M8.5,11.5l-2,2a3,3 0,0 0,4.2,4.2l2,-2M15.5,12.5l2,-2a3,3 0,0 0,-4.2,-4.2l-2,2")
+    /** Thumbs up and a flame, for reacting to messages. */
+    val ThumbUp = stroked("ThumbUp", "M7.5,10.5v9h-3v-9zM7.5,10.5l3.5,-6.5c1.5,0 2.5,1 2.2,2.5l-0.7,3h5a1.8,1.8 0,0 1,1.8,2.1l-1.2,6.6a1.8,1.8 0,0 1,-1.8,1.3h-8.8")
+    val Flame = stroked("Flame", "M12,21c-3.6,0 -6,-2.5 -6,-5.8 0,-3.4 2.6,-5 3.6,-8.7 1.9,1.3 3.1,3 3.2,5 1,-0.7 1.6,-1.8 1.8,-3.1 1.9,1.6 3.4,4 3.4,6.8 0,3.3 -2.4,5.8 -6,5.8z")
+    /** A simple smiling face (the welcome page's people). */
+    val Smile = stroked("Smile", "M8.5,9.5v1M15.5,9.5v1M8,14.5c1,1.7 2.4,2.5 4,2.5s3,-0.8 4,-2.5", 2.2f)
+
     val Check = stroked("Check", "M5,12.5l4.5,4.5L19,7.5", 2.2f)
     val Trash = stroked("Trash", "M5,7h14M10,7V5h4v2M7,7l0.8,12a1.5,1.5 0,0 0,1.5 1.4h5.4a1.5,1.5 0,0 0,1.5 -1.4L17,7M10.5,11v5.5M13.5,11v5.5")
     val Sliders = stroked("Sliders", "M4,7h9M17,7h3M4,17h3M11,17h9M15,5v4M9,15v4", 1.9f)

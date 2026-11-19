@@ -327,7 +327,7 @@ fun ImageViewer(
                         if (stats.likedByMe) Glyphs.Liked else Glyphs.Like, stats.likes,
                         if (stats.likedByMe) "Liked" else "Like", Modifier.weight(1f), active = stats.likedByMe
                     ) { actions.like(note) }
-                    ViewerAction(Glyphs.Zap, (stats.zapMsat / 1000).toInt(), "Zap", Modifier.weight(1f), tint = Accent) { actions.zap(note) }
+                    ViewerAction(Glyphs.Zap, (stats.zapMsat / 1000).toInt(), "Tip", Modifier.weight(1f), tint = com.example.btcwidget.ui.main.ActionColor.Zap) { actions.zap(note) }
                     val marked = actions.isBookmarked(note.id)
                     ViewerAction(if (marked) Glyphs.Bookmarked else Glyphs.Bookmark, null, if (marked) "Remove bookmark" else "Bookmark", Modifier.weight(0.7f), active = marked) { actions.bookmark(note) }
                     ViewerAction(Glyphs.Share, null, "Share", Modifier.weight(0.7f)) { actions.share(note) }

@@ -93,6 +93,8 @@ object AppPrefs {
     /** Transaction and block cards under notes that link to them (Settings › Display); on by default. */
     fun btcCards(context: Context): Boolean = prefs(context).getBoolean(BTC_CARDS, true)
     fun setBtcCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_CARDS, on) }
+    /** Whether the Bitcoin cards switch was ever set (a new account starts with them off). */
+    fun hasBtcCards(context: Context): Boolean = prefs(context).contains(BTC_CARDS)
 
     /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
     fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)

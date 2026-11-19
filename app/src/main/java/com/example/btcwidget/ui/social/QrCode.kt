@@ -142,5 +142,10 @@ internal fun QrButton(label: String, onClick: () -> Unit) {
     Box(
         Modifier.clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
-    ) { Text(tr("▣ QR"), color = com.example.btcwidget.ui.main.EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
+    ) {
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.Icon(Glyphs.Qr, contentDescription = null, tint = com.example.btcwidget.ui.main.EInk.Value, modifier = androidx.compose.ui.Modifier.size(18.dp))
+            Text(tr("QR"), color = com.example.btcwidget.ui.main.EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.padding(start = 6.dp))
+        }
+    }
 }

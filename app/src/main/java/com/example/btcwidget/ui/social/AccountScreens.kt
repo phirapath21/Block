@@ -726,13 +726,16 @@ internal fun ScheduleDialog(initial: Long?, onDismiss: () -> Unit, onClear: () -
 
 /** A small dark label over an image; a spinner while [text] is null (uploading). */
 @Composable
-private fun UploadBadge(text: String?) {
+private fun UploadBadge(text: String?, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     Box(
         Modifier.clip(Radius.Full).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
         if (text == null) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
-        else Text(text, color = Color.White, fontSize = TextSize.Caption)
+        else Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) androidx.compose.material3.Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            if (text.isNotEmpty()) Text(text, color = Color.White, fontSize = TextSize.Caption, modifier = Modifier.padding(start = if (icon != null) 6.dp else 0.dp))
+        }
     }
 }
 
@@ -794,7 +797,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     if (banner.isNotBlank()) AsyncImage(banner, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    UploadBadge(if (uploadingFor == "banner") null else "🖼 Banner")
+                    UploadBadge(if (uploadingFor == "banner") null else tr("Banner"), Glyphs.PhotoLine)
                 }
                 Box(
                     Modifier.align(Alignment.BottomStart).offset(x = 14.dp, y = 36.dp).size(80.dp).clip(CircleShape)
@@ -804,7 +807,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     if (picture.isNotBlank()) AsyncImage(picture, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    UploadBadge(if (uploadingFor == "picture") null else "📷")
+                    UploadBadge(if (uploadingFor == "picture") null else "", Glyphs.PhotoLine)
                 }
             }
             Text(
@@ -818,7 +821,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
             field(tr("Banner URL"), banner, { banner = it.trim() })
             field(tr("Website"), website, { website = it.trim() })
             field(tr("Nostr address (NIP-05)"), nip05, { nip05 = it.trim() })
-            field(tr("Lightning address (for zaps)"), lud16, { lud16 = it.trim() })
+            field(tr("Lightning address (for tips)"), lud16, { lud16 = it.trim() })
             Spacer(Modifier.height(8.dp))
             PillButton(if (uploadingFor != null) tr("Uploading…") else tr("Save"), filled = uploadingFor == null) {
                 if (uploadingFor != null) return@PillButton

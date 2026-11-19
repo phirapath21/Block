@@ -74,7 +74,7 @@ data class BlockStamp(
     fun compactLabel(): String {
         val h = "%,d".format(Locale.US, height)
         val p = btcUsd?.takeIf { it > 0 }?.let { " · \$${"%,.0f".format(Locale.US, it)}" }.orEmpty()
-        return "⛓ #$h$p"
+        return "Block #$h$p"
     }
 
     fun composerChipLabel(): String {
@@ -87,7 +87,8 @@ data class BlockStamp(
     companion object {
         private val stampCache = ConcurrentHashMap<String, Any>()
         private val NONE = Any()
-        private val INLINE_BLOCK_REGEX = Regex("""(?i)\b(?:block\s*#?|⛓\s*#?)(\d{3},?\d{3}|\d{6,7})\b""")
+        // Reads "block #…" and the chain-link shorthand other apps (and older Block) wrote; Block shows no emoji itself.
+    private val INLINE_BLOCK_REGEX = Regex("""(?i)\b(?:block\s*#?|⛓\s*#?)(\d{3},?\d{3}|\d{6,7})\b""")
 
         fun fromPriceData(data: PriceData?): BlockStamp? {
             val h = data?.blockHeight?.takeIf { it > 0 } ?: return null

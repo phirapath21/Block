@@ -148,7 +148,7 @@ object NostrBackground {
         Kind.REACTION -> if (e.content == "-") null
             else "${name(names, e.pubkey)} " + (if (e.content == "+" || e.content.isBlank()) "liked your note" else "reacted ${e.content} to your note")
         Kind.ZAP_RECEIPT -> Zaps.parseReceipt(e)?.let { r ->
-            "⚡ ${r.sender?.let { name(names, it) } ?: "Someone"} zapped ${r.amountMsat / 1000} sats"
+            "${r.sender?.let { name(names, it) } ?: "Someone"} tipped you ${r.amountMsat / 1000} sats"
         }
         else -> null
     }
@@ -182,7 +182,7 @@ object NostrBackground {
         }
     }
 
-    private fun preview(m: Nip17.Message) = if (m.kind == Nip17.FILE) "📷 Photo" else m.content
+    private fun preview(m: Nip17.Message) = if (m.kind == Nip17.FILE) "Photo" else m.content
 
     /** A one-line notification about the user's own activity (e.g. a scheduled post). */
     internal fun notifyAccount(context: Context, id: Int, title: String, text: String) =
