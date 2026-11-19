@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,7 +58,7 @@ fun PollView(poll: Poll, actions: NoteActions) {
 
     Column(Modifier.padding(top = 8.dp).fillMaxWidth()) {
         poll.options.forEach { option ->
-            val shape = RoundedCornerShape(8.dp)
+            val shape = Radius.Small
             if (showResults) {
                 val t = tally
                 val counts = t?.count(option.id) ?: 0
@@ -68,11 +70,11 @@ fun PollView(poll: Poll, actions: NoteActions) {
                     Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             option.label + if (option.id in mine) "  ✓" else "",
-                            color = EInk.Value, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             fontWeight = if (option.id in mine) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
                         )
-                        Text("${(share * 100).toInt()}%", color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("${(share * 100).toInt()}%", color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
@@ -88,7 +90,7 @@ fun PollView(poll: Poll, actions: NoteActions) {
                 ) {
                     Text(
                         (if (poll.multipleChoice) (if (selected) "☑ " else "☐ ") else "") + option.label,
-                        color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
                 }
@@ -105,10 +107,10 @@ fun PollView(poll: Poll, actions: NoteActions) {
                     else -> null
                 }
             )
-            Text(parts.joinToString(" · "), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text(parts.joinToString(" · "), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.weight(1f))
             if (!showResults && poll.multipleChoice && picked.isNotEmpty()) {
                 Text(
-                    if (sending) tr("Voting…") else tr("Vote"), color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    if (sending) tr("Voting…") else tr("Vote"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !sending) { send(poll.options.map { it.id }.filter { it in picked }) }.padding(6.dp)
                 )
             }

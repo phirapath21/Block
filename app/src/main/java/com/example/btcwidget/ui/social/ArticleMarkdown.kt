@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.background
@@ -115,7 +117,7 @@ internal fun Modifier.onLongPress(onLongPress: () -> Unit): Modifier = composed 
 
 @Composable
 internal fun ArticleAction(label: String, onClick: () -> Unit) {
-    Text(label, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(vertical = 4.dp))
+    Text(label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(vertical = 4.dp))
 }
 
 @Composable
@@ -171,12 +173,12 @@ internal fun MarkdownBlock(
         }
         is Markdown.Block.Code -> Text(
             block.text, color = EInk.Value, fontSize = (prefs.fontSizeSp - 3).coerceAtLeast(12).sp, fontFamily = FontFamily.Monospace,
-            modifier = pad.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(EInk.Body).border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(8.dp)).padding(10.dp)
+            modifier = pad.fillMaxWidth().clip(Radius.Small).background(EInk.Body).border(0.5.dp, EInk.BodyStroke, Radius.Small).padding(10.dp)
         )
         is Markdown.Block.Image -> if (block.url.startsWith("https://")) {
             AsyncImage(
                 model = block.url, contentDescription = block.alt.ifBlank { null }, contentScale = ContentScale.FillWidth,
-                modifier = pad.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                modifier = pad.fillMaxWidth().clip(Radius.Small)
             )
         }
         Markdown.Block.Rule -> HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
@@ -84,10 +86,10 @@ fun ListsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit, owner: String? 
                             Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("New list")) { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Body), contentAlignment = Alignment.Center) {
-                                Text("+", color = EInk.Value, fontSize = 24.sp)
+                            Box(Modifier.size(44.dp).clip(Radius.Small).background(EInk.Body), contentAlignment = Alignment.Center) {
+                                Text("+", color = EInk.Value, fontSize = TextSize.Title)
                             }
-                            Text(tr("New list"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
+                            Text(tr("New list"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
                         }
                         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
                     }
@@ -114,18 +116,18 @@ private fun ListRow(list: PeopleList, vm: SocialViewModel, onClick: () -> Unit) 
     Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         // The first few faces, overlapping.
         Box(Modifier.width(44.dp + ((list.members.size.coerceIn(1, 3) - 1) * 14).dp)) {
-            if (list.members.isEmpty()) Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(EInk.Body), contentAlignment = Alignment.Center) {
-                Text("☰", color = EInk.Caption, fontSize = 20.sp)
+            if (list.members.isEmpty()) Box(Modifier.size(44.dp).clip(Radius.Small).background(EInk.Body), contentAlignment = Alignment.Center) {
+                Text("☰", color = EInk.Caption, fontSize = TextSize.Title)
             }
             list.members.take(3).forEachIndexed { i, pk ->
                 Box(Modifier.padding(start = (i * 14).dp)) { Avatar(profiles[pk], pk, size = 44) }
             }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(list.title, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(list.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 peopleCount(list.members.size) + (list.description?.let { " · $it" } ?: ""),
-                color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -165,13 +167,13 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
                 else -> {
                     val header: @Composable () -> Unit = {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text(list.title, color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            list.description?.let { Text(it, color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp)) }
+                            Text(list.title, color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
+                            list.description?.let { Text(it, color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp)) }
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(list.owner)) }) {
                                 Avatar(profiles[list.owner], list.owner, size = 20)
                                 Text(
                                     (profiles[list.owner]?.bestName ?: Profile.shortNpub(list.owner)) + " · " + peopleCount(list.members.size),
-                                    color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp)
+                                    color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 6.dp)
                                 )
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
@@ -198,7 +200,7 @@ fun ListScreen(vm: SocialViewModel, owner: String, d: String, navigate: (NavKey)
                         item(key = "header") { header() }
                         if (isOwn) item(key = "add") {
                             Text(
-                                tr("+ Add people"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                                tr("+ Add people"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                                 modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { adding = true }.padding(horizontal = 16.dp, vertical = 14.dp)
                             )
                             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -231,11 +233,11 @@ private fun MemberRow(pubkey: String, profile: Profile?, isFollowing: Boolean, o
         Avatar(profile, pubkey, size = 44)
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
             DisplayName(profile, pubkey, EInk.Value, 15.sp)
-            Text(handleText(profile, pubkey) + if (isFollowing) tr(" · Following") else "", color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(handleText(profile, pubkey) + if (isFollowing) tr(" · Following") else "", color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (onRemove != null) Text(
-            tr("Remove"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(horizontal = 12.dp, vertical = 6.dp)
+            tr("Remove"), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(Radius.Full).background(EInk.Track).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -260,7 +262,7 @@ private fun AddPeopleSheet(vm: SocialViewModel, list: PeopleList, onClose: () ->
     }
     BlockSheet(onDismiss = onClose) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            Text(tr("Add to {0}", current.title), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(tr("Add to {0}", current.title), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
             OutlinedTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
                 placeholder = { Text(tr("Search people")) }, colors = fieldColors,
@@ -293,7 +295,7 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
     val name = vm.profiles.collectAsState().value[pubkey]?.bestName ?: Profile.shortNpub(pubkey)
     BlockSheet(onDismiss = onClose) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            Text(tr("Lists with {0}", name), color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            Text(tr("Lists with {0}", name), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             when (val l = lists) {
                 null -> Spinner()
                 else -> Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
@@ -304,22 +306,22 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(list.title, color = EInk.Value, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(peopleCount(list.members.size), color = EInk.Caption, fontSize = 13.sp)
+                                Text(list.title, color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(peopleCount(list.members.size), color = EInk.Caption, fontSize = TextSize.Caption)
                             }
                             Box(
                                 Modifier.size(24.dp).clip(CircleShape).background(if (inList) EInk.Accent else EInk.Track),
                                 contentAlignment = Alignment.Center
-                            ) { if (inList) Text("✓", color = androidx.compose.ui.graphics.Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                            ) { if (inList) Text("✓", color = androidx.compose.ui.graphics.Color.Black, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
             }
             Text(
-                tr("+ New list with {0}", name), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                tr("+ New list with {0}", name), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { creating = true }.padding(horizontal = 16.dp, vertical = 14.dp)
             )
-            Text(tr("Lists are public on Nostr: anyone can see who's in them."), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(tr("Lists are public on Nostr: anyone can see who's in them."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(horizontal = 16.dp))
         }
     }
     if (creating) NameDialog("New list", "", onDismiss = { creating = false }) { title ->

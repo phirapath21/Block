@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -97,10 +99,10 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
                 Modifier
                     .offset { IntOffset(x.value.roundToInt(), y.value.roundToInt()) }
                     .width(MINI_WIDTH)
-                    .shadow(12.dp, RoundedCornerShape(14.dp))
-                    .clip(RoundedCornerShape(14.dp))
+                    .shadow(12.dp, Radius.Large)
+                    .clip(Radius.Large)
                     .background(SheetColor)
-                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+                    .border(0.5.dp, EInk.BodyStroke, Radius.Large)
                     .pointerInput(maxX, maxY) {
                         detectDragGestures(
                             onDragEnd = {
@@ -132,8 +134,8 @@ fun LiveMiniPlayer(onOpen: (address: String) -> Unit, modifier: Modifier = Modif
                     }
                 }
                 Column(Modifier.padding(horizontal = 10.dp, vertical = 5.dp)) {
-                    Text(l?.title ?: v?.title.orEmpty(), color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(l?.host ?: v?.author.orEmpty(), color = EInk.Caption, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(l?.title ?: v?.title.orEmpty(), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(l?.host ?: v?.author.orEmpty(), color = EInk.Caption, fontSize = TextSize.Micro, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }

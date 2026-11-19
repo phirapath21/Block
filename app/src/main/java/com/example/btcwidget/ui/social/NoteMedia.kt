@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,7 +48,7 @@ internal fun NoteImage(note: Event, url: String, actions: NoteActions) {
     var ratio by remember(note.id, url) {
         mutableStateOf(com.example.btcwidget.nostr.core.Imeta.aspectRatio(note, url) ?: imageRatioCache[url])
     }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = Radius.Large
     // A soft blur of the picture, at its size, until it has loaded (when the note gives one).
     val blur = rememberBlurhashPainter(remember(note.id, url) { com.example.btcwidget.nostr.core.Imeta.blurhash(note, url) })
     AsyncImage(
@@ -81,7 +83,7 @@ internal fun NoteImage(note: Event, url: String, actions: NoteActions) {
 @Composable
 internal fun NoteAlbum(note: Event, urls: List<String>, actions: NoteActions) {
     val layout = remember(urls.size) { AlbumLayout.of(urls.size) }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = Radius.Large
     val gap = 2.dp
     androidx.compose.foundation.layout.BoxWithConstraints(
         Modifier
@@ -123,7 +125,7 @@ internal fun NoteAlbum(note: Event, urls: List<String>, actions: NoteActions) {
                     Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+${layout.more}", color = androidx.compose.ui.graphics.Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text("+${layout.more}", color = androidx.compose.ui.graphics.Color.White, fontSize = TextSize.Display, fontWeight = FontWeight.Bold)
                 }
             }
         }

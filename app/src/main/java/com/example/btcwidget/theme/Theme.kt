@@ -59,12 +59,13 @@ private val BlockColors = darkColorScheme(
     surfaceContainerHighest = Color(0xFF2F3336),
 )
 
+/** The design system's two corner sizes: 8 for small things, 16 for cards, sheets and dialogs. */
 private val BlockShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(24.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(16.dp),
 )
 
 /**

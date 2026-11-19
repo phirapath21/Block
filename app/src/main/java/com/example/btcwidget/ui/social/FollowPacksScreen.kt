@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,12 +47,12 @@ internal fun FollowPackRow(pack: FollowPack, profiles: Map<String, Profile>, nav
             pack.members.take(4).forEachIndexed { i, pk -> Box(Modifier.padding(start = (i * 14).dp)) { Avatar(profiles[pk], pk, size = 44) } }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(pack.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(pack.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 tr("{0} people · by ", pack.members.size) + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)),
-                color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
-            pack.description?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            pack.description?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -75,13 +76,13 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
                     item(key = "head") {
                         pack.image?.let { AsyncImage(it, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(3f)) }
                         Column(Modifier.padding(16.dp)) {
-                            Text(pack.title, color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            pack.description?.let { Text(it, color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp)) }
+                            Text(pack.title, color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
+                            pack.description?.let { Text(it, color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp)) }
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(pack.owner)) }) {
                                 Avatar(profiles[pack.owner], pack.owner, size = 20)
                                 Text(
                                     tr("by ") + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)) + tr(" · {0} people", pack.members.size),
-                                    color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp)
+                                    color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 6.dp)
                                 )
                             }
                             val toFollow = pack.members.filter { it !in following && it != account?.pubkey }
@@ -100,8 +101,8 @@ fun FollowPackScreen(vm: SocialViewModel, address: String, navigate: (NavKey) ->
                         Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(ProfileKey(pk)) }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                             Avatar(p, pk, size = 44)
                             Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                Text(p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                p?.about?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                                Text(p?.bestName ?: Profile.shortNpub(pk), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                p?.about?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                             }
                             if (pk != account?.pubkey) PillButton(
                                 text = if (on) tr("Following") else tr("Follow"),

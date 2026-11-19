@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import com.example.btcwidget.ui.main.EInk
 import androidx.compose.foundation.border
 import android.content.Context
@@ -75,14 +77,14 @@ fun ProfileQrDialog(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> U
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             // White quiet zone around the code, so every scanner reads it on the dark dialog.
-            Box(Modifier.clip(RoundedCornerShape(16.dp)).background(Color.White).padding(12.dp)) {
+            Box(Modifier.clip(Radius.Large).background(Color.White).padding(12.dp)) {
                 QrCode("nostr:$npub", Modifier.size(220.dp))
             }
             Text(
-                npub.take(16) + "…" + npub.takeLast(8), color = EInk.Caption, fontSize = 13.sp, fontFamily = FontFamily.Monospace,
+                npub.take(16) + "…" + npub.takeLast(8), color = EInk.Caption, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace,
                 textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp)
             )
-            Text(tr("Scan with any Nostr app to follow."), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(tr("Scan with any Nostr app to follow."), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 2.dp))
             Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SmallPill("Copy npub") { copyText(context, npub) }
                 SmallPill("Share") { shareText(context, "nostr:$npub") }
@@ -94,8 +96,8 @@ fun ProfileQrDialog(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> U
 @Composable
 private fun SmallPill(label: String, onClick: () -> Unit) {
     Text(
-        label, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-        modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, EInk.Track, RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
+        label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+        modifier = Modifier.clip(Radius.Full).border(1.dp, EInk.Track, Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
 
@@ -138,7 +140,7 @@ private fun shareText(context: Context, text: String) {
 @Composable
 internal fun QrButton(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
+        Modifier.clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
-    ) { Text(tr("▣ QR"), color = com.example.btcwidget.ui.main.EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+    ) { Text(tr("▣ QR"), color = com.example.btcwidget.ui.main.EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
 }

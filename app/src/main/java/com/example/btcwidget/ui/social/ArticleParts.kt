@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.example.btcwidget.ui.main.screenBackground
@@ -95,29 +97,29 @@ internal fun ReaderSettingsBar(
             ) {
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { onFontSizeChange(prefs.fontSizeSp - 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Text("A−", color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("A−", color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     "${prefs.fontSizeSp}",
                     color = EInk.Accent,
-                    fontSize = 12.sp,
+                    fontSize = TextSize.Caption,
                     fontWeight = FontWeight.Bold
                 )
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { onFontSizeChange(prefs.fontSizeSp + 2) }
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Text("A+", color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("A+", color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -134,16 +136,16 @@ internal fun ReaderChip(
 ) {
     Box(
         Modifier
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .background(if (selected) EInk.Accent else EInk.Background)
-            .border(0.5.dp, if (selected) EInk.Accent else EInk.BodyStroke, RoundedCornerShape(50))
+            .border(0.5.dp, if (selected) EInk.Accent else EInk.BodyStroke, Radius.Full)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 5.dp)
     ) {
         Text(
             text = label,
             color = if (selected) Color.Black else EInk.Value,
-            fontSize = 12.sp,
+            fontSize = TextSize.Caption,
             fontFamily = fontFamily,
             fontWeight = FontWeight.Bold
         )
@@ -182,21 +184,21 @@ internal fun ArticleAudioPlayerBar(
                 Text(
                     tr("Paragraph {0}/{1}", currentIndex, totalCount.coerceAtLeast(1)),
                     color = EInk.Value,
-                    fontSize = 13.sp,
+                    fontSize = TextSize.Caption,
                     fontWeight = FontWeight.Bold
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onPrev)
                         .semantics { contentDescription = tr("Previous paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Text("⏮", color = EInk.Value, fontSize = 12.sp)
+                    Text("⏮", color = EInk.Value, fontSize = TextSize.Caption)
                 }
                 Box(
                     Modifier
@@ -215,27 +217,27 @@ internal fun ArticleAudioPlayerBar(
                 }
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onNext)
                         .semantics { contentDescription = tr("Next paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Text("⏭", color = EInk.Value, fontSize = 12.sp)
+                    Text("⏭", color = EInk.Value, fontSize = TextSize.Caption)
                 }
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .screenBackground()
-                        .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                        .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onToggleSpeed)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
                         "${speed}x",
                         color = EInk.Accent,
-                        fontSize = 12.sp,
+                        fontSize = TextSize.Caption,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -273,9 +275,9 @@ internal fun AuthorSupportFooterCard(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 18.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(Radius.Large)
             .background(EInk.Body)
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(16.dp))
+            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -284,12 +286,12 @@ internal fun AuthorSupportFooterCard(
                 Text(
                     tr("Written by"),
                     color = EInk.Caption,
-                    fontSize = 11.sp
+                    fontSize = TextSize.Micro
                 )
                 Text(
                     author?.bestName ?: Profile.shortNpub(article.pubkey),
                     color = EInk.Value,
-                    fontSize = 16.sp,
+                    fontSize = TextSize.Body,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -309,7 +311,7 @@ internal fun AuthorSupportFooterCard(
             Text(
                 bio,
                 color = EInk.Label,
-                fontSize = 13.sp,
+                fontSize = TextSize.Caption,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 8.dp)
@@ -319,7 +321,7 @@ internal fun AuthorSupportFooterCard(
         Text(
             tr("Enjoyed this article? Value-for-Value zap the author:"),
             color = EInk.Value,
-            fontSize = 13.sp,
+            fontSize = TextSize.Caption,
             fontWeight = FontWeight.Bold
         )
         Row(
@@ -332,9 +334,9 @@ internal fun AuthorSupportFooterCard(
             presets.forEach { sats ->
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         .background(EInk.Accent.copy(alpha = 0.14f))
-                        .border(1.dp, EInk.Accent, RoundedCornerShape(50))
+                        .border(1.dp, EInk.Accent, Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                             if (account == null) {
                                 navigate(LoginKey)
@@ -359,23 +361,23 @@ internal fun AuthorSupportFooterCard(
                     Text(
                         "⚡ $sats",
                         color = EInk.Accent,
-                        fontSize = 13.sp,
+                        fontSize = TextSize.Caption,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(50))
+                    .clip(Radius.Full)
                     .screenBackground()
-                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                    .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.zap(article.event) }
                     .padding(horizontal = 13.dp, vertical = 7.dp)
             ) {
                 Text(
                     tr("Custom ⚡"),
                     color = EInk.Value,
-                    fontSize = 13.sp,
+                    fontSize = TextSize.Caption,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -394,8 +396,8 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
     }
     Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp)) {
         Column(Modifier.weight(1f)) {
-            Text(article.title, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            article.summary?.let { Text(it, color = EInk.Label, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }
+            Text(article.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            article.summary?.let { Text(it, color = EInk.Label, fontSize = TextSize.Body, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -404,19 +406,19 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
                 Text(
                     relativeTime(article.publishedAt) + " · " + tr("{0} min read", readingMinutes),
                     color = EInk.Caption,
-                    fontSize = 12.sp
+                    fontSize = TextSize.Caption
                 )
                 if (savedPct > 0) {
                     Box(
                         Modifier
-                            .clip(RoundedCornerShape(50))
+                            .clip(Radius.Full)
                             .background(EInk.Accent.copy(alpha = 0.14f))
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             if (savedPct >= 95) tr("✓ Read") else tr("{0}% read", savedPct),
                             color = EInk.Accent,
-                            fontSize = 11.sp,
+                            fontSize = TextSize.Micro,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -425,7 +427,7 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
         }
         article.image?.let { url ->
             Spacer(Modifier.width(10.dp))
-            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.width(72.dp).heightIn(min = 72.dp, max = 72.dp).clip(RoundedCornerShape(8.dp)))
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.width(72.dp).heightIn(min = 72.dp, max = 72.dp).clip(Radius.Small))
         }
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)

@@ -27,9 +27,10 @@ val Typography: Typography = Typography().run {
         displayLarge = displayLarge.blockSans(), displayMedium = displayMedium.blockSans(), displaySmall = displaySmall.blockSans(),
         headlineLarge = headlineLarge.blockSans(), headlineMedium = headlineMedium.blockSans(), headlineSmall = headlineSmall.blockSans(),
         titleLarge = titleLarge.blockSans(), titleMedium = titleMedium.blockSans(), titleSmall = titleSmall.blockSans(),
-        bodyLarge = bodyLarge.blockSans().copy(letterSpacing = 0.sp),
-        bodyMedium = bodyMedium.blockSans().copy(letterSpacing = 0.sp),
-        bodySmall = bodySmall.blockSans().copy(letterSpacing = 0.sp),
+        // The design system's sizes (ui/main/Design.kt): Body 15/20, Caption 13/18.
+        bodyLarge = bodyLarge.blockSans().copy(letterSpacing = 0.sp, fontSize = 15.sp, lineHeight = 20.sp),
+        bodyMedium = bodyMedium.blockSans().copy(letterSpacing = 0.sp, fontSize = 15.sp, lineHeight = 20.sp),
+        bodySmall = bodySmall.blockSans().copy(letterSpacing = 0.sp, fontSize = 13.sp, lineHeight = 18.sp),
         labelLarge = labelLarge.blockSans(), labelMedium = labelMedium.blockSans(), labelSmall = labelSmall.blockSans(),
     )
 }

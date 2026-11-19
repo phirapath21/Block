@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -79,7 +81,7 @@ fun ReplyBar(
     val fill = if (dark) Color(0xF02A2F36) else EInk.Body.copy(alpha = 0.97f)
     val ink = if (dark) Color(0xFFEDEFF1) else EInk.Value
     val hint = if (dark) Color(0xFF9AA0A6) else EInk.Caption
-    val shape = RoundedCornerShape(22.dp)
+    val shape = Radius.Large
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -106,12 +108,12 @@ fun ReplyBar(
                 if (me != null) Avatar(profiles[me], me, size = 32) else Box(Modifier.size(32.dp).clip(CircleShape).background(hint))
             }
             Box(Modifier.weight(1f).padding(start = 10.dp, end = 4.dp, top = if (active) 9.dp else 0.dp)) {
-                if (text.isEmpty()) Text(tr("Post your reply"), color = hint, fontSize = 16.sp)
+                if (text.isEmpty()) Text(tr("Post your reply"), color = hint, fontSize = TextSize.Body)
                 BasicTextField(
                     value = text,
                     onValueChange = { text = it },
                     enabled = me != null,
-                    textStyle = TextStyle(color = ink, fontSize = 16.sp),
+                    textStyle = TextStyle(color = ink, fontSize = TextSize.Body),
                     cursorBrush = SolidColor(ink),
                     maxLines = 8,
                     modifier = Modifier
@@ -131,9 +133,9 @@ fun ReplyBar(
             ) {
                 images.forEach { img ->
                     Box {
-                        AsyncImage(img.url, "Attached image", contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)))
+                        AsyncImage(img.url, "Attached image", contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(Radius.Small))
                         Text(
-                            "✕", color = Color.White, fontSize = 11.sp,
+                            "✕", color = Color.White, fontSize = TextSize.Micro,
                             modifier = Modifier.align(Alignment.TopEnd).clip(CircleShape).background(Color(0x99000000))
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove image")) { images = images - img }
                                 .semantics { contentDescription = tr("Remove image") }.padding(horizontal = 5.dp)
@@ -141,7 +143,7 @@ fun ReplyBar(
                     }
                 }
                 repeat(uploading) {
-                    Box(Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(64.dp).clip(Radius.Small).background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = ink, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     }
                 }
@@ -157,10 +159,10 @@ fun ReplyBar(
                 Text(
                     if (sending) tr("Replying…") else tr("Reply"),
                     color = if (canSend) Color.Black else hint,
-                    fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .padding(end = 4.dp)
-                        .clip(RoundedCornerShape(50))
+                        .clip(Radius.Full)
                         // Block's accent where X uses its blue.
                         .background(if (canSend) EInk.Accent else hint.copy(alpha = 0.25f))
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canSend, onClickLabel = tr("Send reply")) {

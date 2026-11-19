@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -80,10 +82,10 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
     if (account == null) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(tr("Log in to use a wallet"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(tr("Log in to use a wallet"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text(
                 tr("Connect your Lightning wallet to zap, send and receive sats from Block."),
-                color = EInk.Caption, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
+                color = EInk.Caption, fontSize = TextSize.Body, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
             )
             SettingsButton(tr("Log in or create account"), primary = true) { navigate(com.example.btcwidget.LoginKey) }
         }
@@ -112,7 +114,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             // The balance, large, with the wallet's menu at the right.
             Box(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 8.dp)) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tr("Balance"), color = EInk.Caption, fontSize = 13.sp)
+                    Text(tr("Balance"), color = EInk.Caption, fontSize = TextSize.Caption)
                     Text(
                         balanceMsat?.let { "⚡ " + formatSats(it / 1000) } ?: if (loading) "⚡ …" else "⚡ –",
                         color = EInk.Value, fontSize = 36.sp, fontWeight = FontWeight.Bold,
@@ -120,7 +122,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             contentDescription = balanceMsat?.let { tr("Balance {0} sats", formatSats(it / 1000)) } ?: tr("Balance not loaded")
                         }
                     )
-                    Text(tr("sats"), color = EInk.Caption, fontSize = 14.sp)
+                    Text(tr("sats"), color = EInk.Caption, fontSize = TextSize.Body)
                 }
                 Box(
                     Modifier.align(Alignment.TopEnd).padding(end = 8.dp).size(44.dp).clip(CircleShape)
@@ -137,13 +139,13 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
             HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             Text(
-                tr("Recent transactions"), color = EInk.Value, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                tr("Recent transactions"), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
             )
             if (transactions.isEmpty()) {
                 Text(
                     if (loading) tr("Loading…") else tr("No payments yet."),
-                    color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             } else {
                 transactions.forEach { TransactionRow(it) }
@@ -172,7 +174,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 @Composable
 private fun RowScope.WalletAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     val haptics = rememberHaptics()
-    val shape = RoundedCornerShape(16.dp)
+    val shape = Radius.Large
     Row(
         Modifier.weight(1f).height(56.dp).clip(shape).background(EInk.Accent)
             .clickable(role = Role.Button, onClickLabel = label) { haptics.tick(); onClick() },
@@ -180,7 +182,7 @@ private fun RowScope.WalletAction(icon: ImageVector, label: String, onClick: () 
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(20.dp))
-        Text(label, color = EInk.OnAccent, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+        Text(label, color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -200,14 +202,14 @@ private fun TransactionRow(tx: Nwc.Transaction) {
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(
                 tx.description.takeIf { it.isNotBlank() } ?: if (incoming) tr("Received") else tr("Paid"),
-                color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             val at = (tx.settledAt.takeIf { it > 0 } ?: tx.createdAt).takeIf { it > 0 }
-            if (at != null) Text(relativeTime(at), color = EInk.Caption, fontSize = 12.sp)
+            if (at != null) Text(relativeTime(at), color = EInk.Caption, fontSize = TextSize.Caption)
         }
         Text(
             (if (incoming) "+" else "−") + formatSats(tx.amountSat),
-            color = if (incoming) EInk.Success else EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold
+            color = if (incoming) EInk.Success else EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold
         )
     }
 }
@@ -240,14 +242,14 @@ private fun ReceiveSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
             }
         } else {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.background(Color.White, RoundedCornerShape(16.dp)).padding(12.dp)) {
+                Box(Modifier.background(Color.White, Radius.Large).padding(12.dp)) {
                     QrCode("lightning:${inv.uppercase()}", Modifier.size(220.dp).semantics { contentDescription = tr("Invoice QR code") })
                 }
                 Zaps.invoiceAmountMsat(inv)?.let {
-                    Text("⚡ " + formatSats(it / 1000) + " " + tr("sats"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+                    Text("⚡ " + formatSats(it / 1000) + " " + tr("sats"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
                 }
                 Text(
-                    inv.take(18) + "…" + inv.takeLast(10), color = EInk.Caption, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+                    inv.take(18) + "…" + inv.takeLast(10), color = EInk.Caption, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace,
                     modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -296,12 +298,12 @@ private fun SendSheet(vm: SocialViewModel, onDismiss: () -> Unit) {
                 SettingsButton(tr("Scan QR code")) { scan() }
             }
             when {
-                input.isBlank() -> Text(tr("Paste a Lightning invoice or scan its QR code."), color = EInk.Caption, fontSize = 13.sp)
-                !looksLikeInvoice -> Text(tr("That isn't a Lightning invoice."), color = EInk.Alert, fontSize = 13.sp)
-                amountSat == null -> Text(tr("This invoice has no amount. Ask for one with an amount."), color = EInk.Alert, fontSize = 13.sp)
+                input.isBlank() -> Text(tr("Paste a Lightning invoice or scan its QR code."), color = EInk.Caption, fontSize = TextSize.Caption)
+                !looksLikeInvoice -> Text(tr("That isn't a Lightning invoice."), color = EInk.Alert, fontSize = TextSize.Caption)
+                amountSat == null -> Text(tr("This invoice has no amount. Ask for one with an amount."), color = EInk.Alert, fontSize = TextSize.Caption)
                 else -> Text(
                     "⚡ " + formatSats(amountSat) + " " + tr("sats"),
-                    color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
+                    color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
                 )
             }
             SheetButton(if (paying) tr("Paying…") else tr("Pay"), enabled = amountSat != null && !paying) { confirming = true }
@@ -329,17 +331,17 @@ private fun ConnectWallet(vm: SocialViewModel) {
     var error by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("⚡", fontSize = 40.sp, modifier = Modifier.padding(top = 12.dp))
-        Text(tr("Connect a wallet"), color = EInk.Value, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+        Text(tr("Connect a wallet"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         Text(
             tr("In your wallet (Alby Hub, Primal, Coinos, Mutiny…) create a Nostr Wallet Connect link and paste it here. ") +
                 tr("Set a spending budget there: anyone with this link can spend up to it. It's stored encrypted on this phone."),
-            color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+            color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
         )
         SettingsTextField(
             value = uri, onValueChange = { uri = it.trim(); error = null }, placeholder = "nostr+walletconnect://…",
             isError = error != null, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
         )
-        error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
+        error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp)) }
         Spacer(Modifier.height(12.dp))
         SheetButton(tr("Connect"), enabled = uri.isNotBlank()) {
             val e = vm.wallet.connect(uri)
@@ -347,27 +349,27 @@ private fun ConnectWallet(vm: SocialViewModel) {
         }
         Text(
             tr("Without a wallet here, zapping opens your Lightning wallet app to pay."),
-            color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp)
+            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 16.dp)
         )
     }
 }
 
 @Composable
 private fun ColumnScope.SheetTitle(text: String) {
-    Text(text, color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp))
+    Text(text, color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp))
 }
 
 /** A full-width pill button, the main action of a sheet. */
 @Composable
 private fun SheetButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(50)
+    val shape = Radius.Full
     Box(
         Modifier.fillMaxWidth().height(50.dp).clip(shape)
             .background(if (enabled) EInk.Accent else EInk.Body)
             .then(if (enabled) Modifier else Modifier.border(1.dp, EInk.BodyStroke, shape))
             .clickable(role = Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Text(label, color = if (enabled) EInk.OnAccent else EInk.Caption, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+    ) { Text(label, color = if (enabled) EInk.OnAccent else EInk.Caption, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
 }
 
 /** "lightning:LNBC…" → "lnbc…", the way invoices are pasted and scanned. */

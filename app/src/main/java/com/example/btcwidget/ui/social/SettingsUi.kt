@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,7 +57,7 @@ private val Destructive get() = EInk.Alert
 @Composable
 fun SettingsHeader(text: String, modifier: Modifier = Modifier) {
     Text(
-        text, color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+        text, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold,
         modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp)
     )
 }
@@ -63,7 +65,7 @@ fun SettingsHeader(text: String, modifier: Modifier = Modifier) {
 /** Small print explaining a group or a choice. */
 @Composable
 fun SettingsNote(text: String, modifier: Modifier = Modifier) {
-    Text(text, color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp, modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp))
+    Text(text, color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 18.sp, modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp))
 }
 
 @Composable
@@ -72,8 +74,8 @@ fun SettingsDivider() = HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyS
 @Composable
 private fun RowText(title: String, summary: String?, color: Color, modifier: Modifier) {
     Column(modifier) {
-        Text(title, color = color, fontSize = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (!summary.isNullOrBlank()) Text(summary, color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(title, color = color, fontSize = TextSize.Body, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        if (!summary.isNullOrBlank()) Text(summary, color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 18.sp, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
@@ -103,7 +105,7 @@ fun SettingsLinkRow(
             icon != null -> { Icon(icon, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(24.dp)); Spacer(Modifier.width(20.dp)) }
         }
         RowText(title, summary, if (destructive) Destructive else EInk.Value, Modifier.weight(1f))
-        if (value != null) Text(value, color = EInk.Caption, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(start = 12.dp))
+        if (value != null) Text(value, color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1, modifier = Modifier.padding(start = 12.dp))
         if (badge) Box(
             Modifier.padding(start = 10.dp).size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(EInk.Accent)
                 .semantics { contentDescription = tr("Needs your attention") }
@@ -155,7 +157,7 @@ fun SettingsTextField(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     isError: Boolean = false,
-    textStyle: TextStyle = TextStyle(fontSize = 15.sp, color = EInk.Value),
+    textStyle: TextStyle = TextStyle(fontSize = TextSize.Body, color = EInk.Value),
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
 ) {
@@ -163,7 +165,7 @@ fun SettingsTextField(
         value = value, onValueChange = onValueChange, singleLine = singleLine, isError = isError,
         placeholder = { Text(placeholder, color = EInk.Caption) },
         textStyle = textStyle, keyboardOptions = keyboardOptions, visualTransformation = visualTransformation,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        shape = Radius.Small,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = SettingsAccent, unfocusedBorderColor = EInk.BodyStroke, errorBorderColor = Destructive,
             cursorColor = SettingsAccent, focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value
@@ -174,20 +176,19 @@ fun SettingsTextField(
 
 /** A small rounded button for actions inside a row or under a field. */
 @Composable
-fun SettingsButton(label: String, primary: Boolean = false, enabled: Boolean = true, destructive: Boolean = false, onClick: () -> Unit) {
-    val bg = when { !enabled -> EInk.Body; primary -> SettingsAccent; else -> Color.Transparent }
-    val fg = when { !enabled -> EInk.Caption; primary -> EInk.OnAccent; destructive -> Destructive; else -> EInk.Value }
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
-    Box(
-        Modifier.heightIn(min = 36.dp)
-            .clip(shape)
-            .background(bg)
-            .then(if (!primary) Modifier.border(1.dp, if (destructive) Destructive else EInk.BodyStroke, shape) else Modifier)
-            .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClickLabel = label, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) { Text(label, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
-}
+fun SettingsButton(label: String, primary: Boolean = false, enabled: Boolean = true, destructive: Boolean = false, onClick: () -> Unit) =
+    // The design system's small button: the main one filled, others outlined, deleting in red.
+    com.example.btcwidget.ui.main.BlockButton(
+        label,
+        kind = when {
+            destructive -> com.example.btcwidget.ui.main.ButtonKind.Danger
+            primary -> com.example.btcwidget.ui.main.ButtonKind.Primary
+            else -> com.example.btcwidget.ui.main.ButtonKind.Outline
+        },
+        size = com.example.btcwidget.ui.main.ButtonSize.Small,
+        enabled = enabled,
+        onClick = onClick
+    )
 
 /**
  * Addresses one per line (relays, media servers), shown as a list until Edit, then a text
@@ -207,8 +208,8 @@ fun SettingsListEditor(
     var saving by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
         if (!editing) {
-            if (initial.isEmpty()) Text(emptyText, color = EInk.Caption, fontSize = 14.sp)
-            initial.forEach { Text(it, color = EInk.Value, fontSize = 14.sp, modifier = Modifier.padding(vertical = 3.dp)) }
+            if (initial.isEmpty()) Text(emptyText, color = EInk.Caption, fontSize = TextSize.Body)
+            initial.forEach { Text(it, color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(vertical = 3.dp)) }
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SettingsButton(tr("Edit")) { editing = true }
                 extraAction?.invoke()
@@ -218,7 +219,7 @@ fun SettingsListEditor(
         val lines = text.split('\n', ' ', ',').map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }
         val bad = lines.filterNot(valid)
         SettingsTextField(text, { text = it }, placeholder, Modifier.fillMaxWidth(), singleLine = false, isError = bad.isNotEmpty())
-        if (bad.isNotEmpty()) Text(tr("Not valid: ") + bad.joinToString(), color = Destructive, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+        if (bad.isNotEmpty()) Text(tr("Not valid: ") + bad.joinToString(), color = Destructive, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SettingsButton(if (saving) tr("Saving…") else tr("Save"), primary = true, enabled = bad.isEmpty() && !saving) {

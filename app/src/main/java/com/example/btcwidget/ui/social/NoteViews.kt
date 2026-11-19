@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.background
@@ -118,7 +119,7 @@ fun NoteCard(
             Text(
                 text = tr("⟲ {0} reposted", reposter?.bestName ?: Profile.shortNpub(repostedBy)),
                 color = EInk.Caption,
-                fontSize = 12.sp,
+                fontSize = TextSize.Caption,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .padding(start = 38.dp, bottom = 4.dp)
@@ -134,7 +135,7 @@ fun NoteCard(
                 Column(Modifier.weight(1f)) {
                     AuthorLine(note, author, actions, large = true)
                     Text(
-                        handleText(author, note.pubkey), color = EInk.Caption, fontSize = 14.sp,
+                        handleText(author, note.pubkey), color = EInk.Caption, fontSize = TextSize.Body,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -148,7 +149,7 @@ fun NoteCard(
             androidx.compose.foundation.text.selection.SelectionContainer {
                 Column { NoteBody(note, actions, fontSize = 17, collapse = false) }
             }
-            Text(fullTimestamp(note.createdAt), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            Text(fullTimestamp(note.createdAt), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(top = 10.dp))
             ActionRow(note, stats, actions)
             return@Column
         }
@@ -169,7 +170,7 @@ fun NoteCard(
                     Text(
                         text = tr("Replying to @") + (parentProfile?.bestName ?: Profile.shortNpub(parentAuthor)),
                         color = EInk.Caption,
-                        fontSize = 13.sp,
+                        fontSize = TextSize.Caption,
                         modifier = Modifier.padding(top = 1.dp)
                     )
                 }
@@ -188,7 +189,7 @@ private fun ReplyingTo(note: Event, actions: NoteActions, modifier: Modifier = M
     val parentAuthor = note.tagValues("p").firstOrNull() ?: return
     Text(
         text = tr("Replying to @") + (actions.profileOf(parentAuthor)?.bestName ?: Profile.shortNpub(parentAuthor)),
-        color = EInk.Caption, fontSize = 13.sp, modifier = modifier
+        color = EInk.Caption, fontSize = TextSize.Caption, modifier = modifier
     )
 }
 

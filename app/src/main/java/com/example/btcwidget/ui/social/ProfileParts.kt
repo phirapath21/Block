@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.RepeatMode
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.animation.core.animateFloat
@@ -138,7 +140,7 @@ internal fun ProfileBio(about: String, actions: NoteActions, modifier: Modifier 
             is Content.Segment.Emoji -> append(":" + seg.code + ":")
         }
     }
-    Text(text, color = EInk.Value, fontSize = 15.sp, lineHeight = 20.sp, modifier = modifier)
+    Text(text, color = EInk.Value, fontSize = TextSize.Body, lineHeight = 20.sp, modifier = modifier)
 }
 
 /** The "Pinned" label over a pinned note, with a pin icon as on X. */
@@ -146,7 +148,7 @@ internal fun ProfileBio(about: String, actions: NoteActions, modifier: Modifier 
 internal fun PinnedLabel() {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 34.dp, top = 10.dp)) {
         Icon(Glyphs.Pin, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(14.dp))
-        Text(tr("Pinned"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+        Text(tr("Pinned"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
     }
 }
 
@@ -161,7 +163,7 @@ internal fun skeletonAlpha(): Float {
 }
 
 @Composable
-private fun Bone(width: Dp?, height: Dp, alpha: Float, shape: Shape = RoundedCornerShape(6.dp), modifier: Modifier = Modifier) {
+private fun Bone(width: Dp?, height: Dp, alpha: Float, shape: Shape = Radius.Small, modifier: Modifier = Modifier) {
     Box(
         modifier
             .then(if (width != null) Modifier.width(width) else Modifier.fillMaxWidth())
@@ -188,7 +190,7 @@ internal fun ProfileHeaderSkeleton(topInset: Boolean) {
             ) { Bone(70.dp, 70.dp, a, CircleShape) }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp, end = 14.dp), horizontalArrangement = Arrangement.End) {
-            Bone(104.dp, 36.dp, a, RoundedCornerShape(50))
+            Bone(104.dp, 36.dp, a, Radius.Full)
         }
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Spacer(Modifier.height(4.dp))
@@ -273,11 +275,11 @@ internal fun ProfileTopBar(
                 Column {
                     Text(
                         profile?.bestName ?: Profile.shortNpub(pubkey),
-                        color = if (onBanner) Color.White else EInk.Value, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                        color = if (onBanner) Color.White else EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     if (postsLine != null) Text(
-                        postsLine, color = if (onBanner) Color.White.copy(alpha = 0.8f) else EInk.Caption, fontSize = 13.sp, maxLines = 1
+                        postsLine, color = if (onBanner) Color.White.copy(alpha = 0.8f) else EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
                     )
                 }
             }

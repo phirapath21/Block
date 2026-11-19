@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -42,8 +44,8 @@ internal fun ArticleCard(address: com.example.btcwidget.nostr.core.Nip19.Address
         modifier = Modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+            .clip(Radius.Large)
+            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
             .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openArticle(address) }
     ) {
         val a = article
@@ -54,9 +56,9 @@ internal fun ArticleCard(address: com.example.btcwidget.nostr.core.Nip19.Address
             )
         }
         Column(Modifier.padding(10.dp)) {
-            Text(tr("ARTICLE"), color = EInk.Caption, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Text(a?.title ?: tr("Loading article…"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            a?.summary?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }
+            Text(tr("ARTICLE"), color = EInk.Caption, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold)
+            Text(a?.title ?: tr("Loading article…"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            a?.summary?.let { Text(it, color = EInk.Label, fontSize = TextSize.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)) }
         }
     }
 }
@@ -71,8 +73,8 @@ internal fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: N
         modifier = Modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+            .clip(Radius.Large)
+            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = quoted != null) { quoted?.let(actions.openNote) }
             .padding(10.dp)
     ) {
@@ -80,14 +82,14 @@ internal fun QuotedNote(ref: Content.Segment.NoteRef, quoting: Event, actions: N
         if (q == null) {
             Text(
                 if (lookup == null) tr("Loading quoted note…") else tr("This note couldn't be found on your relays or its author's."),
-                color = EInk.Caption, fontSize = 13.sp
+                color = EInk.Caption, fontSize = TextSize.Caption
             )
             // Not found anywhere Block asked: njump.me looks across more relays, in the browser.
             if (lookup != null) {
                 val hints = remember(ref.id, quoting.id) { com.example.btcwidget.nostr.core.QuoteHints.of(quoting, ref.id, ref.relays, ref.author) }
                 Text(
                     tr("Look for it on njump.me ›"),
-                    color = SettingsAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    color = SettingsAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 6.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) {
                         actions.openLink("https://njump.me/" + com.example.btcwidget.nostr.core.Nip19.nevent(ref.id, hints.relays.take(2), hints.author), quoting)
                     }

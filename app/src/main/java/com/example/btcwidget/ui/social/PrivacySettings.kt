@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,7 +37,7 @@ internal fun PrivacyPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val entries = mutes.words.sorted().map { "word" to it } + mutes.hashtags.sorted().map { "t" to it }
     entries.forEach { (type, value) ->
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(if (type == "t") "#$value" else value, color = EInk.Value, fontSize = 16.sp, modifier = Modifier.weight(1f))
+            Text(if (type == "t") "#$value" else value, color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.weight(1f))
             androidx.compose.foundation.layout.Box(
                 Modifier.size(40.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Unmute {0}", value)) { vm.muteEntry(type, value, false) },
                 contentAlignment = Alignment.Center

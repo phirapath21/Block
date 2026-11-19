@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -59,7 +61,7 @@ import com.example.btcwidget.nostr.DirectMessages
 import com.example.btcwidget.nostr.core.Nip17
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
-import com.example.btcwidget.ui.main.EInkChip
+import com.example.btcwidget.ui.main.BlockChip
 import java.io.File
 
 /** Conversations list (the Messages tab). */
@@ -123,13 +125,13 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val unreadChatsCount = remember(chats, unread) { chats.count { it.key in unread } }
-                        EInkChip(
-                            text = if (unreadChatsCount > 0) tr("CHATS ({0})", unreadChatsCount) else tr("CHATS"),
+                        BlockChip(
+                            text = if (unreadChatsCount > 0) tr("Chats ({0})", unreadChatsCount) else tr("Chats"),
                             selected = !showRequests,
                             onClick = { showRequests = false }
                         )
-                        EInkChip(
-                            text = if (requests.isNotEmpty()) tr("REQUESTS ({0})", requests.size) else tr("REQUESTS"),
+                        BlockChip(
+                            text = if (requests.isNotEmpty()) tr("Requests ({0})", requests.size) else tr("Requests"),
                             selected = showRequests,
                             onClick = { showRequests = true }
                         )
@@ -137,9 +139,9 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
+                                .clip(Radius.Full)
                                 .background(EInk.Body)
-                                .border(1.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                .border(1.dp, EInk.BodyStroke, Radius.Full)
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("New group chat")) { newGroup = true }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
@@ -147,7 +149,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             Text(
                                 tr("New group"),
                                 color = EInk.Value,
-                                fontSize = 12.sp,
+                                fontSize = TextSize.Caption,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 softWrap = false,
@@ -164,9 +166,9 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                 .fillMaxWidth()
                                 .padding(start = 14.dp, end = 14.dp, bottom = 10.dp)
                                 .height(40.dp)
-                                .clip(RoundedCornerShape(50))
+                                .clip(Radius.Full)
                                 .background(EInk.Body)
-                                .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                                 .padding(horizontal = 14.dp)
                         ) {
                             Icon(Glyphs.Search, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(17.dp))
@@ -174,7 +176,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                 value = filterQuery,
                                 onValueChange = { filterQuery = it },
                                 singleLine = true,
-                                textStyle = TextStyle(color = EInk.Value, fontSize = 14.sp),
+                                textStyle = TextStyle(color = EInk.Value, fontSize = TextSize.Body),
                                 cursorBrush = SolidColor(EInk.Accent),
                                 modifier = Modifier
                                     .weight(1f)
@@ -182,7 +184,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                 decorationBox = { field ->
                                     Box(contentAlignment = Alignment.CenterStart) {
                                         if (filterQuery.isEmpty()) {
-                                            Text(tr("Search conversations…"), color = EInk.Caption, fontSize = 14.sp, maxLines = 1)
+                                            Text(tr("Search conversations…"), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1)
                                         }
                                         field()
                                     }
@@ -214,7 +216,7 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             Text(
                                 tr("From people you don't follow. Replying moves a chat to Chats."),
                                 color = EInk.Caption,
-                                fontSize = 12.sp,
+                                fontSize = TextSize.Caption,
                                 modifier = Modifier.padding(start = 6.dp)
                             )
                         }
@@ -333,14 +335,14 @@ private fun MessagesLoggedOutEmpty(onLogin: () -> Unit) {
         Text(
             tr("Private messages"),
             color = EInk.Value,
-            fontSize = 22.sp,
+            fontSize = TextSize.Title,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 16.dp)
         )
         Text(
             tr("End-to-end encrypted (NIP-17): relays can't see who you talk to or what you say."),
             color = EInk.Label,
-            fontSize = 14.sp,
+            fontSize = TextSize.Body,
             textAlign = TextAlign.Center,
             lineHeight = 20.sp,
             modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
@@ -384,7 +386,7 @@ private fun MessagesEmptyState(
                 else -> tr("No messages yet")
             },
             color = EInk.Value,
-            fontSize = 18.sp,
+            fontSize = TextSize.Subtitle,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 14.dp)
         )
@@ -395,7 +397,7 @@ private fun MessagesEmptyState(
                 else -> tr("Start an end-to-end encrypted NIP-17 chat with anyone on Nostr.")
             },
             color = EInk.Caption,
-            fontSize = 14.sp,
+            fontSize = TextSize.Body,
             textAlign = TextAlign.Center,
             lineHeight = 20.sp,
             modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
@@ -420,9 +422,9 @@ private fun Banner(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(Radius.Large)
             .background(EInk.Body)
-            .border(0.5.dp, EInk.Accent.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+            .border(0.5.dp, EInk.Accent.copy(alpha = 0.45f), Radius.Large)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -436,8 +438,8 @@ private fun Banner(
             Icon(icon, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(20.dp))
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(title, color = EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(text, color = EInk.Label, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+            Text(text, color = EInk.Label, fontSize = TextSize.Caption, lineHeight = 17.sp, modifier = Modifier.padding(top = 2.dp))
         }
         PillButton(action, onClick = onClick)
     }
@@ -513,7 +515,7 @@ private fun ConversationRow(
                     Text(
                         text = names,
                         color = EInk.Value,
-                        fontSize = 15.sp,
+                        fontSize = TextSize.Body,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -526,16 +528,16 @@ private fun ConversationRow(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .padding(start = 6.dp)
-                                .clip(RoundedCornerShape(50))
+                                .clip(Radius.Full)
                                 .background(EInk.Body)
-                                .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                                 .padding(horizontal = 6.dp, vertical = 1.dp)
                         ) {
                             Icon(Glyphs.Group, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(11.dp))
                             Text(
                                 text = "${c.peers.size + 1}",
                                 color = EInk.Caption,
-                                fontSize = 10.sp,
+                                fontSize = TextSize.Micro,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(start = 3.dp)
                             )
@@ -546,7 +548,7 @@ private fun ConversationRow(
                 Text(
                     text = relativeTime(c.last.createdAt),
                     color = if (unread) EInk.Accent else EInk.Caption,
-                    fontSize = 12.sp,
+                    fontSize = TextSize.Caption,
                     fontWeight = if (unread) FontWeight.Bold else FontWeight.Normal
                 )
             }
@@ -583,7 +585,7 @@ private fun ConversationRow(
                 Text(
                     text = prefix + previewBody,
                     color = if (isLastUnsent) EInk.Caption else if (unread) EInk.Value else EInk.Label,
-                    fontSize = 14.sp,
+                    fontSize = TextSize.Body,
                     fontStyle = if (isLastUnsent) FontStyle.Italic else FontStyle.Normal,
                     fontWeight = if (unread && !isLastUnsent) FontWeight.SemiBold else FontWeight.Normal,
                     maxLines = 1,

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +44,7 @@ import kotlinx.coroutines.launch
 
 /** The raised surface of sheets and dialogs: a step above the black background. */
 internal val SheetColor get() = EInk.Sheet
-private val PillShape = RoundedCornerShape(50)
+private val PillShape = Radius.Full
 private val AccentOrange get() = EInk.Accent
 
 /** One row of an [ActionSheet]. [destructive] ones (delete, report) are red. */
@@ -92,7 +94,7 @@ fun ActionSheet(onDismiss: () -> Unit, actions: List<SheetAction>, header: (@Com
                 ) {
                     Icon(a.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(18.dp))
-                    Text(a.label, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(a.label, color = color, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -139,14 +141,14 @@ fun BlockDialog(
             Modifier
                 .widthIn(max = 400.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(Radius.Large)
                 .background(SheetColor)
                 .padding(24.dp)
         ) {
-            Text(title, color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
+            Text(title, color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
             // Long content (a list of choices, a QR code) scrolls; the buttons stay put.
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                text?.let { Text(it, color = EInk.Caption, fontSize = 15.sp, lineHeight = 21.sp, modifier = Modifier.padding(top = 8.dp)) }
+                text?.let { Text(it, color = EInk.Caption, fontSize = TextSize.Body, lineHeight = 21.sp, modifier = Modifier.padding(top = 8.dp)) }
                 if (content != null) Column(Modifier.padding(top = 14.dp)) { content() }
             }
             // Stacked, the main one on top; side by side on a short screen so the content keeps room.
@@ -185,7 +187,7 @@ fun BlockDropdown(expanded: Boolean, onDismiss: () -> Unit, content: @Composable
     androidx.compose.material3.DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
+        shape = Radius.Large,
         containerColor = SheetColor,
         tonalElevation = 0.dp,
         shadowElevation = 8.dp,
@@ -199,7 +201,7 @@ fun BlockDropdown(expanded: Boolean, onDismiss: () -> Unit, content: @Composable
 fun BlockDropdownItem(label: String, icon: ImageVector? = null, enabled: Boolean = true, selected: Boolean = false, onClick: () -> Unit) {
     androidx.compose.material3.DropdownMenuItem(
         text = {
-            Text(label, color = EInk.Value, fontSize = 15.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+            Text(label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
         },
         leadingIcon = icon?.let { { Icon(it, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(20.dp)) } },
         trailingIcon = if (selected) ({ Text("✓", color = AccentOrange, fontWeight = FontWeight.Bold) }) else null,
@@ -218,11 +220,11 @@ fun ConfirmDialog(title: String, text: String, confirmLabel: String, onConfirm: 
 @Composable
 fun ChoiceRow(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(10.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = EInk.Value, fontSize = 16.sp, modifier = Modifier.weight(1f))
-        if (selected) Text("✓", color = AccentOrange, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.weight(1f))
+        if (selected) Text("✓", color = AccentOrange, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -245,6 +247,6 @@ private fun PillButtonFull(
             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (outlined) EInk.Value else foreground, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = if (outlined) EInk.Value else foreground, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
     }
 }

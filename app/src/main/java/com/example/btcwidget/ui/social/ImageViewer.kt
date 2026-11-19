@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -194,10 +196,10 @@ fun ImageViewer(
             }
             // "2 / 4" when the note has several pictures.
             if (!video && pictures.size > 1 && chrome) Text(
-                "${pager.currentPage + 1} / ${pictures.size}", color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                "${pager.currentPage + 1} / ${pictures.size}", color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopCenter).safeDrawingPadding().padding(top = 18.dp)
-                    .clip(RoundedCornerShape(50)).background(EInk.Background.copy(alpha = 0.8f))
-                    .border(1.dp, Accent.copy(alpha = 0.7f), RoundedCornerShape(50)).padding(horizontal = 12.dp, vertical = 4.dp)
+                    .clip(Radius.Full).background(EInk.Background.copy(alpha = 0.8f))
+                    .border(1.dp, Accent.copy(alpha = 0.7f), Radius.Full).padding(horizontal = 12.dp, vertical = 4.dp)
             )
 
             // Top: back and more.
@@ -268,16 +270,16 @@ fun ImageViewer(
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
                         DisplayName(author, note.pubkey, Color.White, 16.sp)
                         val handle = handleText(author, note.pubkey)
-                        Text(handle, color = OnPhotoCaption, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(handle, color = OnPhotoCaption, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (!isMe) {
                         // Follow in the accent colour; Following as an outline.
                         Text(
                             if (following) tr("Following") else tr("Follow"),
-                            color = if (following) Color.White else Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                            color = if (following) Color.White else Color.Black, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .then(if (following) Modifier.border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(50)) else Modifier.background(Accent))
+                                .clip(Radius.Full)
+                                .then(if (following) Modifier.border(1.dp, Color.White.copy(alpha = 0.5f), Radius.Full) else Modifier.background(Accent))
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = if (following) tr("Unfollow") else tr("Follow")) { actions.follow(note.pubkey, !following) }
                                 .padding(horizontal = 18.dp, vertical = 8.dp)
                         )
@@ -291,14 +293,14 @@ fun ImageViewer(
                             Modifier.padding(top = 10.dp).fillMaxWidth()
                                 .heightIn(max = with(density) { textPx.toDp() })
                                 .verticalScroll(rememberScrollState())
-                        ) { Text(caption, color = Color.White, fontSize = 15.sp, lineHeight = 21.sp) }
+                        ) { Text(caption, color = Color.White, fontSize = TextSize.Body, lineHeight = 21.sp) }
                         Text(
-                            tr("Show less"), color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = false }.padding(vertical = 4.dp)
+                            tr("Show less"), color = Accent, fontSize = TextSize.Body, fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = false }.padding(vertical = 4.dp)
                         )
                     } else {
                         Text(
-                            caption, color = Color.White, fontSize = 15.sp, lineHeight = 20.sp,
+                            caption, color = Color.White, fontSize = TextSize.Body, lineHeight = 20.sp,
                             maxLines = 2, overflow = TextOverflow.Ellipsis,
                             onTextLayout = { cut = it.hasVisualOverflow },
                             modifier = Modifier
@@ -306,8 +308,8 @@ fun ImageViewer(
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open post")) { onDismiss(); actions.openNote(note) }
                         )
                         if (cut) Text(
-                            tr("Show more"), color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clip(RoundedCornerShape(6.dp))
+                            tr("Show more"), color = Accent, fontSize = TextSize.Body, fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clip(Radius.Small)
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Read the whole post")) { expanded = true; textPx = screenPx * 0.32f }
                                 .padding(vertical = 4.dp)
                         )
@@ -366,13 +368,13 @@ private fun ViewerAction(icon: ImageVector, count: Int?, label: String, modifier
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .height(44.dp)
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .clickable(onClickLabel = tr(label), role = Role.Button, onClick = onClick)
     ) {
         Icon(icon, contentDescription = tr(label), tint = tint ?: if (active) Accent else Color.White, modifier = Modifier.size(22.dp))
         if (count != null && count > 0) {
             Spacer(Modifier.width(5.dp))
-            Text(compactCount(count), color = if (active) Accent else OnPhotoCaption, fontSize = 14.sp)
+            Text(compactCount(count), color = if (active) Accent else OnPhotoCaption, fontSize = TextSize.Body)
         }
     }
 }

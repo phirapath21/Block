@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.Context
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -183,7 +185,7 @@ internal fun ArticleComposerDialog(
                     Text(
                         if (initialArticle != null) tr("Edit article") else tr("Write article"),
                         color = EInk.Value,
-                        fontSize = 17.sp,
+                        fontSize = TextSize.Subtitle,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                     )
@@ -191,19 +193,19 @@ internal fun ArticleComposerDialog(
                         Box(
                             Modifier
                                 .padding(end = 8.dp)
-                                .clip(RoundedCornerShape(50))
+                                .clip(Radius.Full)
                                 .background(EInk.Body)
-                                .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(50))
+                                .border(0.5.dp, EInk.BodyStroke, Radius.Full)
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button) { saveDraft(showToast = true) }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text(tr("Save draft"), color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(tr("Save draft"), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                         }
                     }
                     val canPublish = !publishing && title.isNotBlank() && content.isNotBlank() && account != null
                     Box(
                         Modifier
-                            .clip(RoundedCornerShape(50))
+                            .clip(Radius.Full)
                             .background(if (canPublish) EInk.Accent else EInk.Body)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canPublish) {
                                 val me = account?.pubkey ?: return@clickable
@@ -235,7 +237,7 @@ internal fun ArticleComposerDialog(
                         Text(
                             if (publishing) tr("Publishing…") else tr("Publish"),
                             color = if (canPublish) Color.Black else EInk.Caption,
-                            fontSize = 13.sp,
+                            fontSize = TextSize.Caption,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -306,7 +308,7 @@ internal fun ArticleComposerDialog(
                         Text(
                             title.ifBlank { tr("Untitled article") },
                             color = EInk.Value,
-                            fontSize = 24.sp,
+                            fontSize = TextSize.Title,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                         )
@@ -314,7 +316,7 @@ internal fun ArticleComposerDialog(
                             Text(
                                 summary,
                                 color = EInk.Label,
-                                fontSize = 15.sp,
+                                fontSize = TextSize.Body,
                                 fontStyle = FontStyle.Italic,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
@@ -360,9 +362,9 @@ internal fun ArticleComposerDialog(
                             )
                             Box(
                                 Modifier
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(Radius.Small)
                                     .background(EInk.Body)
-                                    .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(12.dp))
+                                    .border(0.5.dp, EInk.BodyStroke, Radius.Small)
                                     .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !uploadingCover) {
                                         coverPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                                     }
@@ -371,7 +373,7 @@ internal fun ArticleComposerDialog(
                                 Text(
                                     if (uploadingCover) tr("Uploading…") else tr("Upload"),
                                     color = EInk.Accent,
-                                    fontSize = 13.sp,
+                                    fontSize = TextSize.Caption,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -402,13 +404,13 @@ internal fun ArticleComposerDialog(
 private fun MarkdownToolButton(label: String, onClick: () -> Unit) {
     Box(
         Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(Radius.Small)
             .screenBackground()
-            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(8.dp))
+            .border(0.5.dp, EInk.BodyStroke, Radius.Small)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 9.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = EInk.Value, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
     }
 }

@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
@@ -152,7 +154,7 @@ internal fun StreamControls(
                         if (live) {
                             // LIVE: red while watching live; grey when behind, tap to catch up.
                             Row(
-                                Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
+                                Modifier.clip(Radius.Full).background(Color(0x99000000))
                                     .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !atLive, onClickLabel = tr("Go to live")) {
                                         haptics.tick(); touched = System.nanoTime()
                                         player.seekToDefaultPosition(); player.play()
@@ -162,18 +164,18 @@ internal fun StreamControls(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(Modifier.size(8.dp).clip(CircleShape).background(if (atLive) LiveRedDot else Color(0xFFAAAAAA)))
-                                Text(tr("LIVE"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+                                Text(tr("LIVE"), color = Color.White, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
                             }
                             if (!atLive) {
                                 val lag = scrub?.let { ((1f - it) * effectiveMax).toLong() } ?: behindMs
                                 Text(
-                                    "-" + clockLabel(lag.coerceAtLeast(1_000L)), color = Color.White, fontSize = 13.sp,
+                                    "-" + clockLabel(lag.coerceAtLeast(1_000L)), color = Color.White, fontSize = TextSize.Caption,
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
                         } else if (duration > 0) Text(
                             clockLabel(((scrub ?: (position.toFloat() / duration)) * duration).toLong()) + " / " + clockLabel(duration),
-                            color = Color.White, fontSize = 13.sp
+                            color = Color.White, fontSize = TextSize.Caption
                         )
                         Spacer(Modifier.weight(1f))
                         extra()
@@ -222,9 +224,9 @@ internal fun StreamControls(
             Text(
                 if (live) (if (f >= 0.97f) tr("LIVE") else "-" + clockLabel(((1f - f) * effectiveMax).toLong()))
                 else clockLabel((f * duration).toLong()) + "  /  " + clockLabel(duration),
-                color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                color = Color.White, fontSize = TextSize.Title, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(Color(0x99000000)).padding(horizontal = 14.dp, vertical = 6.dp)
+                    .clip(Radius.Small).background(Color(0x99000000)).padding(horizontal = 14.dp, vertical = 6.dp)
             )
         }
     }
@@ -238,7 +240,7 @@ private fun SkipButton(icon: ImageVector, label: String, enabled: Boolean, onCli
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(40.dp))
-        Text("10", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp))
+        Text("10", color = Color.White, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp))
     }
 }
 
@@ -300,14 +302,14 @@ internal fun PlayerStatus(player: ExoPlayer, modifier: Modifier = Modifier) {
     }
     Box(modifier, contentAlignment = Alignment.Center) {
         if (failed) Column(
-            Modifier.clip(RoundedCornerShape(16.dp)).background(Color(0xCC000000)).padding(horizontal = 20.dp, vertical = 14.dp),
+            Modifier.clip(Radius.Large).background(Color(0xCC000000)).padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(tr("Couldn't play this"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            Text(tr("The connection dropped or the stream is offline."), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(tr("Couldn't play this"), color = Color.White, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+            Text(tr("The connection dropped or the stream is offline."), color = Color.White.copy(alpha = 0.75f), fontSize = TextSize.Caption, modifier = Modifier.padding(top = 2.dp))
             Text(
-                tr("Try again"), color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 10.dp).clip(RoundedCornerShape(50)).background(VideoAccent)
+                tr("Try again"), color = Color.Black, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 10.dp).clip(Radius.Full).background(VideoAccent)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button) { failed = false; player.prepare(); player.play() }.padding(horizontal = 18.dp, vertical = 8.dp)
             )
         } else if (buffering) androidx.compose.material3.CircularProgressIndicator(color = VideoAccent, strokeWidth = 3.dp, modifier = Modifier.size(40.dp))

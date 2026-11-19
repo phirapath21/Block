@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -61,13 +63,13 @@ internal fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             DisplayName(profiles[acct.pubkey], acct.pubkey, EInk.Value, 18.sp)
             Text(
-                npub.take(14) + "…" + npub.takeLast(6), color = EInk.Caption, fontSize = 13.sp, fontFamily = FontFamily.Monospace,
+                npub.take(14) + "…" + npub.takeLast(6), color = EInk.Caption, fontSize = TextSize.Caption, fontFamily = FontFamily.Monospace,
                 modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Copy npub")) {
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("npub", npub))
                     android.widget.Toast.makeText(context, tr("npub copied"), android.widget.Toast.LENGTH_SHORT).show()
                 }.padding(vertical = 2.dp)
             )
-            Text(signerLabel(acct.type), color = EInk.Caption, fontSize = 13.sp)
+            Text(signerLabel(acct.type), color = EInk.Caption, fontSize = TextSize.Caption)
         }
     }
     SettingsLinkRow(tr("Edit profile")) { navigate(com.example.btcwidget.EditProfileKey) }
@@ -80,8 +82,8 @@ internal fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         Row(Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Switch")) { vm.switchAccount(a.pubkey) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Avatar(profiles[a.pubkey], a.pubkey, size = 40)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(profiles[a.pubkey]?.bestName ?: Profile.shortNpub(a.pubkey), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(signerLabel(a.type), color = EInk.Caption, fontSize = 13.sp)
+                Text(profiles[a.pubkey]?.bestName ?: Profile.shortNpub(a.pubkey), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(signerLabel(a.type), color = EInk.Caption, fontSize = TextSize.Caption)
             }
             SettingsButton(tr("Switch"), primary = true) { vm.switchAccount(a.pubkey) }
             Spacer(Modifier.size(8.dp))
@@ -123,8 +125,8 @@ internal fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     ) {
         // The way out is there, but small: losing the account should take a deliberate tap.
         Text(
-            tr("Log out anyway"), color = EInk.Alert, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { loggingOut = false; vm.logout() }
+            tr("Log out anyway"), color = EInk.Alert, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button) { loggingOut = false; vm.logout() }
                 .padding(vertical = 6.dp)
         )
     }
@@ -161,9 +163,9 @@ private fun ScheduledRow(vm: SocialViewModel) {
             Text(
                 java.text.SimpleDateFormat("EEE d MMM · HH:mm", java.util.Locale.getDefault()).format(java.util.Date(p.at * 1000)) +
                     if (p.at * 1000 < System.currentTimeMillis()) tr(" · waiting to send") else "",
-                color = EInk.Caption, fontSize = 13.sp
+                color = EInk.Caption, fontSize = TextSize.Caption
             )
-            Text(p.content, color = EInk.Value, fontSize = 15.sp, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 4.dp))
+            Text(p.content, color = EInk.Value, fontSize = TextSize.Body, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SettingsButton(tr("Post now"), primary = true) { vm.scheduledPosts.postNow(p) }
                 SettingsButton(tr("Cancel"), destructive = true) { vm.scheduledPosts.cancel(p.id) }
@@ -186,7 +188,7 @@ private fun PrivateKey(vm: SocialViewModel) {
         SettingsLinkRow(tr("Show your private key"), chevron = true) { confirm = true }
     } else {
         SecureScreen()
-        Text(shown, color = EInk.Value, fontSize = 14.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+        Text(shown, color = EInk.Value, fontSize = TextSize.Body, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SettingsButton(tr("Copy")) { copySecretWithNote(context, shown); vm.keyBackup.saved() }
             if (unsaved) SettingsButton(tr("I saved it")) { vm.keyBackup.saved() }

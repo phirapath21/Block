@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -73,7 +75,7 @@ private fun PublishCard(a: SocialViewModel.PublishActivity, onSkipPow: () -> Uni
         SocialViewModel.PublishActivity.State.DONE -> Green
         SocialViewModel.PublishActivity.State.FAILED -> EInk.Alert
     }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = Radius.Large
     Column(
         Modifier
             .statusBarsPadding()
@@ -92,17 +94,17 @@ private fun PublishCard(a: SocialViewModel.PublishActivity, onSkipPow: () -> Uni
                     SocialViewModel.PublishActivity.State.WORKING ->
                         CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     SocialViewModel.PublishActivity.State.DONE -> Box(Modifier.size(20.dp).clip(CircleShape).background(Green), contentAlignment = Alignment.Center) {
-                        Text("✓", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("✓", color = Color.Black, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                     }
                     SocialViewModel.PublishActivity.State.FAILED -> Box(Modifier.size(20.dp).clip(CircleShape).background(EInk.Alert), contentAlignment = Alignment.Center) {
-                        Text("!", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("!", color = Color.White, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
                     }
                 }
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(a.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(a.status, color = EInk.Caption, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(a.title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(a.status, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         // Mining proof of work: speed, time, and a way out.

@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -81,10 +82,10 @@ private fun EngagementRow(profile: Profile?, pubkey: String, badge: String?, com
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             DisplayName(profile, pubkey, EInk.Value, 15.sp)
-            Text(handleText(profile, pubkey), color = EInk.Caption, fontSize = 13.sp, maxLines = 1)
-            if (comment != null) Text(comment, color = EInk.Label, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(handleText(profile, pubkey), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1)
+            if (comment != null) Text(comment, color = EInk.Label, fontSize = TextSize.Body, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        if (badge != null) Text(badge, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        if (badge != null) Text(badge, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }

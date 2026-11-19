@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -247,9 +249,9 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
             listOf(21L, 100L, 500L, 1000L, 5000L, 21000L).forEach { preset ->
                 val on = sats == preset
                 Text(
-                    "⚡ ${"%,d".format(preset)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    "⚡ ${"%,d".format(preset)}", fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                     color = if (on) EInk.OnAccent else EInk.Value,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(if (on) ZapOrange else EInk.Track)
+                    modifier = Modifier.clip(Radius.Full).background(if (on) ZapOrange else EInk.Track)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { amount = preset.toString() }.padding(horizontal = 14.dp, vertical = 8.dp)
                 )
             }
@@ -269,7 +271,7 @@ internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> U
         )
         Text(
             if (inApp) tr("Pays from your connected wallet (NWC).") else tr("Opens your Lightning wallet to pay. Connect a wallet in Settings › Nostr to zap in one tap."),
-            color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp)
+            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp)
         )
     }
 }

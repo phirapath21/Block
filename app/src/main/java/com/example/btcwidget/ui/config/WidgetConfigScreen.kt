@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.config
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.foundation.border
@@ -53,7 +55,7 @@ fun WidgetConfigScreen(
 
         choices.forEach { choice ->
             val selected = choice.mode == selectedMode
-            val shape = RoundedCornerShape(18.dp)
+            val shape = Radius.Large
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -73,12 +75,12 @@ fun WidgetConfigScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(EInk.Body, RoundedCornerShape(14.dp))
-                            .border(0.5.dp, EInk.BodyStroke, RoundedCornerShape(14.dp))
+                            .background(EInk.Body, Radius.Large)
+                            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
                             .padding(horizontal = 16.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(choice.name, color = EInk.Value, fontSize = 15.sp)
+                        Text(choice.name, color = EInk.Value, fontSize = TextSize.Body)
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
@@ -119,7 +120,7 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                     Text(
                                         actions.profileOf(a.pubkey)?.bestName ?: Profile.shortNpub(a.pubkey),
                                         color = EInk.Label,
-                                        fontSize = 13.sp,
+                                        fontSize = TextSize.Caption,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         modifier = Modifier.weight(1f).padding(start = 6.dp)
@@ -127,7 +128,7 @@ fun BookmarksScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                                     Text(
                                         tr("Remove"),
                                         color = EInk.Caption,
-                                        fontSize = 12.sp,
+                                        fontSize = TextSize.Caption,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.toggleSavedArticle(a) }.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )

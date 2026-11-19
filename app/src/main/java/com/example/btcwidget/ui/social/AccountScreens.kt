@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import android.app.Activity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -121,19 +123,19 @@ fun LoginScreen(
         ) {
             when (mode) {
                 "choose" -> {
-                    Text(tr("Join the conversation"), color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Join the conversation"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                     Text(
                         tr("Your Nostr account is a key pair. Keep the private key (nsec) safe: whoever has it can post as you, and it can't be reset."),
-                        color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
+                        color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                     )
                     // Accounts already on this phone (after Add account, or a logout of one of several).
                     val saved by vm.savedAccounts.collectAsState()
                     val profiles by vm.profiles.collectAsState()
                     if (saved.isNotEmpty()) {
-                        Text(tr("On this phone"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(tr("On this phone"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
                         saved.forEach { a ->
                             AccountRow(profiles[a.pubkey], a.pubkey, when (a.type) { com.example.btcwidget.nostr.SignerType.AMBER -> "Signer app"; com.example.btcwidget.nostr.SignerType.BUNKER -> "Remote signer"; else -> "Key on this phone" }) {
-                                com.example.btcwidget.ui.main.EInkChip(text = "USE", selected = true, onClick = { vm.switchAccount(a.pubkey); onDone() })
+                                com.example.btcwidget.ui.main.BlockChip(text = tr("Use"), selected = true, onClick = { vm.switchAccount(a.pubkey); onDone() })
                             }
                         }
                         Spacer(Modifier.height(16.dp))
@@ -158,17 +160,17 @@ fun LoginScreen(
                     }
                     Text(
                         tr("By posting you agree to the Community rules ›"),
-                        color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 16.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open community rules"), onClick = onOpenRules).padding(vertical = 6.dp)
                     )
                 }
                 "bunker" -> {
                     var connecting by remember { mutableStateOf(false) }
-                    Text(tr("Remote signer"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Remote signer"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                     Text(
                         tr("In your signer (nsec.app, nsecBunker…) create a connection for Block and paste its bunker:// link. ") +
                             tr("You may need to approve the connection there."),
-                        color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                        color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                     )
                     OutlinedTextField(
                         value = input,
@@ -179,7 +181,7 @@ fun LoginScreen(
                         colors = fieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
+                    error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 6.dp)) }
                     Spacer(Modifier.height(14.dp))
                     PillButton(if (connecting) tr("Waiting for the signer…") else tr("Connect"), filled = input.startsWith("bunker://") && !connecting) {
                         if (!input.startsWith("bunker://") || connecting) return@PillButton
@@ -193,8 +195,8 @@ fun LoginScreen(
                 "nsec" -> {
                     val focus = remember { FocusRequester() }
                     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-                    Text(tr("Log in with nsec"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(tr("Starts with nsec1…"), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+                    Text(tr("Log in with nsec"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
+                    Text(tr("Starts with nsec1…"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
                     OutlinedTextField(
                         value = input,
                         onValueChange = { input = it.trim(); error = null },
@@ -206,7 +208,7 @@ fun LoginScreen(
                         colors = fieldColors(),
                         modifier = Modifier.fillMaxWidth().focusRequester(focus)
                     )
-                    error?.let { Text(it, color = EInk.Alert, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
+                    error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 6.dp)) }
                     Spacer(Modifier.height(16.dp))
                     PillButton(tr("Log in")) {
                         val e = vm.loginWithSecret(input)
@@ -214,7 +216,7 @@ fun LoginScreen(
                     }
                 }
                 "create" -> {
-                    Text(tr("Create account"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Create account"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = name, onValueChange = { name = it.take(50) },
                         label = { Text(tr("Name (optional)")) }, singleLine = true, colors = fieldColors(),
@@ -234,8 +236,8 @@ fun LoginScreen(
 @Composable
 private fun Option(title: String, body: String, button: String, filled: Boolean, onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-        Text(title, color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(body, color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+        Text(title, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+        Text(body, color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
         PillButton(button, filled = filled, onClick = onClick)
     }
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
@@ -424,14 +426,14 @@ fun ComposeScreen(
             if (savedDrafts.isNotEmpty() || text.isNotBlank()) {
                 Text(
                     text = if (savedDrafts.isNotEmpty()) tr("Drafts ({0})", savedDrafts.size) else tr("Save draft"),
-                    color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 8.dp).clip(RoundedCornerShape(50))
+                    color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(end = 8.dp).clip(Radius.Full)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { draftsSheet = true }
                         .padding(horizontal = 12.dp, vertical = 7.dp)
                 )
             }
             Row(
-                Modifier.padding(end = 6.dp).clip(RoundedCornerShape(50))
+                Modifier.padding(end = 6.dp).clip(Radius.Full)
                     .background(SettingsAccent.copy(alpha = if (canSend || sending) 1f else 0.4f))
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = canSend, onClickLabel = tr("Post")) { send() }
                     .padding(horizontal = 18.dp, vertical = 8.dp),
@@ -440,7 +442,7 @@ fun ComposeScreen(
                 if (sending) CircularProgressIndicator(color = EInk.OnAccent, strokeWidth = 2.dp, modifier = Modifier.padding(end = 8.dp).size(14.dp))
                 Text(
                     if (sending) tr("Posting…") else if (replyTo != null) tr("Reply") else if (scheduleAt != null) tr("Schedule") else tr("Post"),
-                    color = EInk.OnAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold
+                    color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -456,20 +458,20 @@ fun ComposeScreen(
                                 withStyle(SpanStyle(color = EInk.Caption)) { append(tr("Replying to ")) }
                                 withStyle(SpanStyle(color = SettingsAccent)) { append("@" + (profiles[t.pubkey]?.bestName ?: Profile.shortNpub(t.pubkey))) }
                             },
-                            fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp)
+                            fontSize = TextSize.Body, modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
                     androidx.compose.foundation.text.BasicTextField(
                         value = text,
                         onValueChange = { text = it },
-                        textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = 18.sp, lineHeight = 25.sp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = TextSize.Subtitle, lineHeight = 25.sp),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(SettingsAccent),
                         modifier = Modifier.fillMaxWidth().heightIn(min = if (shortScreen) 64.dp else 120.dp).padding(top = 8.dp).focusRequester(focus),
                         decorationBox = { field ->
                             Box {
                                 if (text.isEmpty()) Text(
                                     if (replyTo != null) tr("Post your reply") else if (quote != null) tr("Add a comment") else tr("What's happening?"),
-                                    color = EInk.Caption, fontSize = 18.sp
+                                    color = EInk.Caption, fontSize = TextSize.Subtitle
                                 )
                                 field()
                             }
@@ -571,7 +573,7 @@ fun ComposeScreen(
             // Always there (not only when it's on), so people can find it.
             ComposeToolButton(Glyphs.Pickaxe, tr("Proof of work"), enabled = !poll && scheduleAt == null, on = powOn) { powSheet = true }
             Spacer(Modifier.weight(1f))
-            if (text.isNotEmpty()) Text("${text.length}", color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(end = 10.dp))
+            if (text.isNotEmpty()) Text("${text.length}", color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(end = 10.dp))
         }
     }
 }
@@ -591,17 +593,17 @@ private fun DraftsSheet(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)
         ) {
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Drafts"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(tr("Drafts"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 if (canSaveCurrent) {
                     ChoicePill(tr("+ Save current"), selected = true, onClick = onSaveCurrent)
                 }
             }
             if (drafts.isEmpty()) {
-                Text(tr("No saved drafts yet."), color = EInk.Caption, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
+                Text(tr("No saved drafts yet."), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(vertical = 12.dp))
             } else {
                 drafts.forEach { d ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        Modifier.fillMaxWidth().clip(Radius.Small)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button) { onSelect(d) }
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -609,11 +611,11 @@ private fun DraftsSheet(
                         Column(Modifier.weight(1f)) {
                             Text(
                                 d.text.replace('\n', ' '),
-                                color = EInk.Value, fontSize = 15.sp, maxLines = 2,
+                                color = EInk.Value, fontSize = TextSize.Body, maxLines = 2,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                             if (d.savedAt > 0) {
-                                Text(relativeTime(d.savedAt / 1000), color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                                Text(relativeTime(d.savedAt / 1000), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 2.dp))
                             }
                         }
                         Box(
@@ -639,8 +641,8 @@ private fun PollEditor(
     onRemove: () -> Unit
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(top = ComposeGap).clip(RoundedCornerShape(16.dp))
-            .border(1.dp, EInk.BodyStroke, RoundedCornerShape(16.dp)).padding(12.dp)
+        Modifier.fillMaxWidth().padding(top = ComposeGap).clip(Radius.Large)
+            .border(1.dp, EInk.BodyStroke, Radius.Large).padding(12.dp)
     ) {
         options.forEachIndexed { i, value ->
             OutlinedTextField(
@@ -648,7 +650,7 @@ private fun PollEditor(
                 onValueChange = { v -> onOptions(options.toMutableList().also { it[i] = v.take(25) }) },
                 placeholder = { Text(tr("Choice {0}", i + 1) + if (i >= 2) tr(" (optional)") else "") },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = Radius.Small,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = SettingsAccent, unfocusedBorderColor = EInk.BodyStroke,
                     focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = SettingsAccent,
@@ -658,24 +660,24 @@ private fun PollEditor(
             )
         }
         if (options.size < 4) Row(
-            Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { onOptions(options + "") }.padding(vertical = 6.dp, horizontal = 4.dp),
+            Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button) { onOptions(options + "") }.padding(vertical = 6.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.material3.Icon(Glyphs.Plus, contentDescription = null, tint = SettingsAccent, modifier = Modifier.size(18.dp))
-            Text(tr("Add a choice"), color = SettingsAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+            Text(tr("Add a choice"), color = SettingsAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
         }
-        Text(tr("Answers"), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+        Text(tr("Answers"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ChoicePill(tr("One choice"), selected = !multi) { onMulti(false) }
             ChoicePill(tr("Several"), selected = multi) { onMulti(true) }
         }
-        Text(tr("Poll length"), color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+        Text(tr("Poll length"), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(1, 3, 7).forEach { d -> ChoicePill(tr(if (d == 1) "{0} day" else "{0} days", d), selected = days == d) { onDays(d) } }
         }
         Text(
-            tr("Remove poll"), color = EInk.Alert, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 12.dp).clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(vertical = 6.dp, horizontal = 4.dp)
+            tr("Remove poll"), color = EInk.Alert, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 12.dp).clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onRemove).padding(vertical = 6.dp, horizontal = 4.dp)
         )
     }
 }
@@ -706,17 +708,17 @@ internal fun ScheduleDialog(initial: Long?, onDismiss: () -> Unit, onClear: () -
                     0 -> "TODAY"; 1 -> "TOMORROW"
                     else -> java.text.SimpleDateFormat("EEE d", java.util.Locale.ENGLISH).format(java.util.Date(System.currentTimeMillis() + d * 86_400_000L)).uppercase()
                 }
-                com.example.btcwidget.ui.main.EInkChip(text = label, selected = day == d, onClick = { day = d })
+                com.example.btcwidget.ui.main.BlockChip(text = label, selected = day == d, onClick = { day = d })
             }
         }
         androidx.compose.material3.TimeInput(state = time, modifier = Modifier.padding(top = 14.dp))
         Text(
             if (valid) tr("It's signed and sent at that time. Your phone must be on and online; a signer app may ask you to approve then.")
             else tr("Pick a time in the future."),
-            color = if (valid) EInk.Caption else EInk.Alert, fontSize = 13.sp
+            color = if (valid) EInk.Caption else EInk.Alert, fontSize = TextSize.Caption
         )
         if (initial != null) Text(
-            tr("Post now instead"), color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+            tr("Post now instead"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 12.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClear).padding(vertical = 6.dp)
         )
     }
@@ -726,11 +728,11 @@ internal fun ScheduleDialog(initial: Long?, onDismiss: () -> Unit, onClear: () -
 @Composable
 private fun UploadBadge(text: String?) {
     Box(
-        Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 5.dp),
+        Modifier.clip(Radius.Full).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
         if (text == null) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
-        else Text(text, color = Color.White, fontSize = 12.sp)
+        else Text(text, color = Color.White, fontSize = TextSize.Caption)
     }
 }
 
@@ -786,7 +788,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
             // Banner with the avatar over it, as on the profile; tap either to change it.
             Box(Modifier.fillMaxWidth().padding(bottom = 44.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().aspectRatio(3f).clip(RoundedCornerShape(12.dp)).background(EInk.Track)
+                    Modifier.fillMaxWidth().aspectRatio(3f).clip(Radius.Small).background(EInk.Track)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = uploadingFor == null, onClickLabel = tr("Change banner")) { pick("banner") }
                         .semantics(mergeDescendants = true) { contentDescription = tr("Change banner") },
                     contentAlignment = Alignment.Center
@@ -807,7 +809,7 @@ fun EditProfileScreen(vm: SocialViewModel, onBack: () -> Unit) {
             }
             Text(
                 tr("Tap the picture or banner to upload from your phone (location data is removed)."),
-                color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(bottom = 12.dp)
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(bottom = 12.dp)
             )
             field(tr("Display name"), displayName, { displayName = it.take(60) })
             field(tr("Username"), name, { name = it.take(40) })

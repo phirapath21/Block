@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -117,7 +119,7 @@ fun PowBadge(bits: Int, modifier: Modifier = Modifier) {
     val tint = if (strong) EInk.Accent else EInk.Caption
     Row(
         modifier
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .background(tint.copy(alpha = if (strong) 0.14f else 0.10f))
             .padding(start = 5.dp, end = 6.dp, top = 1.dp, bottom = 1.dp)
             .clearAndSetSemantics { contentDescription = tr("Proof of work: {0} bits", bits) },
@@ -125,7 +127,7 @@ fun PowBadge(bits: Int, modifier: Modifier = Modifier) {
     ) {
         Icon(Glyphs.Pickaxe, contentDescription = null, tint = tint, modifier = Modifier.size(11.dp))
         Spacer(Modifier.width(3.dp))
-        Text(bits.toString(), color = tint, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(bits.toString(), color = tint, fontSize = TextSize.Micro, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
     }
 }
 
@@ -147,7 +149,7 @@ private fun PowLevels(selected: Int, rate: Double, onPick: (Int) -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Radius.Small)
                     .background(if (isOn) EInk.Accent.copy(alpha = 0.12f) else Color.Transparent)
                     .clickable(role = Role.RadioButton) { onPick(bits) }
                     .semantics { this.selected = isOn }
@@ -157,14 +159,14 @@ private fun PowLevels(selected: Int, rate: Double, onPick: (Int) -> Unit) {
                 Column(Modifier.width(96.dp)) {
                     Text(
                         if (bits == 0) tr("Off") else tr("{0} bits", bits),
-                        color = if (isOn) EInk.Accent else EInk.Value, fontSize = 15.sp, fontWeight = if (isOn) FontWeight.Bold else FontWeight.Medium
+                        color = if (isOn) EInk.Accent else EInk.Value, fontSize = TextSize.Body, fontWeight = if (isOn) FontWeight.Bold else FontWeight.Medium
                     )
-                    Text(powLevelName(bits), color = EInk.Caption, fontSize = 12.sp)
+                    Text(powLevelName(bits), color = EInk.Caption, fontSize = TextSize.Caption)
                 }
                 // Work grows 2× per bit; the bar grows evenly per bit, so it reads as "harder".
-                Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(50)).background(EInk.Track)) {
+                Box(Modifier.weight(1f).height(6.dp).clip(Radius.Full).background(EInk.Track)) {
                     if (bits > 0) Box(
-                        Modifier.fillMaxWidth(bits / top).fillMaxHeight().clip(RoundedCornerShape(50))
+                        Modifier.fillMaxWidth(bits / top).fillMaxHeight().clip(Radius.Full)
                             .background(if (isOn) EInk.Accent else EInk.Caption.copy(alpha = 0.55f))
                     )
                 }
@@ -174,7 +176,7 @@ private fun PowLevels(selected: Int, rate: Double, onPick: (Int) -> Unit) {
                         rate > 0 -> powTimeText(Pow.expectedSeconds(bits, rate))
                         else -> countText(Pow.expectedHashes(bits).toLong())
                     },
-                    color = if (isOn) EInk.Value else EInk.Caption, fontSize = 13.sp,
+                    color = if (isOn) EInk.Value else EInk.Caption, fontSize = TextSize.Caption,
                     modifier = Modifier.width(92.dp).padding(start = 12.dp), maxLines = 1
                 )
             }
@@ -200,7 +202,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp)) {
         androidx.compose.material3.Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = Radius.Large,
             color = EInk.Body,
             border = androidx.compose.foundation.BorderStroke(1.dp, EInk.BodyStroke)
         ) {
@@ -216,9 +218,9 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
                     Column(Modifier.weight(1f).padding(start = 14.dp)) {
                         Text(
                             if (shown == 0) tr("Off") else tr("{0} bits", shown) + " · " + powLevelName(shown),
-                            color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold
+                            color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold
                         )
-                        Text(estimateText(shown, rate), color = if (shown > 0) EInk.Accent else EInk.Caption, fontSize = 14.sp)
+                        Text(estimateText(shown, rate), color = if (shown > 0) EInk.Accent else EInk.Caption, fontSize = TextSize.Body)
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -236,7 +238,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
                 )
                 Text(
                     tr("Before a post is signed, your phone tries numbers until its ID starts with enough zero bits (NIP-13). Readers and relays can see the post took real work, so it's less likely to be treated as spam. It costs nothing but time and battery."),
-                    color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp
+                    color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 18.sp
                 )
             }
         }
@@ -248,7 +250,7 @@ internal fun PowSettingsPage(vm: SocialViewModel) {
         Text(
             if (rate > 0) tr("This phone: {0} on {1} cores", powRateText(rate), Pow.defaultThreads())
             else if (measuring) tr("Measuring this phone…") else tr("Not measured yet"),
-            color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.weight(1f)
+            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.weight(1f)
         )
         if (measuring) CircularProgressIndicator(color = EInk.Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
         else SettingsButton(tr("Measure again")) { vm.pow.benchmark(force = true) }
@@ -271,11 +273,11 @@ internal fun PowPostSheet(selected: Int, default: Int, rate: Double, onPick: (In
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             Row(Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Glyphs.Pickaxe, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(22.dp))
-                Text(tr("Proof of work for this post"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
+                Text(tr("Proof of work for this post"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
             }
             Text(
                 tr("More bits take longer but stand out more to relays and readers that filter spam. Your default is {0}.", if (default == 0) tr("Off") else tr("{0} bits", default)),
-                color = EInk.Caption, fontSize = 13.sp, lineHeight = 18.sp,
+                color = EInk.Caption, fontSize = TextSize.Caption, lineHeight = 18.sp,
                 modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
             )
             PowLevels(selected = selected, rate = rate) { onPick(it); onDismiss() }
@@ -307,19 +309,19 @@ internal fun MiningPanel(m: SocialViewModel.PublishActivity.Mining, onSkip: () -
             )
             Text(
                 tr("{0} bits", m.difficulty) + " · " + (if (m.hashesPerSecond > 0) powRateText(m.hashesPerSecond) else tr("starting…")),
-                color = EInk.Value, fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = FontFamily.Monospace,
+                color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.Medium, fontFamily = FontFamily.Monospace,
                 modifier = Modifier.padding(start = 8.dp).weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             Text(
                 powTimeText(m.elapsedMs / 1000.0) + if (m.hashesPerSecond > 0) " / ~" + powTimeText(m.expectedSeconds) else "",
-                color = EInk.Caption, fontSize = 12.sp, maxLines = 1
+                color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
             )
         }
         // Past twice the usual time, say it's just bad luck: there's no "almost done" in mining.
         if (m.hashesPerSecond > 0 && m.elapsedMs / 1000.0 > 2 * m.expectedSeconds && m.expectedSeconds >= 2) {
             Text(
                 tr("Taking longer than usual: that's luck, every try has the same chance."),
-                color = EInk.Caption, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)
+                color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp)
             )
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
@@ -334,10 +336,10 @@ private fun CardAction(label: String, primary: Boolean, onClick: () -> Unit) {
     Text(
         label,
         color = if (primary) Color.Black else EInk.Value,
-        fontSize = 13.sp, fontWeight = FontWeight.Bold,
+        fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .then(if (primary) Modifier.background(EInk.Accent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
+            .clip(Radius.Full)
+            .then(if (primary) Modifier.background(EInk.Accent) else Modifier.border(1.dp, EInk.BodyStroke, Radius.Full))
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     )

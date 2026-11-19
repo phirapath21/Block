@@ -1,5 +1,7 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.TextSize
+import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
 import com.example.btcwidget.ui.main.screenBackground
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,12 +84,12 @@ fun SocialTopBar(title: String, onBack: () -> Unit) {
             Text(
                 text = "←",
                 color = EInk.Value,
-                fontSize = 22.sp,
+                fontSize = TextSize.Title,
                 modifier = Modifier
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            Text(title, color = EInk.Value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold)
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
     }
@@ -190,7 +192,7 @@ fun EmptyNote(text: String) {
     Text(
         text = text,
         color = EInk.Caption,
-        fontSize = 14.sp,
+        fontSize = TextSize.Body,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(32.dp)
     )
@@ -198,18 +200,13 @@ fun EmptyNote(text: String) {
 
 /** Primary pill button, X-style with Block's Bitcoin Orange accent. */
 @Composable
-fun PillButton(text: String, filled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .then(if (filled) Modifier.background(EInk.Accent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
-            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 9.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text, color = if (filled) EInk.OnAccent else EInk.Value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-    }
-}
+fun PillButton(text: String, filled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) =
+    // The design system's button: filled is the screen's main action (text colour), else outlined.
+    com.example.btcwidget.ui.main.BlockButton(
+        text, modifier,
+        kind = if (filled) com.example.btcwidget.ui.main.ButtonKind.Primary else com.example.btcwidget.ui.main.ButtonKind.Outline,
+        onClick = onClick
+    )
 
 // ---- Home ----
 
@@ -288,8 +285,8 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .shadow(8.dp, RoundedCornerShape(50))
-                            .clip(RoundedCornerShape(50))
+                            .shadow(8.dp, Radius.Full)
+                            .clip(Radius.Full)
                             .background(EInk.Accent)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show new posts")) {
                                 pillHaptics.tick()
@@ -308,7 +305,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                         }
                         Text(
                             tr("  ↑ {0} new post{1}", pending.size, plural(pending.size)),
-                            color = EInk.OnAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold
+                            color = EInk.OnAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -333,7 +330,7 @@ fun FeedTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                 Text(
                     label,
                     color = if (i == selected) EInk.Value else EInk.Caption,
-                    fontSize = 15.sp,
+                    fontSize = TextSize.Body,
                     fontWeight = if (i == selected) FontWeight.Bold else FontWeight.Normal
                 )
                 Box(
@@ -358,13 +355,13 @@ private fun WelcomeScreen(vm: SocialViewModel, actions: NoteActions, onLogin: ()
     val feed by produceKept<List<FeedItem>?>(null) { value = vm.hashtagFeed("introductions") }
     NoteList(items = feed.orEmpty(), stats = stats, actions = actions, header = {
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(tr("Your people.") + " " + tr("Your conversations."), color = EInk.Value, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Your people.") + " " + tr("Your conversations."), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold)
             Text(
                 tr("Share what's on your mind and follow people you like. No ads, and nobody can take your account away."),
-                color = EInk.Label, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
+                color = EInk.Label, fontSize = TextSize.Body, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
             )
             PillButton(tr("Log in or create account"), onClick = onLogin)
-            Text(tr("New here and saying hi"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp))
+            Text(tr("New here and saying hi"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp))
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         if (feed == null) Spinner()
@@ -453,11 +450,11 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
             }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Text(icon, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp).padding(start = 6.dp))
+        Text(icon, color = tint, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp).padding(start = 6.dp))
         Column(Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 actors.take(7).forEach { pk -> Avatar(profiles[pk], pk, size = 32, onClick = { actions.openProfile(pk) }) }
-                if (actors.size > 7) Text("+${actors.size - 7}", color = EInk.Caption, fontSize = 13.sp, modifier = Modifier.padding(start = 2.dp))
+                if (actors.size > 7) Text("+${actors.size - 7}", color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 2.dp))
             }
             Text(
                 buildAnnotatedString {
@@ -465,18 +462,18 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
                     append(" $verb")
                     withStyle(SpanStyle(color = EInk.Caption)) { append(" · " + relativeTime(g.createdAt)) }
                 },
-                color = EInk.Value, fontSize = 15.sp, modifier = Modifier.padding(top = 8.dp)
+                color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(top = 8.dp)
             )
             if (n.type == NostrNotification.Type.ZAP) {
                 // The newest zap comment, if any.
                 val comment = g.items.firstNotNullOfOrNull { z ->
                     z.event.firstTag("description")?.let { com.example.btcwidget.nostr.core.Zaps.parseReceipt(z.event)?.comment?.takeIf { c -> c.isNotBlank() } }
                 }
-                if (comment != null) Text("“$comment”", color = EInk.Value, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                if (comment != null) Text("“$comment”", color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp))
             }
             target?.let {
                 Text(
-                    it.content.replace('\n', ' ').trim(), color = EInk.Caption, fontSize = 14.sp, maxLines = 2,
+                    it.content.replace('\n', ' ').trim(), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 2,
                     overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -546,7 +543,7 @@ private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (Ho
     val density = androidx.compose.ui.platform.LocalDensity.current
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val haptics = rememberHaptics()
-    val boldStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    val boldStyle = androidx.compose.ui.text.TextStyle(fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
     val tabPad = 16.dp
     androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
         // Tabs share the width when every name fits at its bold width (two or three feeds, as
@@ -625,7 +622,7 @@ private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (Ho
                         .padding(horizontal = tabPad)
                 ) {
                     Text(
-                        label, color = color, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        label, color = color, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         modifier = Modifier.widthIn(max = 180.dp).onGloballyPositioned { textCoords[i] = it; recompute() }
                     )
@@ -668,7 +665,7 @@ internal fun FeedTab(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
             .height(36.dp)
-            .clip(RoundedCornerShape(50))
+            .clip(Radius.Full)
             .background(
                 when {
                     selected -> SettingsAccent
@@ -690,7 +687,7 @@ internal fun FeedTab(
         Text(
             label,
             color = if (selected) EInk.OnAccent else EInk.Value,
-            fontSize = 13.5.sp,
+            fontSize = TextSize.Caption,
             maxLines = 1,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             modifier = Modifier.widthIn(max = 160.dp),
@@ -732,19 +729,19 @@ private fun FeedMenu(vm: SocialViewModel, onClose: () -> Unit) {
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Feeds"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(tr("Feeds"), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 if (editing) Text(
-                    tr("Reset"), color = EInk.Caption, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.resetFeeds() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                    tr("Reset"), color = EInk.Caption, fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clip(Radius.Full).clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.resetFeeds() }.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
                 Box(
-                    Modifier.clip(RoundedCornerShape(50))
-                        .then(if (editing) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, RoundedCornerShape(50)))
+                    Modifier.clip(Radius.Full)
+                        .then(if (editing) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, Radius.Full))
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) { editing = !editing }
                         .padding(horizontal = 16.dp, vertical = 7.dp)
                 ) {
                     Text(
-                        if (editing) tr("Done") else tr("Edit"), fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                        if (editing) tr("Done") else tr("Edit"), fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                         color = if (editing) androidx.compose.ui.graphics.Color.Black else EInk.Value
                     )
                 }
@@ -752,14 +749,14 @@ private fun FeedMenu(vm: SocialViewModel, onClose: () -> Unit) {
             feeds.forEachIndexed { i, f ->
                 val selected = f == current
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected && !editing) EInk.Body else androidx.compose.ui.graphics.Color.Transparent)
+                    Modifier.fillMaxWidth().clip(Radius.Large).background(if (selected && !editing) EInk.Body else androidx.compose.ui.graphics.Color.Transparent)
                         .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !editing) { vm.selectFeed(f); onClose() }.padding(horizontal = 10.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     FeedIconTile(f, selected = selected)
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(feedTitle(f), color = EInk.Value, fontSize = 16.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(feedSubtitle(f), color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(feedTitle(f), color = EInk.Value, fontSize = TextSize.Body, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(feedSubtitle(f), color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (editing) {
                         SheetIconButton(Glyphs.ArrowUp, tr("Move up"), enabled = i > 0) { vm.moveFeed(f, -1) }
@@ -779,13 +776,13 @@ private fun FeedMenu(vm: SocialViewModel, onClose: () -> Unit) {
 @Composable
 private fun AddableFeedRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String?, onAdd: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Add"), onClick = onAdd).padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Add"), onClick = onAdd).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         androidx.compose.material3.Icon(icon, contentDescription = null, tint = EInk.Label, modifier = Modifier.size(20.dp))
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(title, color = EInk.Value, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) Text(subtitle, color = EInk.Caption, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.size(30.dp).clip(CircleShape).background(EInk.Track), contentAlignment = Alignment.Center) {
             androidx.compose.material3.Icon(Glyphs.Plus, contentDescription = tr("Add"), tint = EInk.Value, modifier = Modifier.size(16.dp))
@@ -798,22 +795,22 @@ private fun AddableFeedRow(icon: androidx.compose.ui.graphics.vector.ImageVector
 private fun AddFeed(vm: SocialViewModel, existing: List<HomeFeed>) {
     var input by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(18.dp)).background(EInk.Body).padding(14.dp)) {
-        Text(tr("Add a topic"), color = EInk.Value, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 10.dp))
+    Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(Radius.Large).background(EInk.Body).padding(14.dp)) {
+        Text(tr("Add a topic"), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.material3.OutlinedTextField(
                 value = input, onValueChange = { input = it; error = null },
                 placeholder = { Text("siamstr", color = EInk.Caption) },
                 leadingIcon = { androidx.compose.material3.Icon(Glyphs.Hashtag, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(18.dp)) },
                 singleLine = true, isError = error != null,
-                shape = RoundedCornerShape(14.dp),
+                shape = Radius.Large,
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(focusedBorderColor = SettingsAccent, unfocusedBorderColor = EInk.BodyStroke, focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = SettingsAccent),
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
             val ready = input.isNotBlank()
             Box(
-                Modifier.clip(RoundedCornerShape(50)).background(if (ready) SettingsAccent else EInk.Track)
+                Modifier.clip(Radius.Full).background(if (ready) SettingsAccent else EInk.Track)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready) {
                         val feed = HomeFeed.cleanTag(input)?.let { HomeFeed.Hashtag(it) }
                         if (feed == null) error = tr("One word, letters and numbers only")
@@ -821,14 +818,14 @@ private fun AddFeed(vm: SocialViewModel, existing: List<HomeFeed>) {
                     }
                     .padding(horizontal = 18.dp, vertical = 12.dp)
             ) {
-                Text(tr("Add"), color = if (ready) androidx.compose.ui.graphics.Color.Black else EInk.Caption, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(tr("Add"), color = if (ready) androidx.compose.ui.graphics.Color.Black else EInk.Caption, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
             }
         }
-        error?.let { Text(it, color = EInk.Alert, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+        error?.let { Text(it, color = EInk.Alert, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp)) }
         // Built-in feeds that were removed can come back.
         val suggested = HomeFeed.DEFAULTS.filter { it !in existing }
         if (suggested.isNotEmpty()) {
-            Text(tr("Suggested"), color = EInk.Caption, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
+            Text(tr("Suggested"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
             suggested.forEach { f -> AddableFeedRow(feedIcon(f), feedTitle(f), feedSubtitle(f)) { vm.addFeed(f) } }
         }
     }
