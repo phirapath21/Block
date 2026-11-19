@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.btcwidget.ui.main.pressScale
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -127,9 +128,12 @@ fun NoteCard(
         // See-through, so the page (and Aurora's glow) shows behind every post.
         .background(com.example.btcwidget.ui.main.CardColors.Fill)
         .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Column(
         modifier = shell
-            .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
+            // A card gives way a touch under the finger; plain rows don't.
+            .then(if (flat) Modifier else Modifier.pressScale(press, 0.985f))
+            .clickable(interactionSource = press, indication = androidx.compose.material3.ripple(), role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
             .then(if (threadLine) Modifier.threadLineBelowAvatar() else Modifier)
             .padding(horizontal = if (flat) 16.dp else 14.dp, vertical = if (flat) 10.dp else 12.dp)
     ) {

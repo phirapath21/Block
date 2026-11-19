@@ -21,6 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -41,7 +46,7 @@ internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 6.dp),
+            .padding(top = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -53,10 +58,11 @@ internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
         Box {
             // Like only. An emoji reaction sent from another app still shows as what they sent.
             val emoji = stats.myReaction?.takeIf { stats.likedByMe && it != "+" && com.example.btcwidget.nostr.core.CustomEmoji.code(it) == null }
+            val likeHaptics = rememberHaptics()
             ActionButton(
                 if (stats.likedByMe) Glyphs.Liked else Glyphs.Like, stats.likes, if (stats.likedByMe) "Liked" else "Like",
-                tint = ActionColors.Like.takeIf { stats.likedByMe }, emoji = emoji
-            ) { actions.like(note) }
+                tint = ActionColors.Like.takeIf { stats.likedByMe }, emoji = emoji, pop = true
+            ) { if (!stats.likedByMe) likeHaptics.tick(); actions.like(note) }
         }
         TipButton((stats.zapMsat / 1000).toInt()) { actions.zap(note) }
         ActionButton(Glyphs.Share, 0, "Share post", tint = null) { actions.share(note) }
@@ -70,7 +76,7 @@ private fun TipButton(sats: Int, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .heightIn(min = 40.dp)
+            .heightIn(min = 48.dp)
             .clip(Radius.Full)
             .combinedClickable(onClickLabel = tr("Tip"), role = Role.Button, onClick = onClick)
             .padding(vertical = 6.dp)
@@ -100,14 +106,36 @@ private fun ActionButton(
     label: String,
     tint: androidx.compose.ui.graphics.Color?,
     emoji: String? = null,
+    /** Turning on (liking) pops: the icon springs up and a ring spreads out and fades. */
+    pop: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val color = tint ?: EInk.Caption
+    val on = tint != null
+    val scale = remember { androidx.compose.animation.core.Animatable(1f) }
+    val ring = remember { androidx.compose.animation.core.Animatable(1f) }
+    // Only when it turns on here, not for posts that were already liked when they appeared.
+    val wasOn = remember { booleanArrayOf(on) }
+    androidx.compose.runtime.LaunchedEffect(on) {
+        if (pop && on && !wasOn[0]) {
+            kotlinx.coroutines.coroutineScope {
+                launch {
+                    scale.snapTo(0.6f)
+                    scale.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 500f))
+                }
+                launch {
+                    ring.snapTo(0f)
+                    ring.animateTo(1f, androidx.compose.animation.core.tween(450))
+                }
+            }
+        }
+        wasOn[0] = on
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .heightIn(min = 40.dp)
+            .heightIn(min = 48.dp)
             .clip(Radius.Full)
             .combinedClickable(
                 onClickLabel = label, role = Role.Button, onClick = onClick,
@@ -115,16 +143,37 @@ private fun ActionButton(
             )
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
-        if (emoji != null) Text(emoji, fontSize = TextSize.Body)
-        else Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
-        if (count > 0) {
-            Text(
-                text = compactCount(count),
-                color = color,
-                fontSize = TextSize.Caption,
-                fontWeight = if (tint != null) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier.padding(start = 5.dp)
+        Box(contentAlignment = Alignment.Center) {
+            if (ring.value < 1f) Box(
+                Modifier.size(18.dp).graphicsLayer {
+                    val grow = 1f + ring.value * 0.9f
+                    scaleX = grow; scaleY = grow; alpha = 1f - ring.value
+                }.border(2.dp, color, CircleShape)
             )
+            Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) {
+                if (emoji != null) Text(emoji, fontSize = TextSize.Body)
+                else Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
+            }
+        }
+        if (count > 0) {
+            // The count rolls up as it grows, down as it shrinks.
+            androidx.compose.animation.AnimatedContent(
+                targetState = count,
+                transitionSpec = {
+                    val up = targetState > initialState
+                    (androidx.compose.animation.slideInVertically { if (up) it else -it } + androidx.compose.animation.fadeIn()) togetherWith
+                        (androidx.compose.animation.slideOutVertically { if (up) -it else it } + androidx.compose.animation.fadeOut())
+                },
+                label = "count"
+            ) { n ->
+                Text(
+                    text = compactCount(n),
+                    color = color,
+                    fontSize = TextSize.Caption,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.padding(start = 5.dp)
+                )
+            }
         }
     }
 }
