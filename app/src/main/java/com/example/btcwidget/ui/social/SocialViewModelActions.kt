@@ -43,7 +43,7 @@ fun SocialViewModel.uploadVideo(uri: android.net.Uri, onResult: (Attachment?) ->
         val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             com.example.btcwidget.nostr.VideoPrep.prepare(getApplication(), uri)
         }
-        val blob = repo.uploadVideo(prepared)
+        val blob = repo.uploads.video(prepared)
         result = Attachment(blob.url, prepared.mime, blob.sha256, prepared.width, prepared.height)
     }
 }
@@ -55,7 +55,7 @@ fun SocialViewModel.uploadImage(uri: android.net.Uri, onResult: (Attachment?) ->
         val prepared = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
             com.example.btcwidget.nostr.ImagePrep.prepare(getApplication(), uri)
         }
-        val blob = repo.uploadImage(prepared)
+        val blob = repo.uploads.image(prepared)
         result = Attachment(blob.url, prepared.mime, blob.sha256, prepared.width, prepared.height, prepared.blurhash)
     }
 }

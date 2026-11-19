@@ -26,10 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.ConcurrentHashMap
 
 /** Likes, reposts, replies and zaps on a note, and whether the user did each. */
@@ -113,6 +110,14 @@ class NostrRepository private constructor(private val context: Context) {
     val live: LiveStreamFeed by lazy { LiveStreamFeed(this) }
     val wallet: NwcWallet by lazy { NwcWallet(this) }
     val linkPreviews: LinkPreviews by lazy { LinkPreviews(this) }
+    /** Search: what a box entry points at, people and notes (NIP-50). */
+    val search: Search by lazy { Search(this) }
+    /** NIP-05 address checks. */
+    val nip05: Nip05Checks by lazy { Nip05Checks(this) }
+    /** Photo and video uploads (Blossom). */
+    val uploads: Uploads by lazy { Uploads(this) }
+    /** Relay checks: NIP-11 info, proof of work asked, connection probes. */
+    val relayChecks: RelayChecks by lazy { RelayChecks(this) }
     val polls: Polls by lazy { Polls(this) }
     val zaps: ZapInvoices by lazy { ZapInvoices(this) }
     val articles: Articles by lazy { Articles(this) }
@@ -182,7 +187,7 @@ class NostrRepository private constructor(private val context: Context) {
     /** Note ids the user bookmarked (NIP-51 kind 10003), newest first. */
     val bookmarks: StateFlow<List<String>> = _bookmarks.asStateFlow()
     /** The user's Blossom servers (BUD-03 kind 10063), empty for the default. */
-    private var mediaServers: List<String> = emptyList()
+    internal var mediaServers: List<String> = emptyList()
     // Declared before init: the cache loader started there may set them.
     private var relayList: Event? = null
     private var mediaServerList: Event? = null
@@ -816,32 +821,6 @@ class NostrRepository private constructor(private val context: Context) {
         _relayEntries.value.map { it.url }.ifEmpty { NostrAccountStore.relays(context) ?: pool.urls.toList() }
             .mapNotNull { normalizeRelayUrl(it) }.distinct()
 
-    /**
-     * Opens a fresh connection to each of [urls] at once, separate from the ones in use, and
-     * reports how long each took to connect (or that it didn't) within [timeoutMs].
-     */
-    suspend fun probeRelays(urls: List<String>, timeoutMs: Long = 8_000): List<com.example.btcwidget.nostr.core.RelayCheckup.Probe> {
-        if (urls.isEmpty()) return emptyList()
-        val probe = RelayPool()
-        return try {
-            probe.setRelays(urls)
-            val deadline = System.currentTimeMillis() + timeoutMs
-            fun settled(st: RelayStatus) = st.state == RelayStatus.State.CONNECTED || st.failures > 0 || st.state == RelayStatus.State.FAILED
-            while (System.currentTimeMillis() < deadline && !probe.status().all(::settled)) delay(250)
-            val byUrl = probe.status().associateBy { it.url }
-            urls.map { u ->
-                val st = byUrl[u]
-                com.example.btcwidget.nostr.core.RelayCheckup.Probe(
-                    u,
-                    st?.takeIf { it.state == RelayStatus.State.CONNECTED }?.let { it.connectMs ?: 0L },
-                    st?.lastError ?: if (st == null) "Blocked" else null
-                )
-            }
-        } finally {
-            probe.closeAll()
-        }
-    }
-
     /** Relays most of the people the user follows write to (NIP-65), not already theirs. */
     suspend fun suggestedRelays(limit: Int = 8): List<Pair<String, Int>> {
         val follows = _following.value.take(300)
@@ -888,87 +867,6 @@ class NostrRepository private constructor(private val context: Context) {
         saveAccount()
     }
 
-    private val relayInfos = ConcurrentHashMap<String, com.example.btcwidget.nostr.core.RelayInfo>()
-
-    /** What [relay] says about itself (NIP-11), or null if it doesn't answer. Remembered for the session. */
-    suspend fun relayInfo(relay: String): com.example.btcwidget.nostr.core.RelayInfo? {
-        relayInfos[relay]?.let { return it }
-        return withContext(Dispatchers.IO) {
-            runCatching {
-                val request = okhttp3.Request.Builder().url(com.example.btcwidget.nostr.core.RelayInfo.httpUrl(relay))
-                    .header("Accept", "application/nostr+json").build()
-                RelayPool.defaultClient.newCall(request).execute().use { r ->
-                    if (!r.isSuccessful) null else r.body.string().take(200_000).let { com.example.btcwidget.nostr.core.RelayInfo.parse(it) }
-                }
-            }.getOrNull()
-        }?.also { relayInfos[relay] = it }
-    }
-
-    /**
-     * The most proof of work (NIP-11 `min_pow_difficulty`) any relay a post goes to asks for,
-     * and which relay that is. Asks each relay once per session, waiting at most [timeoutMs].
-     */
-    suspend fun relaysMinPow(timeoutMs: Long = 1_500): Pair<Int, String?> = coroutineScope {
-        val asks = pool.urls.toList().map { url ->
-            async {
-                // Relays that don't answer count as asking nothing, and aren't asked again.
-                url to (relayMinPow[url] ?: (kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { relayInfo(url) }?.minPowDifficulty ?: 0)
-                    .also { relayMinPow[url] = it })
-            }
-        }.awaitAll()
-        val top = asks.maxByOrNull { it.second }
-        val bits = top?.second ?: 0
-        bits to top?.first?.takeIf { bits > 0 }
-    }
-    private val relayMinPow = ConcurrentHashMap<String, Int>()
-
-    /** What a search box entry points straight at, if anything. */
-    sealed interface Direct {
-        data class ProfileTarget(val pubkey: String) : Direct
-        data class NoteTarget(val id: String) : Direct
-        data class HashtagTarget(val tag: String) : Direct
-        data class ArticleTarget(val address: com.example.btcwidget.nostr.core.Nip19.Address) : Direct
-    }
-
-    /** npub/nprofile/note/nevent/hex, "#tag" or a NIP-05 address; null for free text. */
-    suspend fun resolve(query: String): Direct? {
-        val q = query.trim()
-        when (val e = com.example.btcwidget.nostr.core.Nip19.decode(q)) {
-            is com.example.btcwidget.nostr.core.Nip19.Pubkey -> return Direct.ProfileTarget(e.hex)
-            is com.example.btcwidget.nostr.core.Nip19.Note -> return Direct.NoteTarget(e.id)
-            is com.example.btcwidget.nostr.core.Nip19.Address -> if (e.kind == Kind.ARTICLE) return Direct.ArticleTarget(e)
-            else -> Unit
-        }
-        if (q.startsWith("#") && q.length > 1 && q.drop(1).all { it.isLetterOrDigit() || it == '_' }) return Direct.HashtagTarget(q.drop(1))
-        if (com.example.btcwidget.nostr.core.Nip05.looks(q) && q.contains('@')) {
-            val url = com.example.btcwidget.nostr.core.Nip05.url(q) ?: return null
-            val name = com.example.btcwidget.nostr.core.Nip05.parts(q)!!.first
-            val pubkey = runCatching { withContext(Dispatchers.IO) { com.example.btcwidget.nostr.core.Nip05.pubkeyFrom(httpGet(url), name) } }.getOrNull()
-            if (pubkey != null) return Direct.ProfileTarget(pubkey)
-        }
-        return null
-    }
-
-    /** People matching [query] (NIP-50 on profile metadata), most followed first per the relay. */
-    suspend fun searchPeople(query: String): List<Profile> {
-        val events = searchPool.query(listOf(Filter(kinds = listOf(Kind.METADATA), search = query.trim(), limit = 30)), 6_000)
-        events.forEach { remember(it) }
-        val wanted = events.map { it.pubkey }.distinct()
-        return wanted.mapNotNull { _profiles.value[it] }.filter { it.pubkey !in _muted.value && trusted(it.pubkey) }
-    }
-
-    /** Notes matching [query] (NIP-50 + local SQLite full-text search for instant/offline results). */
-    suspend fun searchNotes(query: String): List<FeedItem> {
-        val q = query.trim()
-        if (q.isEmpty()) return emptyList()
-        val found = coroutineScope {
-            val remote = async { runCatching { searchPool.query(listOf(Filter(kinds = listOf(Kind.TEXT_NOTE), search = q, limit = 40)), 6_000) }.getOrDefault(emptyList()) }
-            val local = async(Dispatchers.IO) { events.search(q, kinds = listOf(Kind.TEXT_NOTE), limit = 40) }
-            (remote.await() + local.await()).distinctBy { it.id }
-        }
-        return buildTimeline(found)
-    }
-
     // ---- Who engaged with a note ----
 
     /** Who reposted, liked (with their reaction) and zapped a note. */
@@ -1006,31 +904,6 @@ class NostrRepository private constructor(private val context: Context) {
             .filter { it.noteId == noteId }.sortedByDescending { it.amountMsat }
         loadProfiles(reposts + likes.map { it.first } + zaps.mapNotNull { it.sender })
         return Engagement(reposts, likes, zaps)
-    }
-
-    // ---- NIP-05 verification ----
-
-    private val _nip05 = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    /** "pubkey|name@domain" → whether the domain's nostr.json really maps the name to that key. */
-    val nip05Verified: StateFlow<Map<String, Boolean>> = _nip05.asStateFlow()
-    private val nip05InFlight = ConcurrentHashMap.newKeySet<String>()
-
-    /**
-     * Checks [identifier] against https://domain/.well-known/nostr.json once per session.
-     * Until it's confirmed, the app doesn't show the address as verified.
-     */
-    fun verifyNip05(pubkey: String, identifier: String) {
-        val key = "$pubkey|$identifier"
-        if (_nip05.value.containsKey(key) || !nip05InFlight.add(key)) return
-        scope.launch(Dispatchers.IO) {
-            val ok = runCatching {
-                val url = com.example.btcwidget.nostr.core.Nip05.url(identifier) ?: return@runCatching false
-                val name = com.example.btcwidget.nostr.core.Nip05.parts(identifier)?.first ?: return@runCatching false
-                com.example.btcwidget.nostr.core.Nip05.pubkeyFrom(httpGet(url), name) == pubkey
-            }.getOrDefault(false)
-            _nip05.update { it + (key to ok) }
-            nip05InFlight.remove(key)
-        }
     }
 
     /** Pubkeys whose profiles are being fetched, so concurrent screens don't ask twice. */
@@ -1283,63 +1156,6 @@ class NostrRepository private constructor(private val context: Context) {
         mediaServerList = event
         mediaServers = com.example.btcwidget.nostr.core.Blossom.serversFrom(event)
         saveAccount()
-    }
-
-    /**
-     * Uploads [image] to the user's Blossom servers in order, with the public default as fallback.
-     * Signing the upload permission goes through the user's signer.
-     */
-    suspend fun uploadImage(image: PreparedImage): com.example.btcwidget.nostr.core.Blossom.Blob {
-        val sha = com.example.btcwidget.nostr.core.Blossom.sha256Hex(image.bytes)
-        return uploadBlob(sha, image.bytes.size.toLong()) { image.bytes.toRequestBody(image.mime.toMediaType()) }
-    }
-
-    /** Uploads already-encrypted bytes (a photo for a private message). */
-    suspend fun uploadEncrypted(bytes: ByteArray): com.example.btcwidget.nostr.core.Blossom.Blob {
-        val sha = com.example.btcwidget.nostr.core.Blossom.sha256Hex(bytes)
-        return uploadBlob(sha, bytes.size.toLong()) { bytes.toRequestBody("application/octet-stream".toMediaType()) }
-    }
-
-    /** Uploads a video as-is; the cached copy is deleted afterwards. */
-    suspend fun uploadVideo(video: PreparedVideo): com.example.btcwidget.nostr.core.Blossom.Blob = try {
-        uploadBlob(video.sha256, video.size) { video.file.asRequestBody(video.mime.toMediaType()) }
-    } finally {
-        video.file.delete()
-    }
-
-    /**
-     * Uploads a file to the user's Blossom servers in order, with the public default as fallback.
-     * Signing the upload permission goes through the user's signer.
-     */
-    private suspend fun uploadBlob(sha: String, size: Long, body: () -> okhttp3.RequestBody): com.example.btcwidget.nostr.core.Blossom.Blob {
-        val me = requireMe()
-        val blossom = com.example.btcwidget.nostr.core.Blossom
-        val auth = requireSigner().sign(blossom.uploadAuth(me, sha, size))
-        val header = blossom.authHeader(auth)
-        val servers = (mediaServers + blossom.DEFAULT_SERVER).distinct()
-        var failure: Exception? = null
-        for (server in servers) {
-            try {
-                return withContext(Dispatchers.IO) {
-                    val request = Request.Builder()
-                        .url(blossom.uploadUrl(server))
-                        .header("Authorization", header)
-                        .put(body())
-                        .build()
-                    RelayPool.uploadClient.newCall(request).execute().use { r ->
-                        if (!r.isSuccessful) {
-                            error(r.header("X-Reason") ?: "${server.removePrefix("https://")} refused the upload (HTTP ${r.code})")
-                        }
-                        blossom.parseUpload(r.body.string(), sha).getOrThrow()
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                failure = e
-            }
-        }
-        throw failure ?: IllegalStateException("Upload failed")
     }
 
     suspend fun repost(note: Event) {

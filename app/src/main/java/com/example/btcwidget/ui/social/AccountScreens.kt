@@ -87,7 +87,7 @@ fun SecureScreen() {
 }
 
 @Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+internal fun fieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke,
     focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent,
     focusedLabelColor = EInk.Accent, unfocusedLabelColor = EInk.Caption
@@ -259,7 +259,8 @@ private fun Option(title: String, body: String, button: String, filled: Boolean,
 }
 
 /** Copies a secret, marked sensitive so Android 13+ doesn't preview it. */
-private fun copySecret(context: Context, secret: String) {
+/** Copies a private key, marked sensitive so Android 13+ hides it in the clipboard preview. */
+internal fun copySecret(context: Context, secret: String) {
     val clip = ClipData.newPlainText("Nostr private key", secret)
     // Honoured on Android 13+, ignored before.
     clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }

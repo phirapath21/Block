@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -338,13 +337,6 @@ private fun InboxStep(vm: SocialViewModel, onFinish: () -> Unit) {
         Spacer(Modifier.height(24.dp))
     }
 }
-
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = EInk.Accent, unfocusedBorderColor = EInk.BodyStroke,
-    focusedTextColor = EInk.Value, unfocusedTextColor = EInk.Value, cursorColor = EInk.Accent,
-    focusedLabelColor = EInk.Accent, unfocusedLabelColor = EInk.Caption
-)
 
 /**
  * Block's logo, as on its app icon: a cube in three shades of bitcoin orange on a dark tile.

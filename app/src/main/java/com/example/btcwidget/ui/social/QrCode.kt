@@ -37,7 +37,7 @@ import com.example.btcwidget.ArticleKey
 import com.example.btcwidget.HashtagKey
 import com.example.btcwidget.NoteKey
 import com.example.btcwidget.ProfileKey
-import com.example.btcwidget.nostr.NostrRepository
+import com.example.btcwidget.nostr.Search
 import com.example.btcwidget.nostr.core.Nip19
 import com.example.btcwidget.nostr.core.Profile
 import com.google.zxing.BarcodeFormat
@@ -111,10 +111,10 @@ fun rememberQrScan(vm: SocialViewModel, navigate: (NavKey) -> Unit, onOpened: ()
         val text = raw?.trim()?.removePrefix("nostr:")?.removePrefix("NOSTR:") ?: return@rememberScanner
         scope.launch {
             val key: NavKey? = when (val target = vm.resolve(text)) {
-                is NostrRepository.Direct.ProfileTarget -> ProfileKey(target.pubkey)
-                is NostrRepository.Direct.NoteTarget -> NoteKey(target.id)
-                is NostrRepository.Direct.HashtagTarget -> HashtagKey(target.tag)
-                is NostrRepository.Direct.ArticleTarget -> target.address.let { ArticleKey(Nip19.naddr(it.kind, it.pubkey, it.identifier, it.relays)) }
+                is Search.Direct.ProfileTarget -> ProfileKey(target.pubkey)
+                is Search.Direct.NoteTarget -> NoteKey(target.id)
+                is Search.Direct.HashtagTarget -> HashtagKey(target.tag)
+                is Search.Direct.ArticleTarget -> target.address.let { ArticleKey(Nip19.naddr(it.kind, it.pubkey, it.identifier, it.relays)) }
                 null -> null
             }
             if (key == null) Toast.makeText(context, tr("That QR code isn't a Nostr profile or post"), Toast.LENGTH_SHORT).show()
