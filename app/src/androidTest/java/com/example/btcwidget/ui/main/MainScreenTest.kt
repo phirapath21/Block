@@ -49,15 +49,21 @@ class MainScreenTest {
     private var openedSettings: com.example.btcwidget.ui.social.SettingsPage? = null
 
     @Test
-    fun bottomBar_hasFiveTabsWithWalletAndNewPostFloats() {
+    fun bottomBar_hasFourTabsAndNewPostInTheMiddle() {
         setContent()
-        listOf("Home", "Search", "Wallet", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
-        // "New post" floats at the bottom right of Home.
         composeTestRule.onNodeWithTag("compose_button").assertExists()
-        // Profile, Live, Widgets and Settings are in the side panel.
-        composeTestRule.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        // The wallet is in your menu now, not the bar.
+        composeTestRule.onNodeWithContentDescription("Wallet").assertDoesNotExist()
+    }
+
+    @Test
+    fun menu_fromYourAvatar_opensTheWallet() {
+        setContent()
+        openFromSideBar("Wallet")
+        composeTestRule.onNodeWithText("Wallet").assertExists()
     }
 
     @Test
@@ -72,7 +78,7 @@ class MainScreenTest {
             }
         }
         composeTestRule.onNodeWithTag("side_rail").assertExists()
-        listOf("Home", "Search", "Wallet", "New post", "Notifications", "Messages", "Open menu").forEach {
+        listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
     }
@@ -101,7 +107,7 @@ class MainScreenTest {
         composeTestRule.onNode(hasScrollToIndexAction()).performScrollToNode(target)
     }
 
-    /** Opens the side bar with your avatar at the top left and picks [page]. */
+    /** Opens your menu (a sheet from your avatar) and picks [page]. */
     private fun openFromSideBar(page: String) {
         composeTestRule.onNodeWithContentDescription("Open menu").performClick()
         composeTestRule.onNodeWithText(page).performClick()

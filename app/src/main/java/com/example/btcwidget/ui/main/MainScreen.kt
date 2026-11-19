@@ -1,7 +1,6 @@
 package com.example.btcwidget.ui.main
 
 import com.example.btcwidget.ui.social.tr
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.activity.compose.BackHandler
@@ -11,18 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +32,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,7 +44,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -179,33 +172,16 @@ fun MainScreenContent(
     /** Long-pressing the side panel's button: switch accounts (null: nothing). */
     accountSwitcher: (@Composable (onDismiss: () -> Unit) -> Unit)? = null
 ) {
-    // The side bar (Profile, Lists… Settings), from the left, opened by your avatar at the top left.
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    // Your menu (Profile, Wallet, Bookmarks… Settings): a sheet from your avatar at the top right.
+    var menuOpenSheet by remember { mutableStateOf(false) }
     val openPage: (MainTab) -> Unit = { tab ->
         onTabSelected(tab)
-        scope.launch { drawerState.close() }
+        menuOpenSheet = false
     }
-    // Back closes the side bar first, then returns from a side-bar page to Home.
-    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
-    BackHandler(enabled = !drawerState.isOpen && selectedTab !in BAR_TABS) { onTabSelected(MainTab.HOME) }
+    // Back returns from one of the menu's pages to Home.
+    BackHandler(enabled = selectedTab !in BAR_TABS) { onTabSelected(MainTab.HOME) }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        // Swipe right to open, left to close.
-        gesturesEnabled = true,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = EInk.Background,
-                drawerContentColor = EInk.Value,
-                drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
-                modifier = Modifier.width(310.dp)
-            ) {
-                SideBar(selectedTab = selectedTab, header = drawerHeader, onOpen = openPage)
-            }
-        },
-        modifier = modifier
-    ) {
+    Box(modifier) {
     // Wide (a phone on its side, a tablet, an unfolded foldable): the tabs move to a rail on the
     // left, as X does on tablets, so the screen's height goes to what you're reading.
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= WIDE_DP
@@ -218,10 +194,11 @@ fun MainScreenContent(
         selectedTab = selectedTab,
         badges = badges,
         menuIcon = menuButtonIcon,
-        menuOpen = drawerState.isOpen || selectedTab in DRAWER_PAGES,
-        onMenu = { scope.launch { drawerState.open() } },
+        menuOpen = selectedTab in DRAWER_PAGES,
+        onMenu = { menuOpenSheet = true },
         onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null,
-        onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) }
+        onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) },
+        onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) }
     )
     Column(
         modifier = Modifier
@@ -244,12 +221,12 @@ fun MainScreenContent(
         }
         val showBars = barsVisible || !hides
         val imeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
-        val menuOpen = drawerState.isOpen || selectedTab in DRAWER_PAGES
+        val menuOpen = selectedTab in DRAWER_PAGES
         val menuButtonSlot: (@Composable () -> Unit)? = if (wide) null else ({
             MenuIconButton(
                 menuIcon = menuButtonIcon,
                 menuOpen = menuOpen,
-                onMenu = { scope.launch { drawerState.open() } },
+                onMenu = { menuOpenSheet = true },
                 onMenuLongPress = if (accountSwitcher != null) ({ switcher = true }) else null
             )
         })
@@ -285,13 +262,6 @@ fun MainScreenContent(
                 MainTab.SETTINGS -> settingsContent()
             }
             }
-            // New post: a floating button at the bottom right of the social pages, shrinking
-            // away with the bars while you scroll down.
-            if (selectedTab in COMPOSE_PAGES) ComposeButton(
-                visible = showBars,
-                onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-            )
         }
 
         }
@@ -303,6 +273,7 @@ fun MainScreenContent(
             BottomBar(
                 selectedTab = selectedTab,
                 badges = badges,
+                onCompose = { onItemClick(com.example.btcwidget.ComposeKey()) },
                 // The tab you're on: back to the top, or refresh when already there.
                 onTab = { tab -> if (tab == selectedTab) com.example.btcwidget.ui.social.TabTaps.tap(tab.name) else onTabSelected(tab) }
             )
@@ -310,6 +281,13 @@ fun MainScreenContent(
     }
     }
     if (switcher) accountSwitcher?.invoke { switcher = false }
+    if (menuOpenSheet) AccountMenuSheet(
+        selectedTab = selectedTab,
+        header = drawerHeader,
+        onOpen = openPage,
+        onSwitchAccount = if (accountSwitcher != null) ({ menuOpenSheet = false; switcher = true }) else null,
+        onDismiss = { menuOpenSheet = false }
+    )
     }
 }
 
@@ -319,12 +297,12 @@ private val Accent get() = EInk.Accent
 private const val WIDE_DP = 600
 
 /** The bottom bar's height above the navigation bar. */
-private val BOTTOM_BAR_HEIGHT = 56.dp
+private val BOTTOM_BAR_HEIGHT = 62.dp
 
 /**
- * The tabs on a rail at the left, for wide screens: your avatar on top (opens the side bar,
- * long-press to switch accounts), then Home, Search, Wallet, Notifications, Messages with the
- * same icons and unread bubbles as the bottom bar.
+ * The tabs on a rail at the left, for wide screens: your avatar on top (opens your menu,
+ * long-press to switch accounts), then Home, Search, Notifications, Messages with the same
+ * icons and unread bubbles as the bottom bar, and New post.
  */
 @Composable
 private fun SideRail(
@@ -334,7 +312,8 @@ private fun SideRail(
     menuOpen: Boolean,
     onMenu: () -> Unit,
     onMenuLongPress: (() -> Unit)?,
-    onTab: (MainTab) -> Unit
+    onTab: (MainTab) -> Unit,
+    onCompose: () -> Unit
 ) {
     val haptics = com.example.btcwidget.ui.social.rememberHaptics()
     Row(Modifier.fillMaxHeight().testTag("side_rail")) {
@@ -372,78 +351,96 @@ private fun SideRail(
                     contentAlignment = Alignment.Center
                 ) {
                     Box {
-                        Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else EInk.Value, modifier = Modifier.size(27.dp))
+                        TabIcon(tab, selected)
                         if (count > 0) CountBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 9.dp, y = (-6).dp))
                     }
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            NewPostButton(onCompose)
         }
         androidx.compose.material3.VerticalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
     }
 }
 
 /**
- * The bottom bar: Home, Search, Wallet, Notifications, Messages as icons only, outlined, the open
- * page's filled; on the page's own background with a hairline above. Unread counts sit on the
- * icon in an orange bubble.
+ * The bottom bar: a floating, rounded island with Home, Search, New post (the round + in the
+ * middle), Notifications and Messages. The open tab sits in an aurora capsule; unread counts
+ * are small accent bubbles on the icon.
  */
 @Composable
 private fun BottomBar(
     selectedTab: MainTab,
     badges: Map<MainTab, Int>,
+    onCompose: () -> Unit,
     onTab: (MainTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxWidth().screenBackground()) {
-        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
+    Box(modifier.fillMaxWidth().screenBackground().navigationBarsPadding().padding(horizontal = 20.dp).padding(top = 4.dp, bottom = 12.dp)) {
         Row(
-            Modifier.fillMaxWidth().navigationBarsPadding().height(BOTTOM_BAR_HEIGHT),
+            Modifier.fillMaxWidth().height(BOTTOM_BAR_HEIGHT)
+                .shadow(16.dp, Radius.Full)
+                .clip(Radius.Full)
+                .background(EInk.Sheet)
+                .border(1.dp, EInk.BodyStroke, Radius.Full)
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BAR_TABS.forEach { tab ->
-                val count = badges[tab] ?: 0
-                val selected = selectedTab == tab
-                BarSlot(
-                    label = if (count > 0) tr("{0}, {1} unread", tr(tab.label), count) else tr(tab.label),
-                    selected = selected,
-                    onClick = { onTab(tab) }
-                ) {
-                    Box {
-                        Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else EInk.Value, modifier = Modifier.size(27.dp))
-                        if (count > 0) CountBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 9.dp, y = (-6).dp))
-                    }
-                }
-            }
+            val (left, right) = BAR_TABS.chunked(2).let { it[0] to it[1] }
+            left.forEach { BarTab(it, selectedTab, badges, onTab) }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { NewPostButton(onCompose) }
+            right.forEach { BarTab(it, selectedTab, badges, onTab) }
         }
     }
 }
 
-/**
- * "New post", floating at the bottom right: a round button with a plus in the accent colour,
- * as on X. A little press-in; shrinks away while the bars are hidden.
- */
 @Composable
-private fun ComposeButton(visible: Boolean, onCompose: () -> Unit, modifier: Modifier = Modifier) {
+private fun RowScope.BarTab(tab: MainTab, selectedTab: MainTab, badges: Map<MainTab, Int>, onTab: (MainTab) -> Unit) {
+    val count = badges[tab] ?: 0
+    val selected = selectedTab == tab
+    BarSlot(
+        label = if (count > 0) tr("{0}, {1} unread", tr(tab.label), count) else tr(tab.label),
+        selected = selected,
+        onClick = { onTab(tab) }
+    ) {
+        Box {
+            TabIcon(tab, selected)
+            if (count > 0) CountBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 9.dp, y = (-6).dp))
+        }
+    }
+}
+
+/** A tab's icon; the open one filled, in an aurora capsule. */
+@Composable
+private fun TabIcon(tab: MainTab, selected: Boolean) {
+    Box(
+        Modifier.size(width = 52.dp, height = 38.dp).clip(Radius.Full)
+            .then(if (selected) Modifier.background(Aurora.brush) else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Aurora.OnAurora else EInk.Value, modifier = Modifier.size(25.dp))
+    }
+}
+
+/** "New post": the round + in the middle of the bar (and on the rail). */
+@Composable
+private fun NewPostButton(onCompose: () -> Unit) {
     val haptics = com.example.btcwidget.ui.social.rememberHaptics()
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val shown by androidx.compose.animation.core.animateFloatAsState(if (visible) 1f else 0f, label = "compose_shown")
     val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.9f else 1f, label = "compose_press")
-    if (shown < 0.01f) return
-    val shape = androidx.compose.foundation.shape.CircleShape
     Box(
-        modifier
-            .graphicsLayer { alpha = shown; val s = scale * (0.6f + 0.4f * shown); scaleX = s; scaleY = s }
-            .shadow(6.dp, shape)
-            .size(56.dp)
-            .clip(shape)
+        Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .size(44.dp)
+            .clip(CircleShape)
             .background(EInk.Accent)
             .clickable(interactionSource = source, indication = null, role = Role.Button) { haptics.tick(); onCompose() }
             .semantics { contentDescription = tr("New post") }
             .testTag("compose_button"),
         contentAlignment = Alignment.Center
     ) {
-        Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(26.dp))
+        Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -496,86 +493,95 @@ private fun MenuIconButton(
             )
             .semantics { contentDescription = tr("Open menu") }
     ) {
+        // Your picture, in an aurora ring (brighter while one of the menu's pages is open).
         Box(
-            Modifier.size(34.dp).clip(CircleShape)
-                .then(if (menuOpen) Modifier.border(2.dp, Accent, CircleShape) else Modifier)
-                .padding(if (menuOpen) 3.dp else 1.dp),
+            Modifier.size(36.dp).clip(CircleShape).auroraRing(),
             contentAlignment = Alignment.Center
         ) { menuIcon() }
     }
 }
 
-/**
- * Title row above every page: your avatar at the left opens the side bar (long-press it to
- * switch accounts), as on X; ringed in orange while one of the side bar's pages is open.
- */
 @Composable
 private fun TopBar(title: String, menuButton: (@Composable () -> Unit)?) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .padding(horizontal = 8.dp)
+            .height(60.dp)
+            .padding(start = 16.dp, end = 8.dp)
     ) {
-        menuButton?.invoke()
         Text(
             text = title,
             color = EInk.Value,
-            fontSize = TextSize.Title,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = if (menuButton != null) 10.dp else 8.dp)
+            fontSize = TextSize.Display,
+            lineHeight = LineHeight.Display,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1,
+            modifier = Modifier.weight(1f)
         )
+        menuButton?.invoke()
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 /**
- * The side bar, from the left as on X: your account at the top, then your pages in large type,
- * Settings last under a line. Opened by your avatar at the top left.
+ * Your menu, a sheet from your avatar: who you are, three big tiles (Profile, Wallet,
+ * Bookmarks), then Lists, Live, Settings and switching accounts.
  */
 @Composable
-private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen: (MainTab) -> Unit) {
-    Column(
-        Modifier
-            .fillMaxHeight()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = 8.dp)
-    ) {
-        Box(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)) { header() }
-        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(bottom = 6.dp))
-        DRAWER_PAGES.forEach { tab ->
-            if (tab == MainTab.SETTINGS) HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 6.dp))
-            val selected = selectedTab == tab
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 2.dp)
-                    .clip(Radius.Large)
-                    .background(if (selected) EInk.Body else Color.Transparent)
-                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Open {0}", tr(tab.title))) { onOpen(tab) }
-                    .padding(horizontal = 14.dp, vertical = 13.dp)
-            ) {
-                Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else EInk.Value, modifier = Modifier.size(26.dp))
-                Text(
-                    text = tr(tab.title),
-                    color = EInk.Value,
-                    fontSize = TextSize.Title,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    modifier = Modifier.padding(start = 20.dp)
-                )
+private fun AccountMenuSheet(
+    selectedTab: MainTab,
+    header: @Composable () -> Unit,
+    onOpen: (MainTab) -> Unit,
+    onSwitchAccount: (() -> Unit)?,
+    onDismiss: () -> Unit
+) {
+    com.example.btcwidget.ui.social.BlockSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = Space.XL).padding(bottom = Space.XXL)) {
+            Box(Modifier.fillMaxWidth().padding(bottom = Space.L)) { header() }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(bottom = Space.S)) {
+                MENU_TILES.forEach { tab -> MenuTile(tab, selectedTab == tab, Modifier.weight(1f)) { onOpen(tab) } }
             }
+            MENU_ROWS.forEach { tab -> MenuRow(tr(tab.title), tab.icon.of(selectedTab == tab), selectedTab == tab) { onOpen(tab) } }
+            if (onSwitchAccount != null) Text(
+                tr("Switch account"), color = EInk.Caption, fontSize = TextSize.Body,
+                modifier = Modifier.fillMaxWidth().clip(Radius.Small).clickable(role = Role.Button, onClick = onSwitchAccount).padding(horizontal = 4.dp, vertical = 14.dp)
+            )
         }
     }
 }
 
+@Composable
+private fun MenuTile(tab: MainTab, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(Radius.Large).background(EInk.Body)
+            .then(if (selected) Modifier.border(1.5.dp, EInk.Accent, Radius.Large) else Modifier)
+            .clickable(role = Role.Button, onClickLabel = tr("Open {0}", tr(tab.title)), onClick = onClick)
+            .padding(vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(tab.icon.of(selected), contentDescription = null, tint = EInk.Value, modifier = Modifier.size(24.dp))
+        Text(tr(tab.title), color = EInk.Value, fontSize = TextSize.Caption, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun MenuRow(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clip(Radius.Small)
+            .clickable(role = Role.Button, onClickLabel = tr("Open {0}", title), onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 13.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = if (selected) EInk.Accent else EInk.Value, modifier = Modifier.size(24.dp))
+        Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, modifier = Modifier.padding(start = Space.L))
+    }
+}
+
 /**
- * Pages. The bottom bar holds Home, Search, Wallet, Notifications and Messages; the side bar
- * (your avatar at the top left) holds Profile, Lists, Bookmarks, Live and Settings.
- * Widgets are in Settings › Bitcoin and widgets. [label] names the bar icon for TalkBack, [title] is shown in the top bar and side bar.
+ * Pages. The floating bottom bar holds Home, Search, Notifications and Messages (with New post
+ * in the middle); the menu from your avatar at the top right holds Profile, Wallet, Bookmarks,
+ * Lists, Live and Settings. Widgets are in Settings › Bitcoin and widgets. [label] names the bar
+ * icon for TalkBack, [title] is shown as the page's heading and in the menu.
  */
 enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.NavIcon, val title: String = label) {
     HOME("Home", com.example.btcwidget.ui.social.NavIcons.Home),
@@ -592,12 +598,12 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
 
 // Getters, not stored values: a top-level val that touches MainTab would initialize the
 // enum while this file's other top-level vals are still null (that crashed the app once).
-private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.WALLET, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
+private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.NOTIFICATIONS, MainTab.MESSAGES)
 
-/** Pages with the floating "new post" button: where you read notes. */
-private val COMPOSE_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.NOTIFICATIONS, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)
-
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.LIVE, MainTab.SETTINGS)
+/** The menu from your avatar: three tiles, then rows. */
+private val MENU_TILES get() = listOf(MainTab.PROFILE, MainTab.WALLET, MainTab.BOOKMARKS)
+private val MENU_ROWS get() = listOf(MainTab.LISTS, MainTab.LIVE, MainTab.SETTINGS)
+private val DRAWER_PAGES get() = MENU_TILES + MENU_ROWS
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
 private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.LIVE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)
