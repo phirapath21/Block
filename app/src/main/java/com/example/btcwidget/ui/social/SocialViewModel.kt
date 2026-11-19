@@ -252,6 +252,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     /** Returns an error message, or null on success. */
     fun loginWithSecret(input: String): String? = try {
         repo.loginWithSecret(input)
+        // They typed the key in: they have it.
+        repo.pubkey?.let { keyBackup.saved(it) }
         afterLogin()
         null
     } catch (e: IllegalArgumentException) {
@@ -274,6 +276,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
             say(tr("Couldn't create the account on this phone: {0}", e.javaClass.simpleName))
             return null
         }
+        // Shown once on the next screen; Block reminds until it's saved.
+        repo.pubkey?.let { keyBackup.needed(it) }
         afterLogin()
         val me = repo.pubkey
         if (name.isNotBlank() && me != null) act(tr("Couldn't publish your profile")) {
@@ -546,6 +550,9 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     // ---- Proof of work (NIP-13) ----
 
     val pow = PowSettings(application, repo, viewModelScope)
+
+    /** Whether the key of an account made here still needs saving, and the reminder for it. */
+    val keyBackup by lazy { KeyBackupState(application, repo.account, viewModelScope) }
 
     /** Stops mining the publish [id] and sends it without proof of work. */
     fun skipPow(id: Long) {

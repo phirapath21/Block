@@ -36,6 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,6 +90,8 @@ fun SettingsLinkRow(
     destructive: Boolean = false,
     chevron: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
+    /** A small accent dot: something here needs the user (an unsaved key). */
+    badge: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
@@ -100,6 +104,10 @@ fun SettingsLinkRow(
         }
         RowText(title, summary, if (destructive) Destructive else EInk.Value, Modifier.weight(1f))
         if (value != null) Text(value, color = EInk.Caption, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(start = 12.dp))
+        if (badge) Box(
+            Modifier.padding(start = 10.dp).size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(EInk.Accent)
+                .semantics { contentDescription = tr("Needs your attention") }
+        )
         if (chevron && !destructive) Icon(Glyphs.Chevron, contentDescription = null, tint = EInk.Caption, modifier = Modifier.padding(start = 4.dp).size(22.dp))
     }
 }

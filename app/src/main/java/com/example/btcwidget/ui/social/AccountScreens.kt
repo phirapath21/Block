@@ -231,7 +231,7 @@ fun LoginScreen(
                     val nsec = newNsec.orEmpty()
                     Text(tr("This is your private key"), color = EInk.Value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        tr("Save it in a password manager now. It's the only way to log in on another app or phone, and nobody can recover it for you. Never share it."),
+                        keyBackupExplainer(),
                         color = EInk.Label, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
                     )
                     Text(
@@ -239,9 +239,16 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth().background(EInk.Body).padding(12.dp)
                     )
                     Row(Modifier.padding(top = 14.dp)) {
-                        PillButton(tr("Copy"), filled = false, modifier = Modifier.padding(end = 8.dp)) { copySecret(context, nsec) }
-                        PillButton(tr("I saved it")) { newNsec = null; onCreated() }
+                        PillButton(tr("Copy"), filled = false, modifier = Modifier.padding(end = 8.dp)) { copySecret(context, nsec); vm.keyBackup.saved() }
+                        PillButton(tr("I saved it")) { vm.keyBackup.saved(); newNsec = null; onCreated() }
                     }
+                    // Not now: Home reminds again in a few days.
+                    Text(
+                        tr("Later"), color = EInk.Caption, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 18.dp).clip(RoundedCornerShape(50))
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { vm.keyBackup.later(); newNsec = null; onCreated() }
+                            .padding(horizontal = 4.dp, vertical = 6.dp)
+                    )
                 }
             }
         }

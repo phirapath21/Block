@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 
@@ -143,7 +144,8 @@ fun MainScreen(
         settingsContent = {
             com.example.btcwidget.ui.social.SettingsHome(
                 accountName = account?.let { a -> social.profiles.value[a.pubkey]?.bestName ?: com.example.btcwidget.nostr.core.Profile.shortNpub(a.pubkey) },
-                onOpen = { page -> onItemClick(com.example.btcwidget.SettingsKey(page.name)) }
+                onOpen = { page -> onItemClick(com.example.btcwidget.SettingsKey(page.name)) },
+                needsAttention = if (social.keyBackup.needed.collectAsState().value) setOf(com.example.btcwidget.ui.social.SettingsPage.ACCOUNT) else emptySet()
             )
         }
     )

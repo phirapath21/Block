@@ -76,7 +76,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
  * [accountName] shows under "Your account" (null when logged out).
  */
 @Composable
-fun SettingsHome(accountName: String?, onOpen: (SettingsPage) -> Unit) {
+fun SettingsHome(accountName: String?, onOpen: (SettingsPage) -> Unit, needsAttention: Set<SettingsPage> = emptySet()) {
     var query by rememberSaveable { mutableStateOf("") }
     Column(Modifier.fillMaxSize().screenBackground().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -94,7 +94,7 @@ fun SettingsHome(accountName: String?, onOpen: (SettingsPage) -> Unit) {
         }
         SettingsPage.entries.filter { it.topLevel }.forEach { page ->
             val summary = if (page == SettingsPage.ACCOUNT && accountName != null) accountName + " · " + tr(page.summary) else tr(page.summary)
-            SettingsLinkRow(tr(page.title), summary = summary, icon = page.icon()) { onOpen(page) }
+            SettingsLinkRow(tr(page.title), summary = summary, icon = page.icon(), badge = page in needsAttention) { onOpen(page) }
         }
         Spacer(Modifier.height(24.dp))
     }
