@@ -96,7 +96,7 @@ dependencies {
   // Background refresh
   implementation(libs.androidx.work.runtime.ktx)
 
-  // Drag-and-drop reordering in lazy grids (dashboard metrics)
+  // Drag-and-drop reordering in lazy grids (widget metrics)
   implementation(libs.reorderable)
 
   // Compose
@@ -134,7 +134,6 @@ dependencies {
   // Animated GIFs in notes, and video playback
   implementation(libs.coil.gif)
   implementation(libs.media3.exoplayer)
-  // Fingerprint / face prompt with compatibility down to Android 7.
   // HLS (.m3u8) streams: the videos that offer several qualities to choose from
   implementation(libs.media3.exoplayer.hls)
   // QR codes: ZXing core encoder/decoder with our own CameraX preview and analyzer.

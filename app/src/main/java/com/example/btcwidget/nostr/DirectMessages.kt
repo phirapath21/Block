@@ -280,7 +280,7 @@ class DirectMessages internal constructor(private val repo: NostrRepository) {
         val me = repo.pubkey ?: error("Log in to Nostr first")
         if (bytes.size > MAX_FILE) error("Files in encrypted chats can be up to 25 MB")
         val sealed = com.example.btcwidget.nostr.core.DmFile.encrypt(bytes)
-        val blob = repo.uploadEncrypted(sealed.bytes)
+        val blob = repo.uploads.encrypted(sealed.bytes)
         val tags = com.example.btcwidget.nostr.core.DmFile.tags(
             mime = mime,
             sealed = sealed,

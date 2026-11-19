@@ -39,11 +39,11 @@ class PowSettings(private val app: Application, private val repo: NostrRepositor
     private val _relayPow = MutableStateFlow<Pair<Int, String?>>(0 to null)
     /** The most proof of work any of your relays asks for, and which relay (0 = none known). */
     val relayPow: StateFlow<Pair<Int, String?>> = _relayPow.asStateFlow()
-    fun checkRelayPow() = scope.launch { _relayPow.value = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null) }
+    fun checkRelayPow() = scope.launch { _relayPow.value = runCatching { repo.relayChecks.minPow() }.getOrDefault(0 to null) }
 
     /** What the relays a post goes to ask for (NIP-11), when within reach; 0 when none ask. */
     internal suspend fun bitsNeeded(): Int {
-        val (asked, _) = runCatching { repo.relaysMinPow() }.getOrDefault(0 to null).also { _relayPow.value = it }
+        val (asked, _) = runCatching { repo.relayChecks.minPow() }.getOrDefault(0 to null).also { _relayPow.value = it }
         return if (asked in 1..RELAY_POW_LIMIT) asked else 0
     }
 }

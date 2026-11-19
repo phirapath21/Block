@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.btcwidget.nostr.NostrRepository
+import com.example.btcwidget.nostr.Search
 import com.example.btcwidget.nostr.core.Nip19
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
@@ -79,7 +79,7 @@ internal fun NewMessageDialog(
             scope.launch {
                 val target = vm.resolve(input)
                 busy = false
-                if (target is NostrRepository.Direct.ProfileTarget) onOpen(target.pubkey)
+                if (target is Search.Direct.ProfileTarget) onOpen(target.pubkey)
                 else error = tr("Couldn't find that person. Try their npub.")
             }
         }

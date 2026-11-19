@@ -17,9 +17,9 @@ import com.example.btcwidget.nostr.core.Profile
 @Composable
 fun handleText(profile: Profile?, pubkey: String): String {
     val repo = NostrRepository.get(LocalContext.current)
-    val verified by repo.nip05Verified.collectAsState()
+    val verified by repo.nip05.verified.collectAsState()
     val id = profile?.nip05?.trim()?.takeIf { it.isNotEmpty() }
-    LaunchedEffect(pubkey, id) { if (id != null) repo.verifyNip05(pubkey, id) }
+    LaunchedEffect(pubkey, id) { if (id != null) repo.nip05.verify(pubkey, id) }
     return when {
         id != null && verified["$pubkey|$id"] == true -> id.removePrefix("_@")
         profile?.name?.takeIf { it.isNotBlank() && ' ' !in it } != null -> "@" + profile.name
@@ -32,7 +32,7 @@ fun handleText(profile: Profile?, pubkey: String): String {
 fun isVerified(profile: Profile?, pubkey: String): Boolean {
     val id = profile?.nip05?.trim()?.takeIf { it.isNotEmpty() } ?: return false
     val repo = NostrRepository.get(LocalContext.current)
-    val verified by repo.nip05Verified.collectAsState()
-    LaunchedEffect(pubkey, id) { repo.verifyNip05(pubkey, id) }
+    val verified by repo.nip05.verified.collectAsState()
+    LaunchedEffect(pubkey, id) { repo.nip05.verify(pubkey, id) }
     return verified["$pubkey|$id"] == true
 }

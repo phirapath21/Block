@@ -480,8 +480,6 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
     HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
-private fun formatSats(sats: Long): String = "%,d".format(sats)
-
 // ---- Home feeds: tabs and the sheet to manage them ----
 
 /** The icon for a kind of feed, the same in the tabs' sheet and wherever feeds are listed. */

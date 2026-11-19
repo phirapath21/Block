@@ -60,6 +60,7 @@ import com.example.btcwidget.NoteKey
 import com.example.btcwidget.ProfileKey
 import com.example.btcwidget.nostr.FeedItem
 import com.example.btcwidget.nostr.NostrRepository
+import com.example.btcwidget.nostr.Search
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 import kotlinx.coroutines.Job
@@ -138,10 +139,10 @@ fun SearchScreen(
         peopleLoading = true; notesLoading = true; articlesLoading = true
         job = scope.launch {
             when (val direct = vm.resolve(q)) {
-                is NostrRepository.Direct.ProfileTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; openProfile(direct.pubkey); return@launch }
-                is NostrRepository.Direct.NoteTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; navigate(NoteKey(direct.id)); return@launch }
-                is NostrRepository.Direct.HashtagTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; navigate(HashtagKey(direct.tag)); return@launch }
-                is NostrRepository.Direct.ArticleTarget -> {
+                is Search.Direct.ProfileTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; openProfile(direct.pubkey); return@launch }
+                is Search.Direct.NoteTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; navigate(NoteKey(direct.id)); return@launch }
+                is Search.Direct.HashtagTarget -> { peopleLoading = false; notesLoading = false; articlesLoading = false; navigate(HashtagKey(direct.tag)); return@launch }
+                is Search.Direct.ArticleTarget -> {
                     peopleLoading = false; notesLoading = false; articlesLoading = false
                     navigate(com.example.btcwidget.ArticleKey(direct.address.let { com.example.btcwidget.nostr.core.Nip19.naddr(it.kind, it.pubkey, it.identifier, it.relays) }))
                     return@launch

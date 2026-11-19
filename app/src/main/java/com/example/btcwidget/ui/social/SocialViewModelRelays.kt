@@ -33,7 +33,7 @@ fun SocialViewModel.setRelays(urls: List<String>?) {
 
 fun SocialViewModel.myRelayUrls() = repo.myRelayUrls()
 
-suspend fun SocialViewModel.probeRelays(urls: List<String>) = runCatching { repo.probeRelays(urls) }.getOrDefault(emptyList())
+suspend fun SocialViewModel.probeRelays(urls: List<String>) = runCatching { repo.relayChecks.probe(urls) }.getOrDefault(emptyList())
 
 suspend fun SocialViewModel.suggestedRelays() = runCatching { repo.suggestedRelays() }.getOrDefault(emptyList())
 
@@ -65,7 +65,7 @@ val SocialViewModel.searchRelays get() = repo.searchRelays
 
 val SocialViewModel.blockedRelays get() = repo.blockedRelays
 
-suspend fun SocialViewModel.relayInfo(url: String) = repo.relayInfo(url)
+suspend fun SocialViewModel.relayInfo(url: String) = repo.relayChecks.info(url)
 
 fun SocialViewModel.saveRelayList(entries: List<com.example.btcwidget.nostr.core.RelayLists.Entry>) =
     tracked(tr("Saving your relays"), tr("Relays saved"), tr("Couldn't save your relays")) { repo.saveRelayList(entries) }

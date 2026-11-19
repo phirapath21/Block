@@ -373,4 +373,4 @@ private fun SheetButton(label: String, enabled: Boolean = true, onClick: () -> U
 /** "lightning:LNBC…" → "lnbc…", the way invoices are pasted and scanned. */
 internal fun cleanInvoice(raw: String): String = raw.trim().removePrefix("lightning:").removePrefix("LIGHTNING:").lowercase()
 
-private fun formatSats(sats: Long): String = "%,d".format(sats)
+internal fun formatSats(sats: Long): String = "%,d".format(sats)

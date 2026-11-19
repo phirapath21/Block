@@ -1,11 +1,8 @@
 package com.example.btcwidget.ui.social
 
 import android.content.ClipData
-import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
-import android.os.PersistableBundle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +23,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -169,7 +165,7 @@ private fun PrivateKey(vm: SocialViewModel) {
         SecureScreen()
         Text(shown, color = EInk.Value, fontSize = 14.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingsButton(tr("Copy")) { copySecret(context, shown) }
+            SettingsButton(tr("Copy")) { copySecretWithNote(context, shown) }
             SettingsButton(tr("Hide"), primary = true) { nsec = null }
         }
     }
@@ -184,11 +180,7 @@ private fun PrivateKey(vm: SocialViewModel) {
 }
 
 /** Copies a secret marked sensitive, so Android 13+ hides it from the clipboard preview. */
-private fun copySecret(context: Context, secret: String) {
-    val clip = ClipData.newPlainText("nsec", secret)
-    if (Build.VERSION.SDK_INT >= 33) {
-        clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
-    }
-    (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
+private fun copySecretWithNote(context: Context, secret: String) {
+    copySecret(context, secret)
     android.widget.Toast.makeText(context, tr("Copied. Paste it somewhere safe, then clear your clipboard."), android.widget.Toast.LENGTH_LONG).show()
 }
