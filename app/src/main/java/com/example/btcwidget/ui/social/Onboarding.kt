@@ -420,7 +420,7 @@ internal fun FirstHomeWelcome(vm: SocialViewModel) {
     androidx.compose.animation.AnimatedVisibility(visible = name != null) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).clip(Radius.Large)
-                .background(EInk.Body).border(1.dp, EInk.BodyStroke, Radius.Large).padding(14.dp),
+                .background(com.example.btcwidget.ui.main.CardColors.Fill).border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large).padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
             Icon(Glyphs.Sparkle, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(28.dp))

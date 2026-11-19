@@ -176,11 +176,20 @@ fun BlockChip(text: String, selected: Boolean, modifier: Modifier = Modifier, fi
     }
 }
 
-/** A card: the surface colour, a hairline edge, large corners. */
+/**
+ * Cards are see-through: a faint veil of the text colour over the page (so the aurora and the
+ * page's own colour show through), and a soft hairline edge.
+ */
+object CardColors {
+    val Fill get() = EInk.Value.copy(alpha = 0.035f)
+    val Edge get() = EInk.BodyStroke.copy(alpha = 0.75f)
+}
+
+/** A card: see-through ([CardColors]), a hairline edge, large corners. */
 @Composable
 fun BlockCard(modifier: Modifier = Modifier, padding: Dp = 14.dp, content: @Composable () -> Unit) {
     Box(
-        modifier.clip(Radius.Large).background(EInk.Body).border(1.dp, EInk.BodyStroke, Radius.Large).padding(padding)
+        modifier.clip(Radius.Large).background(CardColors.Fill).border(1.dp, CardColors.Edge, Radius.Large).padding(padding)
     ) { content() }
 }
 

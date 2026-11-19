@@ -120,8 +120,9 @@ fun NoteCard(
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 5.dp)
             .clip(Radius.Large)
-            .background(EInk.Body)
-            .border(1.dp, EInk.BodyStroke, Radius.Large)
+            // See-through, so the page (and Aurora's glow) shows behind every post.
+            .background(com.example.btcwidget.ui.main.CardColors.Fill)
+            .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
             .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
