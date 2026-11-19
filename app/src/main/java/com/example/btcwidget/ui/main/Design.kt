@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -113,13 +116,15 @@ fun BlockButton(
         ButtonKind.Danger -> Color.White
         ButtonKind.Outline, ButtonKind.Text -> EInk.Value
     }
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Row(
         modifier
+            .pressScale(press)
             .heightIn(min = size.height)
             .clip(Radius.Full)
             .background(bg.copy(alpha = if (enabled) bg.alpha else bg.alpha * 0.4f))
             .then(if (kind == ButtonKind.Outline) Modifier.border(1.dp, EInk.BodyStroke, Radius.Full) else Modifier)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = text, onClick = onClick)
+            .clickable(interactionSource = press, indication = androidx.compose.material3.ripple(), enabled = enabled, role = Role.Button, onClickLabel = text, onClick = onClick)
             .padding(horizontal = if (kind == ButtonKind.Text) Space.S else size.padding),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -160,12 +165,14 @@ fun BlockChip(
         selected -> EInk.Background
         else -> EInk.Value
     }
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         modifier
+            .pressScale(press)
             .clip(shape)
             .background(bg, shape)
             .then(if (!filter) Modifier.border(1.dp, if (selected) EInk.Value else EInk.BodyStroke, shape) else Modifier)
-            .clickable(role = role, onClick = onClick)
+            .clickable(interactionSource = press, indication = androidx.compose.material3.ripple(), role = role, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(horizontal = if (filter) Space.M else 14.dp, vertical = if (filter) 6.dp else 7.dp),
         contentAlignment = Alignment.Center
@@ -266,6 +273,19 @@ fun EmptyArt(icon: ImageVector) {
             contentAlignment = Alignment.Center
         ) { Icon(icon, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(42.dp)) }
     }
+}
+
+/**
+ * Gives way a little under the finger (to [scale]) and springs back: buttons, capsules and
+ * cards feel pressed. [source] is the one the clickable uses.
+ */
+@Composable
+fun Modifier.pressScale(source: androidx.compose.foundation.interaction.InteractionSource, scale: Float = 0.96f): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val s by androidx.compose.animation.core.animateFloatAsState(
+        if (pressed) scale else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 700f), label = "press"
+    )
+    return this.graphicsLayer { scaleX = s; scaleY = s }
 }
 
 /** A grey bar where text will be, while it loads. */

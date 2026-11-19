@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -182,9 +183,8 @@ internal const val BACK_TO_TOP_AFTER = 8
 
 @Composable
 fun Spinner(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = EInk.Value, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
-    }
+    // The shape of what's coming, pulsing softly, instead of a spinning ring.
+    Box(modifier.fillMaxWidth().semantics { contentDescription = tr("Loading…") }) { NotesSkeleton(3) }
 }
 
 @Composable

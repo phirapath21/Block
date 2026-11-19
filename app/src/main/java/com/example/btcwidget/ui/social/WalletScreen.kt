@@ -189,7 +189,7 @@ fun WalletScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 @Composable
 private fun RowScope.WalletAction(icon: ImageVector, label: String, primary: Boolean, onClick: () -> Unit) {
     val haptics = rememberHaptics()
-    val fill = if (primary) EInk.Value else Color.Black.copy(alpha = 0.25f)
+    val fill = if (primary) EInk.Value else EInk.Background.copy(alpha = 0.35f)
     val ink = if (primary) EInk.Background else EInk.Value
     Row(
         Modifier.weight(1f).height(52.dp).clip(Radius.Full).background(fill)

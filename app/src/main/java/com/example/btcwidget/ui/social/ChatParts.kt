@@ -127,7 +127,7 @@ internal fun ChatTopBar(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(11.dp))
                         Text(
-                            text = if (isGroup) tr("{0} members · Encrypted", peers.size + 1) else tr("NIP-17 encrypted"),
+                            text = if (isGroup) tr("{0} members · Private", peers.size + 1) else tr("Private"),
                             color = EInk.Caption,
                             fontSize = TextSize.Micro,
                             maxLines = 1,
@@ -137,7 +137,6 @@ internal fun ChatTopBar(
                 }
             }
         }
-        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
     }
 }
 

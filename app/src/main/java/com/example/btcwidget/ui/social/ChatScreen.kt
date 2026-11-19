@@ -324,7 +324,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                         itemsIndexed(messages, key = { _, m -> m.id }) { index, m ->
                             val mine = m.sender == me
                             val isUnsent = m.id in unsentIds
-                            val fg = if (mine) Color.Black else EInk.Value
+                            val fg = if (mine) EInk.OnAccent else EInk.Value
                             val prev = messages.getOrNull(index - 1)
                             val next = messages.getOrNull(index + 1)
 
@@ -333,21 +333,21 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             val isFirstInCluster = showTimeHeader || prev.sender != m.sender
                             val isLastInCluster = nextStartsNewTimeGroup || next.sender != m.sender
 
-                            // Messenger-style dynamic bubble corners: outer corners are 18.dp,
-                            // inner corners where consecutive bubbles in a cluster meet are 4.dp.
+                            // Soft bubbles: round on the outside; where bubbles in a run meet, a
+                            // smaller corner, and the last one's tail corner is the smallest.
                             val bubbleShape = if (mine) {
                                 RoundedCornerShape(
-                                    topStart = 18.dp,
-                                    bottomStart = 18.dp,
-                                    topEnd = if (isFirstInCluster) 18.dp else 4.dp,
-                                    bottomEnd = if (isLastInCluster) 18.dp else 4.dp
+                                    topStart = 20.dp,
+                                    bottomStart = 20.dp,
+                                    topEnd = if (isFirstInCluster) 20.dp else 8.dp,
+                                    bottomEnd = if (isLastInCluster) 6.dp else 8.dp
                                 )
                             } else {
                                 RoundedCornerShape(
-                                    topEnd = 18.dp,
-                                    bottomEnd = 18.dp,
-                                    topStart = if (isFirstInCluster) 18.dp else 4.dp,
-                                    bottomStart = if (isLastInCluster) 18.dp else 4.dp
+                                    topEnd = 20.dp,
+                                    bottomEnd = 20.dp,
+                                    topStart = if (isFirstInCluster) 20.dp else 8.dp,
+                                    bottomStart = if (isLastInCluster) 6.dp else 8.dp
                                 )
                             }
 
@@ -445,9 +445,10 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                     Modifier
                                                         .widthIn(max = 284.dp)
                                                         .clip(bubbleShape)
-                                                        .background(if (mine) EInk.Accent else EInk.Body, bubbleShape)
+                                                        // Yours in the accent; theirs see-through, like the cards.
+                                                        .background(if (mine) EInk.Accent else com.example.btcwidget.ui.main.CardColors.Fill, bubbleShape)
                                                         .then(
-                                                            if (!mine) Modifier.border(0.5.dp, EInk.BodyStroke, bubbleShape)
+                                                            if (!mine) Modifier.border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, bubbleShape)
                                                             else Modifier
                                                         )
                                                         .combinedClickable(
@@ -476,7 +477,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                 .height(IntrinsicSize.Min)
                                                                 .clip(Radius.Small)
                                                                 .background(
-                                                                    if (mine) Color.Black.copy(alpha = 0.12f)
+                                                                    if (mine) Color.Black.copy(alpha = 0.18f)
                                                                     else EInk.Background.copy(alpha = 0.45f)
                                                                 )
                                                                 .padding(end = 8.dp)
@@ -485,12 +486,12 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                 Modifier
                                                                     .width(3.dp)
                                                                     .fillMaxHeight()
-                                                                    .background(if (mine) Color.Black.copy(alpha = 0.6f) else EInk.Accent)
+                                                                    .background(if (mine) EInk.OnAccent.copy(alpha = 0.7f) else EInk.Accent)
                                                             )
                                                             Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                                                                 Text(
                                                                     profiles[parent.sender]?.bestName ?: Profile.shortNpub(parent.sender),
-                                                                    color = if (mine) Color.Black else EInk.Accent,
+                                                                    color = if (mine) EInk.OnAccent else EInk.Accent,
                                                                     fontSize = TextSize.Micro,
                                                                     fontWeight = FontWeight.Bold,
                                                                     maxLines = 1
@@ -685,13 +686,20 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    // Attachment picker button (Photo, Video, Audio, or Document)
+                    // One capsule: attach, the text, then Send.
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(26.dp))
+                            .background(EInk.Body)
+                            .border(1.dp, EInk.BodyStroke, RoundedCornerShape(26.dp))
+                            .padding(4.dp)
+                    ) {
                     Box(
                         Modifier
-                            .size(42.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
-                            .background(EInk.Body)
-                            .border(0.5.dp, EInk.BodyStroke, CircleShape)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = !mediaSending, onClickLabel = tr("Attach photo, video, or file")) {
                                 showAttachSheet = true
                             },
@@ -705,23 +713,18 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             )
                         } else {
                             Icon(
-                                Glyphs.Attach,
+                                Glyphs.PhotoLine,
                                 contentDescription = tr("Attach photo, video, or file"),
-                                tint = EInk.Accent,
-                                modifier = Modifier.size(20.dp)
+                                tint = EInk.Caption,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
 
-                    // Pill text input
                     Box(
                         Modifier
                             .weight(1f)
-                            .padding(horizontal = 8.dp)
-                            .clip(Radius.Large)
-                            .background(EInk.Body)
-                            .border(0.5.dp, EInk.BodyStroke, Radius.Large)
-                            .padding(horizontal = 16.dp, vertical = 11.dp)
+                            .padding(start = 4.dp, end = 8.dp, top = 11.dp, bottom = 11.dp)
                     ) {
                         BasicTextField(
                             value = text,
@@ -745,7 +748,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     val ready = text.isNotBlank() && !sending && me != null
                     Box(
                         Modifier
-                            .size(42.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .background(if (ready || sending) EInk.Accent else EInk.Track)
                             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = ready, onClickLabel = tr("Send")) {
@@ -767,7 +770,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                     ) {
                         if (sending) {
                             CircularProgressIndicator(
-                                color = Color.Black,
+                                color = EInk.OnAccent,
                                 strokeWidth = 2.dp,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -775,10 +778,11 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             Icon(
                                 Glyphs.Send,
                                 contentDescription = tr("Send"),
-                                tint = if (ready) Color.Black else EInk.Caption,
+                                tint = if (ready) EInk.OnAccent else EInk.Caption,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    }
                     }
                 }
             }
@@ -790,10 +794,10 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
         ActionSheet(
             onDismiss = { showAttachSheet = false },
             actions = listOf(
-                SheetAction(Glyphs.PhotoLine, tr("Photo (EXIF stripped & encrypted)")) {
+                SheetAction(Glyphs.PhotoLine, tr("Photo")) {
                     photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
-                SheetAction(Glyphs.PlayLine, tr("Video (AES-GCM encrypted)")) {
+                SheetAction(Glyphs.PlayLine, tr("Video")) {
                     videoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
                 },
                 SheetAction(Glyphs.File, tr("File or audio (PDF, ZIP, MP3…)")) {
@@ -809,7 +813,7 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                 ) {
                     Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(15.dp))
                     Text(
-                        tr("Send encrypted attachment (NIP-17 · up to 25 MB)"),
+                        tr("Sent privately, only they can open it · up to 25 MB"),
                         color = EInk.Label,
                         fontSize = TextSize.Caption,
                         fontWeight = FontWeight.SemiBold,

@@ -57,6 +57,24 @@ class AppLookTest {
     }
 
     @Test
+    fun textReadsOnSeeThroughCards() {
+        // Cards (posts, Settings groups, chat bubbles from others) are the text colour at 3.5%
+        // over the page: words and captions on them must still read in every look.
+        for (look in AppLook.entries) {
+            val c = look.colors
+            val card = over(c.value, 0.035, c.background)
+            assertTrue("${look.name} text on see-through cards", contrast(c.value, card) >= 7.0)
+            assertTrue("${look.name} captions on see-through cards", contrast(c.caption, card) >= 4.5)
+        }
+    }
+
+    /** [top] at [alpha] over the opaque [bottom], as the screen shows it. */
+    private fun over(top: Int, alpha: Double, bottom: Int): Int {
+        fun ch(shift: Int) = (((top shr shift) and 0xFF) * alpha + ((bottom shr shift) and 0xFF) * (1 - alpha)).toInt().coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+
+    @Test
     fun savedNamesComeBack() {
         for (look in AppLook.entries) assertEquals(look, AppLook.of(look.id))
         // Nothing saved (or a name from a future version): the default, Aurora.
