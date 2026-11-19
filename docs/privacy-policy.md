@@ -45,6 +45,8 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Notifications while the app is closed:** if you're logged in and "Phone notifications" is on (Settings › Nostr), the background refresh (every 15, 30 or 60 minutes) also asks your relays for new replies, mentions, reposts, likes, zaps and private messages addressed to you, decrypts messages on the phone, and shows a notification. Message text is hidden on the lock screen. Turn it off at any time in Settings.
 
+**Instant notifications:** if you choose them (you're asked the first time you turn on phone notifications, and can change it in Settings › Notifications), the app keeps a connection open to the same relays while it's closed, so the same notifications arrive within seconds. Nothing else is involved: no push server, no Google service, nothing of the developer's. The relays see that your phone stays connected and asking for events addressed to you (as they do while the app is open), and they see your IP address for as long as it's connected. Android shows a small notification while this runs. It restarts after the phone restarts or the app is updated. Turning it off closes the connection.
+
 **Search:** words you search for (anything that isn't an npub, note id, #hashtag or name@domain) are sent to public search relays, relay.nostr.band and search.nos.today, which see the search and your IP address. Search runs as you type (after a short pause), so these relays also see the partial words you typed on the way. Hashtag pages (and hashtag feeds on Home) also ask these search relays for notes with that hashtag. A name@domain lookup asks that domain's server.
 
 **Your lists:** if you change your media servers or message inbox relays in the app, the new list is published as a public event (kind 10063 or 10050).
@@ -118,6 +120,7 @@ Requests run when you open or refresh the app and in the background at the inter
 - **Storage (Android 9 and below only)** — asked only when you choose "Save image", to save that picture to Pictures/Block. Android 10 and later need no permission for this.
 - **Notifications** (Android 13 and later) — to show the Nostr notifications you switch on (replies, mentions, zaps, messages). Asked for only when you turn them on; you can revoke it in system settings at any time.
 - **Camera** — only to scan QR codes, asked the first time you open the scanner. Frames are read on the phone and never saved or sent. You can revoke it in system settings at any time; everything else works without it.
+- **Instant notifications** (only if you turn them on) — run in the foreground while closed ("foreground service" for messaging), start again after the phone restarts, and, if you allow it when asked, stay connected while the phone sleeps (exemption from battery optimisation). Turning instant notifications off stops all of this.
 - The background-work library the app uses (Android WorkManager) also declares permissions to check network status, keep scheduled updates after a restart, and run briefly in the background. They are used only to refresh the data above.
 
 ## What the app does not do

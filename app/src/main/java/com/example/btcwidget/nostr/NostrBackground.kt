@@ -61,13 +61,29 @@ object NostrBackground {
         post(context, CHANNEL_DM, id, "New message", preview(message).take(200), listOf(preview(message).take(100)), "MESSAGES", private = true)
     }
 
+    /**
+     * From the instant connection: announces [event] unless it's older than what was already
+     * announced, and moves that mark on so the periodic check doesn't repeat it.
+     */
+    internal fun announceActivity(context: Context, event: Event) {
+        if (event.createdAt <= NostrAccountStore.notificationsNotified(context)) return
+        NostrAccountStore.setNotificationsNotified(context, event.createdAt)
+        notifyLiveActivity(context, event)
+    }
+
+    /** As [announceActivity], for a private message just decrypted. */
+    internal fun announceMessage(context: Context, message: Nip17.Message) {
+        if (message.createdAt <= NostrAccountStore.dmNotified(context)) return
+        NostrAccountStore.setDmNotified(context, message.createdAt)
+        notifyLiveMessage(context, message)
+    }
+
     suspend fun check(context: Context) {
         if (!wanted(context) || !NotificationAccess.canNotify(context)) return
         val me = NostrAccountStore.account(context)?.pubkey ?: return
         val pool = RelayPool()
         try {
-            val relays = (NostrAccountStore.dmInbox(context) + (NostrAccountStore.relays(context) ?: RelayPool.DEFAULT_RELAYS)).distinct().take(8)
-            pool.setRelays(relays)
+            pool.setRelays(relays(context))
             withTimeoutOrNull(25_000) {
                 val names = cachedNames(context)
                 checkActivity(context, pool, me, names)
@@ -78,7 +94,11 @@ object NostrBackground {
         }
     }
 
-    private fun cachedNames(context: Context): Map<String, String> =
+    /** Where replies, zaps and messages for the user arrive: their DM inbox and their relays. */
+    internal fun relays(context: Context): List<String> =
+        (NostrAccountStore.dmInbox(context) + (NostrAccountStore.relays(context) ?: RelayPool.DEFAULT_RELAYS)).distinct().take(8)
+
+    internal fun cachedNames(context: Context): Map<String, String> =
         runCatching {
             EventStore(context).let { db -> try { db.query(listOf(Filter(kinds = listOf(Kind.METADATA), limit = 3_000))) } finally { db.close() } }
         }.getOrDefault(emptyList())

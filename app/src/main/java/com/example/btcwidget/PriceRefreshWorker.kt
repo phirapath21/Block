@@ -17,6 +17,8 @@ class PriceRefreshWorker(
         if (runAttemptCount == 0) {
             runCatching { com.example.btcwidget.nostr.NostrBackground.check(applicationContext) }
                 .onFailure { android.util.Log.w("PriceRefreshWorker", "Nostr check failed", it) }
+            // Instant notifications: start the connection again if Android stopped it.
+            com.example.btcwidget.nostr.InstantPush.sync(applicationContext)
         }
         val data = PriceRepository.fetchPriceData(applicationContext)
             ?: return if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()

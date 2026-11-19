@@ -114,8 +114,13 @@ fun MainScreen(
     val notificationItems by social.notifications.collectAsStateWithLifecycle()
 
     // Badges: load notifications and messages when the account is known and on every return.
-    LaunchedEffect(account) { social.refreshBadges(); social.startRealtimeNotifications() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { social.refreshBadges(); social.startRealtimeNotifications() }
+    val appContext = LocalContext.current.applicationContext
+    LaunchedEffect(account) { social.refreshBadges(); social.startRealtimeNotifications(); com.example.btcwidget.nostr.InstantPush.sync(appContext) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        social.refreshBadges(); social.startRealtimeNotifications()
+        // Instant notifications: (re)start the connection, or stop it after logging out.
+        com.example.btcwidget.nostr.InstantPush.sync(appContext)
+    }
     // Opening the Notifications tab marks them seen.
     LaunchedEffect(selectedTab, notificationItems) {
         if (selectedTab == MainTab.NOTIFICATIONS) social.markNotificationsSeen()

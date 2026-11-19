@@ -72,7 +72,8 @@ Install `app/build/outputs/apk/release/app-release.apk` on a phone and check:
 - [ ] **Search, profile, bookmarks, lists.**
 - [ ] **Themes:** Block, Ember, Gilded, Kyriaki. **Language:** Thai.
 - [ ] **Airplane mode:** cached data shows, and the widgets keep their last values.
-- [ ] **Phone notifications** for Nostr: the permission prompt appears when you turn them on.
+- [ ] **Phone notifications** for Nostr: the permission prompt appears when you turn them on, then the "instant?" question.
+- [ ] **Instant notifications:** with the app closed and the screen off, a reply or DM from another account arrives within seconds; still after a restart of the phone; turning it off removes the "Instant notifications are on" notification.
 
 ## 4. Tag and make a GitHub release
 

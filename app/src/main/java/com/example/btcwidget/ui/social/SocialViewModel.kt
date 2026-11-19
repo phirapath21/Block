@@ -77,7 +77,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 if (event.pubkey == me || !liveNotificationIds.add(event.id)) return@subscribe
                 repo.scope.launch {
                     delay(350)
-                    com.example.btcwidget.nostr.NostrBackground.notifyLiveActivity(getApplication(), event)
+                    // With instant notifications on, their own connection announces it.
+                    if (!com.example.btcwidget.nostr.InstantPush.running) com.example.btcwidget.nostr.NostrBackground.notifyLiveActivity(getApplication(), event)
                     refreshNotifications()
                 }
             }
@@ -365,6 +366,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         _push.value = on
         if (on) com.example.btcwidget.WidgetRefreshScheduler.schedulePeriodic(app)
         else com.example.btcwidget.WidgetRefreshScheduler.cancelIfUnused(app)
+        com.example.btcwidget.nostr.InstantPush.sync(app)
     }
 
     /** Loads what the badges need when the app opens (and on resume). */

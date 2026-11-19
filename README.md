@@ -132,7 +132,7 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 **Notifications:**
 - Likes, reposts and zaps of the same note are grouped ("Alice and 5 others liked your note").
 - Unread badges.
-- Phone notifications while the app is closed. These are checked on each background refresh, so they're not instant.
+- Phone notifications while the app is closed: checked on each background refresh (every 15–60 minutes), or, if you choose **instant notifications**, within seconds. Instant keeps a connection to your own relays open from the phone (a foreground service); no push server or Google service is involved.
 
 **Safety:**
 - Mute accounts, words, hashtags and threads (NIP-51); mutes and bookmarks are private (encrypted) by default.
