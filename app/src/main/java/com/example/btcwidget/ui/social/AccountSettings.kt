@@ -4,6 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -107,7 +109,26 @@ internal fun AccountPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
             onDismiss = { removing = null }
         )
     }
-    if (loggingOut) ConfirmDialog(
+    val keyUnsaved by vm.keyBackup.needed.collectAsState()
+    var keySheet by remember { mutableStateOf(false) }
+    if (keySheet) KeyBackupSheet(vm, onDone = { keySheet = false })
+    // The key of an account made here and never saved: logging out loses the account.
+    if (loggingOut && acct.type == SignerType.LOCAL && keyUnsaved) BlockDialog(
+        onDismiss = { loggingOut = false },
+        title = tr("Save your key first"),
+        text = tr("You haven't saved this account's key. Logging out deletes it from this phone, and nobody can get the account back without it."),
+        confirmLabel = tr("Save key first"),
+        onConfirm = { loggingOut = false; keySheet = true },
+        dismissLabel = tr("Cancel")
+    ) {
+        // The way out is there, but small: losing the account should take a deliberate tap.
+        Text(
+            tr("Log out anyway"), color = EInk.Alert, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = androidx.compose.ui.semantics.Role.Button) { loggingOut = false; vm.logout() }
+                .padding(vertical = 6.dp)
+        )
+    }
+    else if (loggingOut) ConfirmDialog(
         title = tr("Log out?"),
         text = if (acct.type == SignerType.LOCAL) tr("Logging out deletes the key from this phone. Make sure you saved your nsec.")
         else tr("You can log in again with the same signer any time."),
@@ -157,7 +178,9 @@ private fun PrivateKey(vm: SocialViewModel) {
     val context = LocalContext.current
     var confirm by remember { mutableStateOf(false) }
     var nsec by remember { mutableStateOf<String?>(null) }
+    val unsaved by vm.keyBackup.needed.collectAsState()
     SettingsNote(tr("Back it up somewhere safe. Anyone with it can post as you, forever; it can't be changed."))
+    if (unsaved) SettingsNote(tr("You haven't saved it yet. Show it, then copy it or write it down."))
     val shown = nsec
     if (shown == null) {
         SettingsLinkRow(tr("Show your private key"), chevron = true) { confirm = true }
@@ -165,7 +188,8 @@ private fun PrivateKey(vm: SocialViewModel) {
         SecureScreen()
         Text(shown, color = EInk.Value, fontSize = 14.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingsButton(tr("Copy")) { copySecretWithNote(context, shown) }
+            SettingsButton(tr("Copy")) { copySecretWithNote(context, shown); vm.keyBackup.saved() }
+            if (unsaved) SettingsButton(tr("I saved it")) { vm.keyBackup.saved() }
             SettingsButton(tr("Hide"), primary = true) { nsec = null }
         }
     }

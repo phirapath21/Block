@@ -8,6 +8,7 @@
         <exclude domain="sharedpref" path="nostr_scheduled.xml" />
         <exclude domain="sharedpref" path="nostr_accounts.xml" />
         <exclude domain="sharedpref" path="dm_moderation_prefs.xml" />
+        <exclude domain="sharedpref" path="key_backup.xml" />
         <exclude domain="database" path="nostr_events.db" />
         <exclude domain="database" path="nostr_events.db-wal" />
         <exclude domain="database" path="nostr_events.db-shm" />
@@ -18,6 +19,7 @@
         <exclude domain="sharedpref" path="nostr_scheduled.xml" />
         <exclude domain="sharedpref" path="nostr_accounts.xml" />
         <exclude domain="sharedpref" path="dm_moderation_prefs.xml" />
+        <exclude domain="sharedpref" path="key_backup.xml" />
         <exclude domain="database" path="nostr_events.db" />
         <exclude domain="database" path="nostr_events.db-wal" />
         <exclude domain="database" path="nostr_events.db-shm" />

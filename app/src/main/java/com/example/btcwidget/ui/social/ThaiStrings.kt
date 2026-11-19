@@ -1041,4 +1041,18 @@ internal val THAI: Map<String, String> = hashMapOf(
     "{0} asks for {1} bits." to "{0} ขอ {1} บิต",
     "≈ {0} per post on this phone" to "≈ {0} ต่อโพสต์บนเครื่องนี้",
     "≈ {0} tries per post" to "≈ {0} ครั้งต่อโพสต์",
+    // Saving your key
+    "Your key is your account's password, but nobody can reset it: if this phone is lost and the key isn't saved somewhere, the account is gone for good." to "key คือรหัสผ่านของบัญชีคุณ แต่ไม่มีใครรีเซ็ตให้ได้ ถ้ามือถือหายและไม่ได้เก็บ key ไว้ที่อื่น บัญชีจะหายไปถาวร",
+    "Save it in a password manager, or write it down and keep it somewhere safe. Never share it." to "เก็บไว้ในแอปจัดการรหัสผ่าน หรือจดใส่กระดาษแล้วเก็บไว้ในที่ปลอดภัย ห้ามให้ใครเด็ดขาด",
+    "It's the only way back into your account. Nobody can reset it for you." to "นี่เป็นทางเดียวที่จะกลับเข้าบัญชีของคุณได้ ไม่มีใครรีเซ็ตให้ได้",
+    "Save now" to "เก็บตอนนี้",
+    "Later" to "ไว้ทีหลัง",
+    "Show my key" to "แสดง key ของฉัน",
+    "Make sure no one is looking at your screen." to "ระวังอย่าให้ใครเห็นหน้าจอ",
+    "Save your key first" to "เก็บ key ก่อน",
+    "You haven't saved this account's key. Logging out deletes it from this phone, and nobody can get the account back without it." to "คุณยังไม่ได้เก็บ key ของบัญชีนี้ การออกจากระบบจะลบ key ออกจากมือถือ และไม่มีใครเอาบัญชีกลับมาได้ถ้าไม่มี key",
+    "Save key first" to "เก็บ key ก่อน",
+    "Log out anyway" to "ออกจากระบบอยู่ดี",
+    "You haven't saved it yet. Show it, then copy it or write it down." to "คุณยังไม่ได้เก็บ key กดแสดงแล้วคัดลอกหรือจดไว้",
+    "Needs your attention" to "มีเรื่องที่ต้องจัดการ",
 )

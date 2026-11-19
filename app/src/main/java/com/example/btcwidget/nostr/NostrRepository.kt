@@ -322,6 +322,7 @@ class NostrRepository private constructor(private val context: Context) {
 
     fun removeSavedAccount(pubkey: String) {
         NostrAccountStore.removeSaved(context, pubkey)
+        KeyBackup.forget(context, pubkey)
         Drafts.clear(context, pubkey)
         ScheduledPosts.clear(context, pubkey)
         DirectMessages.clearLocalModeration(context, pubkey)
@@ -329,7 +330,7 @@ class NostrRepository private constructor(private val context: Context) {
     }
 
     fun logout() {
-        pubkey?.let { Drafts.clear(context, it); ScheduledPosts.clear(context, it); DirectMessages.clearLocalModeration(context, it) }
+        pubkey?.let { Drafts.clear(context, it); ScheduledPosts.clear(context, it); DirectMessages.clearLocalModeration(context, it); KeyBackup.forget(context, it) }
         NostrAccountStore.clear(context)
         resetSession()
         _savedAccounts.value = NostrAccountStore.savedAccounts(context)

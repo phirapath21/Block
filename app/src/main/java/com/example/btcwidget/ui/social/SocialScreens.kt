@@ -245,6 +245,8 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                         onSelect = { f -> if (f == feed) TabTaps.tap("HOME") else vm.selectFeed(f) },
                         onManage = { feedMenu = true }
                     )
+                    // An account made here whose key isn't saved yet.
+                    KeyBackupBanner(vm)
                     PullToRefreshBox(isRefreshing = home.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
                         when {
                             // The shape of the feed while it loads, not a spinner.
