@@ -10,7 +10,7 @@
 Block is an Android app with two halves:
 
 - **Bitcoin widgets.** Home-screen widgets inspired by desk blockclocks: price, sats per dollar or baht, block height, fees, halving countdown, hashrate, your stack's value and more.
-- **A Nostr social client.** A timeline, replies, reposts, likes and zaps, private messages, a Lightning wallet, lists and search, laid out like X, with a Bitcoin-orange accent.
+- **A Nostr social client.** A timeline, replies, reposts, likes and zaps, private messages, a Lightning wallet, lists and search, laid out like X. The default look, Aurora, is black with a sky-blue accent and a soft aurora glow; Graphite (the original Bitcoin-orange look), Ember, Gilded and Kyriaki are in Settings › Display.
 
 No account or server of ours is involved: market data comes from public APIs, social data from Nostr relays, and your keys stay on your phone or in your signer app.
 

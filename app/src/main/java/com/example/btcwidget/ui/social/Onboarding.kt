@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.offset
@@ -453,25 +454,32 @@ internal fun FirstHomeWelcome(vm: SocialViewModel) {
 }
 
 /**
- * Block's logo, as on its app icon: a cube in three shades of bitcoin orange on a dark tile.
+ * Block's logo, as on its app icon: one soft, rounded block lit by an aurora (mint, sky blue,
+ * violet, pink), its top face a little brighter. Drawn from the icon's 108-unit grid.
  */
 @Composable
 fun BlockLogo(modifier: Modifier = Modifier) {
-    androidx.compose.foundation.Canvas(modifier.clip(RoundedCornerShape(22)).background(Color(0xFF1F2024))) {
-        // The icon's 108-unit grid, its visible part (10..98) scaled to this size.
-        val k = size.minDimension / 88f
-        fun p(x: Float, y: Float) = androidx.compose.ui.geometry.Offset((x - 10f) * k, (y - 10f) * k)
-        fun face(color: Color, vararg pts: Pair<Float, Float>) {
-            val path = androidx.compose.ui.graphics.Path().apply {
-                pts.forEachIndexed { i, (x, y) -> val o = p(x, y); if (i == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y) }
-                close()
-            }
-            drawPath(path, color)
-            drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f * k, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+    val pebble = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString(LOGO_PEBBLE).toPath() }
+    val top = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString(LOGO_TOP).toPath() }
+    androidx.compose.foundation.Canvas(modifier) {
+        // The block spans 24.6..83.4 × 22..86 of the 108 grid: fit that box, centred.
+        val k = size.minDimension / 64f
+        val dx = (size.width - 58.8f * k) / 2f - 24.6f * k
+        val dy = (size.height - 64f * k) / 2f - 22f * k
+        withTransform({ translate(dx, dy); scale(k, k, androidx.compose.ui.geometry.Offset.Zero) }) {
+            drawPath(
+                pebble,
+                Brush.linearGradient(
+                    0f to Color(0xFF5EF2C6), 0.35f to Color(0xFF4FB6FF), 0.65f to Color(0xFF9B6BFF), 1f to Color(0xFFFF7AA8),
+                    start = androidx.compose.ui.geometry.Offset(24.6f, 22f), end = androidx.compose.ui.geometry.Offset(83.4f, 86f)
+                )
+            )
+            drawPath(top, Color.White.copy(alpha = 0.28f))
+            drawLine(Color.White.copy(alpha = 0.22f), androidx.compose.ui.geometry.Offset(54f, 54f), androidx.compose.ui.geometry.Offset(54f, 82f), strokeWidth = 2.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         }
-        face(Color(0xFFFFB347), 54f to 27f, 78f to 40.5f, 54f to 54f, 30f to 40.5f)
-        face(Color(0xFFF7931A), 30f to 40.5f, 54f to 54f, 54f to 81f, 30f to 67.5f)
-        face(Color(0xFFC2680A), 54f to 54f, 78f to 40.5f, 78f to 67.5f, 54f to 81f)
     }
 }
 
+// The same shapes as res/drawable/ic_launcher_foreground.xml.
+private const val LOGO_PEBBLE = "M54,22C56,22 58,22.6 59.6,23.5L78.4,34.3C81.5,36.1 83.4,39.4 83.4,43L83.4,65C83.4,68.6 81.5,71.9 78.4,73.7L59.6,84.5C56.5,86.3 51.5,86.3 48.4,84.5L29.6,73.7C26.5,71.9 24.6,68.6 24.6,65L24.6,43C24.6,39.4 26.5,36.1 29.6,34.3L48.4,23.5C50,22.6 52,22 54,22Z"
+private const val LOGO_TOP = "M49,28.52Q54,25.5 59,28.52L74,37.58Q79,40.6 74,43.52L59,52.28Q54,55.2 49,52.28L34,43.52Q29,40.6 34,37.58Z"

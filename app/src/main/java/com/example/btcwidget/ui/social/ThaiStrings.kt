@@ -1106,4 +1106,8 @@ internal val THAI: Map<String, String> = hashMapOf(
     "Welcome, {0}!" to "ยินดีต้อนรับ {0}!",
     "Your Home fills with posts from people you follow. Say hi with your first post." to "หน้า Home จะเต็มไปด้วยโพสต์จากคนที่คุณติดตาม ลองทักทายด้วยโพสต์แรกดูสิ",
     "New here and saying hi" to "คนมาใหม่ที่กำลังทักทาย",
+    // Looks
+    "Aurora" to "Aurora",
+    "Black with a soft aurora and sky blue" to "ดำ มีแสง aurora จางๆ และสีฟ้า",
+    "Graphite" to "Graphite",
 )

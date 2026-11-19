@@ -8,8 +8,39 @@ package com.example.btcwidget.theme
  * turns them into Compose colours and animates between themes.
  */
 enum class AppLook(val id: String, val title: String, val summary: String, val colors: LookColors) {
+    /**
+     * The default: X-like black and greys with a sky-blue accent, and a faint aurora (teal into
+     * indigo) from the top-left corner, like the app icon. Captions are a shade lighter than X's
+     * so they stay readable on sheets.
+     */
+    AURORA(
+        "aurora", "Aurora", "Black with a soft aurora and sky blue",
+        LookColors(
+            background = 0xFF000000.toInt(),
+            body = 0xFF16181C.toInt(),
+            bodyStroke = 0xFF2F3336.toInt(),
+            value = 0xFFE7E9EA.toInt(),
+            label = 0xFFAEB7C0.toInt(),
+            caption = 0xFF8B98A5.toInt(),
+            track = 0xFF333639.toInt(),
+            alert = 0xFFF4212E.toInt(),
+            accent = 0xFF1D9BF0.toInt(),
+            // Dark ink on the blue: white would be too faint to read there (under 4.5:1).
+            onAccent = 0xFF04131F.toInt(),
+            sheet = 0xFF16181C.toInt(),
+            success = 0xFF00BA7C.toInt(),
+            glow = Glow(
+                // Teal, then indigo, fading into black.
+                colors = listOf(0xFF0C2A2A.toInt(), 0xFF141638.toInt(), 0xFF09091A.toInt(), 0xFF000000.toInt()),
+                stops = listOf(0f, 0.3f, 0.6f, 1f),
+                cx = 0f, cy = 0f, rx = 1.4f, ry = 0.8f
+            )
+        )
+    ),
+
+    /** The original look (kept under its saved id "block"), now called Graphite. */
     BLOCK(
-        "block", "Block", "Graphite with Bitcoin orange",
+        "block", "Graphite", "Graphite with Bitcoin orange",
         LookColors(
             background = 0xFF0E0F11.toInt(),
             body = 0xFF1A1B1F.toInt(),
@@ -101,7 +132,7 @@ enum class AppLook(val id: String, val title: String, val summary: String, val c
     );
 
     companion object {
-        val DEFAULT = BLOCK
+        val DEFAULT = AURORA
         fun of(id: String?): AppLook = entries.firstOrNull { it.id == id } ?: DEFAULT
     }
 }

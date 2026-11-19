@@ -419,9 +419,8 @@ private fun BottomBar(
 }
 
 /**
- * "New post", floating at the bottom right: a round button with a plus, as on X, filled with
- * the page's surface colour so it reads as an action, not a page. A little press-in; shrinks
- * away while the bars are hidden.
+ * "New post", floating at the bottom right: a round button with a plus in the accent colour,
+ * as on X. A little press-in; shrinks away while the bars are hidden.
  */
 @Composable
 private fun ComposeButton(visible: Boolean, onCompose: () -> Unit, modifier: Modifier = Modifier) {
@@ -438,14 +437,13 @@ private fun ComposeButton(visible: Boolean, onCompose: () -> Unit, modifier: Mod
             .shadow(6.dp, shape)
             .size(56.dp)
             .clip(shape)
-            .background(EInk.Body)
-            .border(0.75.dp, EInk.BodyStroke, shape)
+            .background(EInk.Accent)
             .clickable(interactionSource = source, indication = null, role = Role.Button) { haptics.tick(); onCompose() }
             .semantics { contentDescription = tr("New post") }
             .testTag("compose_button"),
         contentAlignment = Alignment.Center
     ) {
-        Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(24.dp))
+        Icon(com.example.btcwidget.ui.social.Glyphs.Plus, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(26.dp))
     }
 }
 
