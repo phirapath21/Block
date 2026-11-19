@@ -95,10 +95,10 @@ fun SearchScreen(
     var tab by rememberSaveable { mutableStateOf(0) }
     val exploreTabs = remember(account) {
         buildList {
-            add("Trending"); add("Latest"); add("Live"); add("Articles"); add("Who to follow")
+            add("Explore"); add("Trending"); add("Latest"); add("Live"); add("Articles"); add("Who to follow")
         }
     }
-    var exploreTab by rememberSaveable { mutableStateOf("Trending") }
+    var exploreTab by rememberSaveable { mutableStateOf("Explore") }
     if (exploreTab !in exploreTabs) exploreTab = exploreTabs.first()
     // Results are kept across Back: open a post or a profile from them and come back to the same list.
     var searched by rememberKeptState<String?> { null }
@@ -194,8 +194,8 @@ fun SearchScreen(
             else leadingMenu?.invoke()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp).clip(Radius.Full).background(EInk.Body)
-                    .then(if (focused) Modifier.border(1.dp, SettingsAccent, Radius.Full) else Modifier)
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(44.dp).clip(Radius.Full).background(com.example.btcwidget.ui.main.CardColors.Fill)
+                    .border(1.dp, if (focused) SettingsAccent else com.example.btcwidget.ui.main.CardColors.Edge, Radius.Full)
                     .padding(start = 14.dp, end = 4.dp)
             ) {
                 androidx.compose.material3.Icon(NavIcons.Search.outline, contentDescription = null, tint = if (focused) SettingsAccent else EInk.Caption, modifier = Modifier.size(18.dp))
@@ -210,7 +210,7 @@ fun SearchScreen(
                     modifier = Modifier.weight(1f).padding(horizontal = 10.dp).focusRequester(focus).onFocusChanged { focused = it.isFocused },
                     decorationBox = { field ->
                         Box {
-                            if (query.isEmpty()) Text(tr("Search Block"), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1)
+                            if (query.isEmpty()) Text(tr("Search people, #topics, posts"), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 1)
                             field()
                         }
                     }
@@ -234,8 +234,6 @@ fun SearchScreen(
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Qr, contentDescription = tr("Scan a QR code"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
         }
-        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-
         SocialScaffold(vm, navigate) { actions ->
             Box(Modifier.fillMaxSize()) {
                 when {
@@ -257,7 +255,7 @@ fun SearchScreen(
                         }
                     )
                     // Not searched yet: Explore.
-                    searched == null -> Explore(vm, exploreTab, actions, navigate)
+                    searched == null -> Explore(vm, exploreTab, actions, navigate) { exploreTab = it }
                     else -> {
                         val q = searched.orEmpty()
                         val shownNotes = notes
@@ -404,6 +402,7 @@ private fun FloatingSearchFilterBar(
             if (!searched) {
                 items(exploreTabs, key = { "exp:$it" }) { t ->
                     val icon = when (t) {
+                        "Explore" -> Glyphs.Search
                         "Trending" -> Glyphs.Sparkle
                         "Latest" -> Glyphs.Clock
                         "Live" -> Glyphs.Play
@@ -592,15 +591,95 @@ private fun localPeople(profiles: Map<String, Profile>, q: String): List<Profile
 
 /** Explore, before you search: tabs of things to find, controlled by the bottom FloatingSearchFilterBar. */
 @Composable
-private fun Explore(vm: SocialViewModel, tab: String, actions: NoteActions, navigate: (NavKey) -> Unit) {
+private fun Explore(vm: SocialViewModel, tab: String, actions: NoteActions, navigate: (NavKey) -> Unit, onTab: (String) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         when (tab) {
+            "Explore" -> ExploreHome(vm, actions, navigate, onTab)
             "Trending" -> Trending(vm, navigate)
             "Latest" -> LatestPosts(vm, actions)
             "Live" -> LiveNow(vm, navigate)
             "Articles" -> RecentArticles(vm, actions)
             else -> WhoToFollow(vm, actions, navigate)
         }
+    }
+}
+
+/**
+ * Search's first page: what's trending today as cards to swipe through, a few people to
+ * follow (with who you know that follows them), and who's live. Each "See all" opens its tab.
+ */
+@Composable
+private fun ExploreHome(vm: SocialViewModel, actions: NoteActions, navigate: (NavKey) -> Unit, onTab: (String) -> Unit) {
+    val account by vm.account.collectAsState()
+    val following by vm.following.collectAsState()
+    val profiles by vm.profiles.collectAsState()
+    val trends by produceKept<List<NostrRepository.Trend>?>(null) { value = vm.trendingHashtags() }
+    val people by produceKept<List<Pair<Profile, Int>>?>(null, account?.pubkey) { value = if (account == null) emptyList() else vm.followSuggestions() }
+    val live by produceKept<List<com.example.btcwidget.nostr.core.LiveStreams.Live>?>(null) { value = vm.liveStreams() }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
+        item(key = "trend_title") { SectionTitle(tr("Trending today"), tr("See all")) { onTab("Trending") } }
+        item(key = "trends") {
+            when (val t = trends) {
+                null -> NotesSkeleton(1)
+                else -> if (t.isEmpty()) EmptyNote(tr("Nothing trending on your relays right now.")) else androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    items(t.take(10), key = { "tc:" + it.tag }) { trend -> TrendCard(trend) { navigate(HashtagKey(trend.tag)) } }
+                }
+            }
+        }
+        val p = people
+        if (account != null && !p.isNullOrEmpty()) {
+            item(key = "people_title") { SectionTitle(tr("People to follow"), tr("See all")) { onTab("Who to follow") } }
+            items(p.take(3), key = { "pf:" + it.first.pubkey }) { (person, shared) ->
+                val on = person.pubkey in following
+                SuggestedPerson(person, tr("Followed by {0} people you follow", shared), on, onOpen = { actions.openProfile(person.pubkey) }) {
+                    actions.follow(person.pubkey, !on)
+                }
+            }
+        }
+        val l = live
+        if (!l.isNullOrEmpty()) {
+            item(key = "live_title") { SectionTitle(tr("Live now"), if (l.size > 2) tr("See all") else null) { onTab("Live") } }
+            items(l.take(2), key = { "lv:" + it.address }) { s -> LiveRow(s, profiles[s.host]) { navigate(com.example.btcwidget.LiveKey(s.address)) } }
+        }
+    }
+}
+
+/** A trending topic as a see-through card: #tag, then how many people and posts. */
+@Composable
+private fun TrendCard(t: NostrRepository.Trend, onClick: () -> Unit) {
+    Column(
+        Modifier.width(140.dp).clip(Radius.Large)
+            .background(com.example.btcwidget.ui.main.CardColors.Fill)
+            .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Text("#" + t.tag, color = SettingsAccent, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(tr("{0} posts", compactCount(t.notes)), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 4.dp))
+        Text(tr("{0} people", compactCount(t.people)), color = EInk.Caption, fontSize = TextSize.Caption)
+    }
+}
+
+/** A suggested person: face, name, why (who you know follows them) and Follow. */
+@Composable
+private fun SuggestedPerson(person: Profile, why: String, isFollowing: Boolean, onOpen: () -> Unit, onFollow: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(person, person.pubkey, size = 44)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            DisplayName(person, person.pubkey, EInk.Value, 15.sp)
+            Text(why, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        com.example.btcwidget.ui.main.BlockButton(
+            if (isFollowing) tr("Following") else tr("Follow"),
+            kind = if (isFollowing) com.example.btcwidget.ui.main.ButtonKind.Outline else com.example.btcwidget.ui.main.ButtonKind.Primary,
+            size = com.example.btcwidget.ui.main.ButtonSize.Small, onClick = onFollow
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 package com.example.btcwidget.ui.main
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,6 +82,25 @@ class MainScreenTest {
         listOf("Home", "Search", "New post", "Notifications", "Messages", "Open menu").forEach {
             composeTestRule.onNodeWithContentDescription(it).assertExists()
         }
+    }
+
+    @Test
+    fun topBarAction_showsOnlyOnItsPage() {
+        var tapped = false
+        composeTestRule.setContent {
+            var tab by remember { mutableStateOf(MainTab.HOME) }
+            val newChat: @androidx.compose.runtime.Composable () -> Unit = {
+                androidx.compose.material3.Text("New chat", modifier = androidx.compose.ui.Modifier.clickable { tapped = true })
+            }
+            MainScreenContent(
+                selectedTab = tab, onTabSelected = { tab = it }, onItemClick = {},
+                topBarActions = mapOf(MainTab.MESSAGES to newChat)
+            )
+        }
+        composeTestRule.onNodeWithText("New chat").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Messages").performClick()
+        composeTestRule.onNodeWithText("New chat").performClick()
+        composeTestRule.runOnIdle { assert(tapped) }
     }
 
     @Test

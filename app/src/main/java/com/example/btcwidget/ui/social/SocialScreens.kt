@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -385,26 +386,47 @@ fun NotificationsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { PillButton(tr("Log in"), onClick = { navigate(LoginKey) }) }
                 return@Column
             }
-            // All, or only Mentions (replies and mentions of you), as on X.
+            // All, Mentions (replies and mentions of you), or Tips.
             var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
-            FeedTabs(listOf(tr("All"), tr("Mentions")), tab) { tab = it }
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-            val listState = vm.listState(if (tab == 0) "notifications" else "notifications:mentions")
+            ChipTabs(listOf(tr("All"), tr("Mentions"), tr("Tips")), tab) { tab = it }
+            // What was new when the page opened stays marked while you read.
+            val seenAt = remember(account?.pubkey) { vm.notificationsSeenAt }
+            val listState = vm.listState(listOf("notifications", "notifications:mentions", "notifications:tips")[tab])
             ScrollToTopOnTabTap("NOTIFICATIONS", listState) { vm.refreshNotifications() }
             PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = { pullHaptics.tick(); vm.refreshNotifications() }, modifier = Modifier.fillMaxSize()) {
                 val shown = remember(state.items, tab) {
-                    if (tab == 0) state.items
-                    else state.items.filter { it.type == NostrNotification.Type.REPLY || it.type == NostrNotification.Type.MENTION }
+                    when (tab) {
+                        0 -> state.items
+                        1 -> state.items.filter { it.type == NostrNotification.Type.REPLY || it.type == NostrNotification.Type.MENTION }
+                        else -> state.items.filter { it.type == NostrNotification.Type.ZAP }
+                    }
                 }
                 when {
                     state.loading -> LazyColumn(Modifier.fillMaxSize(), userScrollEnabled = false) { item { FeedSkeleton(rows = 8) } }
                     shown.isEmpty() -> LazyColumn(Modifier.fillMaxSize()) {
-                        item { EmptyNote(state.error ?: if (tab == 0) tr("No notifications yet.") else tr("When someone replies to or mentions you, it shows here.")) }
+                        item {
+                            EmptyNote(state.error ?: when (tab) {
+                                0 -> tr("No notifications yet.")
+                                1 -> tr("When someone replies to or mentions you, it shows here.")
+                                else -> tr("When someone tips you, it shows here.")
+                            })
+                        }
                     }
                     else -> {
                         val groups = remember(shown) { NotificationGroup.of(shown) }
-                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                            items(groups, key = { it.key }) { g -> NotificationRow(g, profiles, actions) }
+                        // Today, then Earlier.
+                        val startOfToday = remember(groups) {
+                            java.util.Calendar.getInstance().apply {
+                                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                            }.timeInMillis / 1000
+                        }
+                        val (today, earlier) = remember(groups, startOfToday) { groups.partition { it.createdAt >= startOfToday } }
+                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
+                            if (today.isNotEmpty()) item(key = "h:today") { NotificationDay(tr("Today")) }
+                            items(today, key = { it.key }) { g -> NotificationRow(g, profiles, actions, unread = g.createdAt > seenAt) }
+                            if (earlier.isNotEmpty()) item(key = "h:earlier") { NotificationDay(tr("Earlier")) }
+                            items(earlier, key = { it.key }) { g -> NotificationRow(g, profiles, actions, unread = g.createdAt > seenAt) }
                         }
                     }
                 }
@@ -419,65 +441,108 @@ fun NotificationsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
  * and a line of the note they're about.
  */
 @Composable
-private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>, actions: NoteActions) {
+private fun NotificationDay(title: String) {
+    Text(
+        title, color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+    )
+}
+
+/** What a kind of notification looks like: its drawn badge and colour. */
+private fun notificationBadge(type: NostrNotification.Type): Pair<androidx.compose.ui.graphics.vector.ImageVector, androidx.compose.ui.graphics.Color> = when (type) {
+    NostrNotification.Type.REPOST -> Glyphs.Repost to com.example.btcwidget.ui.main.ActionColor.Repost
+    NostrNotification.Type.LIKE -> Glyphs.Liked to com.example.btcwidget.ui.main.ActionColor.Like
+    NostrNotification.Type.ZAP -> Glyphs.Zap to com.example.btcwidget.ui.main.ActionColor.Zap
+    else -> Glyphs.Comment to SettingsAccent
+}
+
+/**
+ * One notification, or several about the same note folded together: the newest person's
+ * face with a coloured badge for what they did, "Alice, Bob and 3 others liked your note",
+ * and a line of the note. Replies and mentions show the whole reply, ready to answer.
+ * New since you last looked: a soft tint and a dot.
+ */
+@Composable
+private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>, actions: NoteActions, unread: Boolean) {
     val n = g.latest
+    val tint = if (unread) SettingsAccent.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent
     if (n.type == NostrNotification.Type.REPLY || n.type == NostrNotification.Type.MENTION) {
-        NoteCard(n.event, NoteStats(), actions)
+        Box(Modifier.background(tint)) {
+            NoteCard(n.event, NoteStats(), actions, flat = true)
+            if (unread) UnreadDot(Modifier.align(Alignment.TopEnd).padding(top = 18.dp, end = 16.dp))
+        }
         return
     }
-    val (icon, tint) = when (n.type) {
-        NostrNotification.Type.REPOST -> Glyphs.Repost to com.example.btcwidget.ui.main.ActionColor.Repost
-        NostrNotification.Type.LIKE -> Glyphs.Liked to com.example.btcwidget.ui.main.ActionColor.Like
-        else -> Glyphs.Zap to com.example.btcwidget.ui.main.ActionColor.Zap
-    }
+    val (icon, color) = notificationBadge(n.type)
     val actors = g.actors
     val names = actors.take(2).map { profiles[it]?.bestName ?: Profile.shortNpub(it) }
     val verb = when (n.type) {
-        NostrNotification.Type.REPOST -> "reposted your note"
-        NostrNotification.Type.LIKE -> if (g.items.all { it.event.content == "+" || it.event.content.isBlank() }) "liked your note"
-            else "reacted " + g.items.map { it.event.content }.filter { it != "+" && it.isNotBlank() && it.length <= 8 }.distinct().take(5).joinToString("")
-        else -> "tipped you ${formatSats(g.totalMsat / 1000)} sats"
+        NostrNotification.Type.REPOST -> tr("reposted your note")
+        NostrNotification.Type.LIKE -> if (g.items.all { it.event.content == "+" || it.event.content.isBlank() }) tr("liked your note")
+            else tr("reacted") + " " + g.items.map { it.event.content }.filter { it != "+" && it.isNotBlank() && it.length <= 8 }.distinct().take(5).joinToString("")
+        else -> tr("tipped you")
     }
     val target by produceKept<Event?>(null, g.noteId) { value = g.noteId?.let { runCatching { actions.resolveNote(it) }.getOrNull() } }
     Row(
+        verticalAlignment = Alignment.Top,
         modifier = Modifier
             .fillMaxWidth()
+            .background(tint)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, enabled = g.noteId != null) {
                 val id = g.noteId ?: return@clickable
                 actions.openNote(target ?: n.event.copy(id = id))
             }
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        androidx.compose.material3.Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.width(40.dp).padding(start = 6.dp).size(24.dp))
-        Column(Modifier.weight(1f)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                actors.take(7).forEach { pk -> Avatar(profiles[pk], pk, size = 32, onClick = { actions.openProfile(pk) }) }
-                if (actors.size > 7) Text("+${actors.size - 7}", color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 2.dp))
+        // The newest face, with what they did in a coloured badge on its corner.
+        Box {
+            Avatar(profiles[actors[0]], actors[0], size = 44, onClick = { actions.openProfile(actors[0]) })
+            Box(
+                Modifier.align(Alignment.BottomEnd).offset(x = 4.dp, y = 4.dp).size(22.dp).clip(CircleShape)
+                    .background(EInk.Background).padding(2.dp).clip(CircleShape).background(color),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    icon, contentDescription = null,
+                    tint = if (n.type == NostrNotification.Type.ZAP) androidx.compose.ui.graphics.Color.Black else androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(11.dp)
+                )
             }
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(NotificationGroup.names(names, actors.size)) }
                     append(" $verb")
+                    if (n.type == NostrNotification.Type.ZAP) withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = com.example.btcwidget.ui.main.ActionColor.Zap)) {
+                        append(" " + tr("{0} sats", formatSats(g.totalMsat / 1000)))
+                    }
                     withStyle(SpanStyle(color = EInk.Caption)) { append(" · " + relativeTime(g.createdAt)) }
                 },
-                color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(top = 8.dp)
+                color = EInk.Value, fontSize = TextSize.Body, lineHeight = 20.sp
             )
             if (n.type == NostrNotification.Type.ZAP) {
-                // The newest zap comment, if any.
+                // The newest tip's message, if any.
                 val comment = g.items.firstNotNullOfOrNull { z ->
                     z.event.firstTag("description")?.let { com.example.btcwidget.nostr.core.Zaps.parseReceipt(z.event)?.comment?.takeIf { c -> c.isNotBlank() } }
                 }
-                if (comment != null) Text("“$comment”", color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(top = 4.dp))
+                if (comment != null) Text("“$comment”", color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.padding(top = 2.dp))
             }
             target?.let {
                 Text(
                     it.content.replace('\n', ' ').trim(), color = EInk.Caption, fontSize = TextSize.Body, maxLines = 2,
-                    overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)
+                    overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
                 )
             }
         }
+        if (unread) UnreadDot(Modifier.padding(start = 10.dp, top = 6.dp))
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
+}
+
+/** The small accent dot on something new. */
+@Composable
+internal fun UnreadDot(modifier: Modifier = Modifier) {
+    Box(modifier.size(9.dp).clip(CircleShape).background(SettingsAccent))
 }
 
 // ---- Home feeds: tabs and the sheet to manage them ----
