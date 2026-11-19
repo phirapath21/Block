@@ -235,7 +235,12 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                         else list.forEach { ArticleRow(it, onClick = { actions.openArticle(Nip19.Address(it.event.kind, it.pubkey, it.identifier)) }) }
                     }
                     else if (loaded == null) NotesSkeleton()
-                    else if (shown.isEmpty()) EmptyNote(listOf("No posts yet.", "No replies yet.", "No photos yet.")[tab] + if (!end && loaded.isNotEmpty()) tr(" Scroll loads older notes.") else "")
+                    else if (shown.isEmpty()) com.example.btcwidget.ui.main.EmptyState(
+                        listOf(Glyphs.Quote, Glyphs.Comment, Glyphs.PhotoLine)[tab],
+                        tr(listOf("No posts yet", "No replies yet", "No photos yet")[tab]),
+                        if (!end && loaded.isNotEmpty()) tr("Scroll down to load older posts.")
+                        else if (isMe) tr("What you share shows up here.") else tr("When they share something, it shows up here.")
+                    )
                 }
             )
         }

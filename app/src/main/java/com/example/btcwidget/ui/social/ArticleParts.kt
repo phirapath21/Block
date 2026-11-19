@@ -438,5 +438,4 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
             AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.width(72.dp).heightIn(min = 72.dp, max = 72.dp).clip(Radius.Small))
         }
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }

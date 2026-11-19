@@ -87,5 +87,4 @@ private fun EngagementRow(profile: Profile?, pubkey: String, badge: String?, com
         }
         if (badge != null) Text(badge, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }

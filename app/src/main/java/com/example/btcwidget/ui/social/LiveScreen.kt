@@ -101,7 +101,6 @@ internal fun LiveRow(live: LiveStreams.Live, host: Profile?, onClick: () -> Unit
             Text(statusLine(live), color = if (live.isLive) LiveRed else EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
         }
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 private fun statusLine(live: LiveStreams.Live): String = when (live.status) {

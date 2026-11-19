@@ -335,57 +335,18 @@ private fun MessagesEmptyState(
     hasFilter: Boolean,
     onNewMessage: () -> Unit,
     onClearFilter: () -> Unit
-) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 56.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(EInk.Body)
-                .border(1.dp, EInk.BodyStroke, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (showRequests) Glyphs.Shield else Glyphs.Chat,
-                contentDescription = null,
-                tint = EInk.Accent,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        Text(
-            text = when {
-                hasFilter -> tr("No matching conversations")
-                showRequests -> tr("No message requests")
-                else -> tr("No messages yet")
-            },
-            color = EInk.Value,
-            fontSize = TextSize.Subtitle,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 14.dp)
-        )
-        Text(
-            text = when {
-                hasFilter -> tr("Try searching for another name or keyword.")
-                showRequests -> tr("Messages from people you don't follow will appear here first.")
-                else -> tr("Start an end-to-end encrypted NIP-17 chat with anyone on Nostr.")
-            },
-            color = EInk.Caption,
-            fontSize = TextSize.Body,
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
-            modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
-        )
-        if (hasFilter) {
-            PillButton(tr("Clear search"), filled = false, onClick = onClearFilter)
-        } else if (!showRequests) {
-            PillButton(tr("New message"), onClick = onNewMessage)
-        }
-    }
+) = when {
+    hasFilter -> com.example.btcwidget.ui.main.EmptyState(
+        Glyphs.Search, tr("No matching conversations"), tr("Try searching for another name or keyword."),
+        action = tr("Clear search"), onAction = onClearFilter
+    )
+    showRequests -> com.example.btcwidget.ui.main.EmptyState(
+        Glyphs.Shield, tr("No message requests"), tr("Messages from people you don't follow will appear here first.")
+    )
+    else -> com.example.btcwidget.ui.main.EmptyState(
+        Glyphs.Chat, tr("No messages yet"), tr("Start a private chat with anyone. Only the people in it can read it."),
+        action = tr("New message"), onAction = onNewMessage
+    )
 }
 
 @Composable

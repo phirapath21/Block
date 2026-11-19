@@ -84,22 +84,13 @@ internal fun ComposeStatusChip(icon: ImageVector, text: String, onClear: (() -> 
     }
 }
 
-/** A round-ended choice (poll length, one or many answers): orange when chosen. */
+/** A round-ended choice (poll length, one or many answers): the design system's capsule. */
 @Composable
-internal fun ChoicePill(label: String, selected: Boolean, icon: ImageVector? = null, onClick: () -> Unit) {
-    Row(
-        Modifier.clip(Radius.Full)
-            .then(if (selected) Modifier.background(SettingsAccent) else Modifier.border(1.dp, EInk.BodyStroke, Radius.Full))
-            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
-            .padding(start = if (icon != null) 10.dp else 14.dp, end = 14.dp, top = 7.dp, bottom = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val ink = if (selected) EInk.OnAccent else EInk.Value
-        if (icon != null) Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.padding(end = 6.dp).size(15.dp))
-        // One line always: a pill that wraps loses its shape.
-        Text(label, color = ink, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-    }
-}
+internal fun ChoicePill(label: String, selected: Boolean, icon: ImageVector? = null, onClick: () -> Unit) =
+    com.example.btcwidget.ui.main.BlockChip(
+        label, selected, filter = false, tick = false, icon = icon,
+        role = androidx.compose.ui.semantics.Role.Button, onClick = onClick
+    )
 
 /**
  * The post being answered, above the reply box, as on X: its author's picture with a line
