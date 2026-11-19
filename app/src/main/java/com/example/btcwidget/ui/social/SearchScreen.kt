@@ -182,6 +182,13 @@ fun SearchScreen(
     androidx.activity.compose.BackHandler(enabled = !focused && searched != null) { job?.cancel(); searched = null; query = "" }
 
     Column(Modifier.fillMaxSize().screenBackground()) {
+        // ← (or avatar menu) · the search box · QR (or Cancel while typing). It tucks away
+        // while you scroll down (never while typing) and comes back when you scroll up.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = LocalBarsVisible.current || focused,
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+        ) {
         // ← (or avatar menu) · the search box · QR (or Cancel while typing).
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -234,6 +241,8 @@ fun SearchScreen(
                 contentAlignment = Alignment.Center
             ) { androidx.compose.material3.Icon(Glyphs.Qr, contentDescription = tr("Scan a QR code"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
         }
+        }
+
         SocialScaffold(vm, navigate) { actions ->
             Box(Modifier.fillMaxSize()) {
                 when {
@@ -319,7 +328,8 @@ fun SearchScreen(
                 }
 
                 // Floating filter capsule at the bottom; rides directly above the keyboard when typing (like ReplyBar).
-                val showFloatingBar = LocalBarsVisible.current || focused
+                // Stays while you scroll (as X keeps its Explore tabs); only the search box tucks away.
+                val showFloatingBar = true
                 val floatAlpha by androidx.compose.animation.core.animateFloatAsState(if (showFloatingBar) 1f else 0f, label = "search_float_bar")
                 if (floatAlpha > 0.01f) {
                     FloatingSearchFilterBar(

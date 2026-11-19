@@ -215,8 +215,9 @@ fun MainScreenContent(
             .fillMaxHeight()
             .statusBarsPadding()
     ) {
-        // On feeds the bars slide away while you scroll down and come back when you scroll up,
-        // as on X. Every page starts with them showing.
+        // Scrolling down tucks away the page's header (its title, or Search's box) and it comes
+        // back when you scroll up, as on X. Only Home also tucks away the bottom bar (and its
+        // +): everywhere else it stays. Every page starts with everything showing.
         var barsVisible by remember { mutableStateOf(true) }
         androidx.compose.runtime.LaunchedEffect(selectedTab) { barsVisible = true }
         val hides = selectedTab in HIDING_PAGES
@@ -229,6 +230,7 @@ fun MainScreenContent(
             }
         }
         val showBars = barsVisible || !hides
+        val showBottomBar = showBars || selectedTab != MainTab.HOME
         val imeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
         val menuOpen = selectedTab in DRAWER_PAGES
         val menuButtonSlot: (@Composable () -> Unit)? = if (wide) null else ({
@@ -276,7 +278,7 @@ fun MainScreenContent(
 
         }
         if (!wide) androidx.compose.animation.AnimatedVisibility(
-            visible = showBars && !imeVisible,
+            visible = showBottomBar && !imeVisible,
             enter = androidx.compose.animation.expandVertically(expandFrom = Alignment.Top) + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically(shrinkTowards = Alignment.Top) + androidx.compose.animation.fadeOut()
         ) {
