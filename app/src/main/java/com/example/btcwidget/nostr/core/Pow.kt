@@ -31,6 +31,9 @@ object Pow {
     /** The most this app will mine for: ~2^32 hashes is hours on a phone. */
     const val MAX_DIFFICULTY = 32
 
+    /** Difficulties the settings and composer offer (0 = off). */
+    val CHOICES = listOf(0, 8, 12, 16, 20, 24, 28)
+
     /** Leading zero bits of a 32-byte hash. */
     fun leadingZeroBits(hash: ByteArray): Int {
         var bits = 0

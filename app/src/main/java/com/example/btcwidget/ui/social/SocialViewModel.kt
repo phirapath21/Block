@@ -526,7 +526,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
                 viewModelScope.launch { onQueued?.invoke() }
             }
         }) {
-            val bits = maxOf(pow ?: 0, this.pow.bitsNeeded())
+            val bits = this.pow.bitsFor(pow ?: this.pow.difficulty.value)
             // Image URLs go in the text (so every client shows them) with imeta tags (NIP-92).
             val body = (listOf(text.trim()) + images.map { it.url }).filter { it.isNotEmpty() }.joinToString("\n")
             val tags = images.map { com.example.btcwidget.nostr.core.Imeta.tag(it.url, it.mime, it.sha256, it.width, it.height, it.blurhash) } +
@@ -806,7 +806,7 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
 /** Why relays turned a post down, in the user's language, with what to do about it. */
 internal fun rejectionText(why: com.example.btcwidget.nostr.core.RelayRejection.Explained): String = when (why.reason) {
     com.example.btcwidget.nostr.core.RelayRejection.Reason.POW ->
-        tr("A relay asks for proof of work ({0}). Turn it on in Settings › Proof of work and post again.", why.detail)
+        tr("A relay asks for proof of work ({0}). Turn it on in Settings › Advanced › Proof of work and post again.", why.detail)
     com.example.btcwidget.nostr.core.RelayRejection.Reason.RATE_LIMITED -> tr("Relays are limiting how fast you post. Wait a minute and try again.")
     com.example.btcwidget.nostr.core.RelayRejection.Reason.AUTH -> tr("Your relays want you to sign in to them first. Try again in a moment, or add other relays in Settings › Relays.")
     com.example.btcwidget.nostr.core.RelayRejection.Reason.PAYMENT -> tr("These are paid relays. Pay for one, or add free relays in Settings › Relays.")

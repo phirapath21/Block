@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -124,6 +125,18 @@ class MainScreenTest {
         composeTestRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("currency")
         composeTestRule.onNodeWithText("Currency").performClick()
         org.junit.Assert.assertEquals(com.example.btcwidget.ui.social.SettingsPage.BITCOIN, openedSettings)
+    }
+
+    @Test
+    fun settings_proofOfWorkIsUnderAdvancedAndFoundBySearch() {
+        setContent()
+        openFromSideBar("Settings")
+        // Not a category of its own: it opens from Advanced.
+        composeTestRule.onNodeWithText("Proof of work").assertDoesNotExist()
+        composeTestRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("proof")
+        // Each hit shows its page's name under it: the first hit is the setting itself.
+        composeTestRule.onAllNodesWithText("Proof of work")[0].performClick()
+        org.junit.Assert.assertEquals(com.example.btcwidget.ui.social.SettingsPage.POW, openedSettings)
     }
 
     /** The Widgets page (Settings › Bitcoin and widgets › Widgets) with fixed data. */

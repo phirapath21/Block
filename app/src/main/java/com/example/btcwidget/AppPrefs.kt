@@ -36,6 +36,8 @@ object AppPrefs {
     private const val APP_LOOK = "app_look"
     private const val BTC_CARDS = "btc_tx_cards"
     private const val POW_HASH_RATE = "pow_hash_rate"
+    private const val POW_DIFFICULTY = "pow_difficulty"
+    private const val POW_MATCH_RELAYS = "pow_match_relays"
     private const val LANGUAGE = "language"
     private const val RECENT_SEARCHES = "recent_searches"
     private const val RECENT_PROFILES = "recent_profiles"
@@ -52,8 +54,6 @@ object AppPrefs {
         "app_pin_salt", "app_pin_hash", "app_pin_length", "app_pin_failures", "app_pin_locked_until", "app_biometric_lock", "app_lock_preference", "app_lock_scope", "app_lock_after_ms",
         // The Bitcoin dashboard (removed): its large panel and whether the stack was hidden there.
         "hero_metric", "stack_hidden",
-        // Proof of work settings (removed: it's now only what relays ask for, automatically).
-        "pow_difficulty", "pow_match_relays",
         // The private/public choice for new bookmarks and mutes (removed: they're always private).
         "private_lists",
         // Separate block-card switch and transaction-card styles (now one switch, one style).
@@ -93,6 +93,14 @@ object AppPrefs {
     /** Transaction and block cards under notes that link to them (Settings › Display); on by default. */
     fun btcCards(context: Context): Boolean = prefs(context).getBoolean(BTC_CARDS, true)
     fun setBtcCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_CARDS, on) }
+
+    /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
+    fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)
+    fun setPowDifficulty(context: Context, bits: Int) = edit(context) { putInt(POW_DIFFICULTY, bits) }
+
+    /** Mine at least what the user's relays ask for (NIP-11 `min_pow_difficulty`); on by default. */
+    fun powMatchRelays(context: Context): Boolean = prefs(context).getBoolean(POW_MATCH_RELAYS, true)
+    fun setPowMatchRelays(context: Context, match: Boolean) = edit(context) { putBoolean(POW_MATCH_RELAYS, match) }
 
     /** This phone's last measured hashes per second (0 = not measured yet), for time estimates. */
     fun powHashRate(context: Context): Float = prefs(context).getFloat(POW_HASH_RATE, 0f)

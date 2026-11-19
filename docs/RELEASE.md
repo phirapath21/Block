@@ -61,6 +61,7 @@ Install `app/build/outputs/apk/release/app-release.apk` on a phone and check:
 - [ ] **Timeline:** scrolls smoothly, photo albums, videos, a quoted note, Bitcoin transaction rows and their sheet.
 - [ ] **Post, reply and quote:**
   - [ ] with an image;
+  - [ ] with proof of work turned on (Settings › Advanced › Proof of work), and changed for one post with the pickaxe.
 - [ ] **Private messages:** send and receive.
 - [ ] **Wallet tab:** connect an NWC wallet; balance and recent payments; Receive (invoice, QR code, copy, share); Send (paste and scan, the amount shows, confirm).
 - [ ] **New post:** the floating + at the bottom right opens the composer.
