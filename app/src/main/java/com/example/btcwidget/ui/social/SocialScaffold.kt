@@ -1,5 +1,16 @@
 package com.example.btcwidget.ui.social
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.Radius
 import android.content.ClipData
@@ -233,50 +244,92 @@ fun SocialScaffold(
     }
 }
 
+/**
+ * Tipping someone (a Lightning zap, NIP-57): four amounts as big drawn tiles, your own amount,
+ * a short message, and a gold button. With a wallet connected it pays from it; otherwise it
+ * opens the phone's Lightning wallet.
+ */
 @Composable
 internal fun ZapDialog(recipientName: String, inApp: Boolean, onDismiss: () -> Unit, onZap: (Long, String) -> Unit) {
-    var amount by remember { mutableStateOf("21") }
+    var amount by remember { mutableStateOf("100") }
     var comment by remember { mutableStateOf("") }
+    var custom by remember { mutableStateOf(false) }
     val sats = amount.toLongOrNull()?.takeIf { it > 0 }
-    BlockDialog(
-        onDismiss = onDismiss,
-        title = tr("Zap {0}", recipientName),
-        confirmLabel = sats?.let { "Zap ${"%,d".format(it)} sats" } ?: tr("Zap"),
-        confirmEnabled = sats != null,
-        onConfirm = { sats?.let { onZap(it, comment) } }
-    ) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(21L, 100L, 500L, 1000L, 5000L, 21000L).forEach { preset ->
-                val on = sats == preset
+    BlockSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(TipGold.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = TipGold, modifier = Modifier.size(22.dp))
+                }
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text(tr("Tip {0}", recipientName), color = EInk.Value, fontSize = TextSize.Title, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                    Text(tr("A small thank-you, straight to them"), color = EInk.Caption, fontSize = TextSize.Caption)
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TIP_PRESETS.forEach { (glyph, preset) ->
+                    val on = !custom && sats == preset
+                    Column(
+                        Modifier.weight(1f).clip(Radius.Large)
+                            .background(if (on) TipGold.copy(alpha = 0.10f) else Color.Transparent)
+                            .border(if (on) 2.dp else 1.dp, if (on) TipGold else EInk.BodyStroke, Radius.Large)
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("{0} sats", preset)) { custom = false; amount = preset.toString() }
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        androidx.compose.material3.Icon(glyph, contentDescription = null, tint = if (on) TipGold else EInk.Value, modifier = Modifier.size(24.dp))
+                        Text(compactCount(preset.toInt()), color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                        Text(tr("sats"), color = EInk.Caption, fontSize = TextSize.Micro)
+                    }
+                }
+            }
+            Text(
+                if (custom) tr("Pick an amount above instead") else tr("Custom amount"),
+                color = EInk.Accent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp).clip(Radius.Full)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { custom = !custom; if (!custom) amount = "100" }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+            if (custom) SettingsTextField(
+                value = amount,
+                onValueChange = { v -> amount = v.filter { it.isDigit() }.take(9) },
+                placeholder = tr("Amount (sats)"),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            )
+            SettingsTextField(
+                value = comment,
+                onValueChange = { comment = it.take(140) },
+                placeholder = tr("Add a message (optional)"),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 16.dp).height(52.dp).clip(Radius.Full)
+                    .background(if (sats != null) TipGold else TipGold.copy(alpha = 0.4f))
+                    .clickable(enabled = sats != null, role = androidx.compose.ui.semantics.Role.Button) { sats?.let { onZap(it, comment) } },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                 Text(
-                    "⚡ ${"%,d".format(preset)}", fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
-                    color = if (on) EInk.OnAccent else EInk.Value,
-                    modifier = Modifier.clip(Radius.Full).background(if (on) ZapOrange else EInk.Track)
-                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { amount = preset.toString() }.padding(horizontal = 14.dp, vertical = 8.dp)
+                    sats?.let { tr("Tip {0} sats", "%,d".format(it)) } ?: tr("Tip"),
+                    color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp)
                 )
             }
+            Text(
+                if (inApp) tr("Paid from your connected wallet.") else tr("Opens your Lightning wallet to pay. Connect one in your menu › Wallet to tip in one tap."),
+                color = EInk.Caption, fontSize = TextSize.Caption, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+            )
         }
-        SettingsTextField(
-            value = amount,
-            onValueChange = { v -> amount = v.filter { it.isDigit() }.take(9) },
-            placeholder = tr("Amount (sats)"),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
-        )
-        SettingsTextField(
-            value = comment,
-            onValueChange = { comment = it.take(140) },
-            placeholder = tr("Comment (optional)"),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-        Text(
-            if (inApp) tr("Pays from your connected wallet (NWC).") else tr("Opens your Lightning wallet to pay. Connect a wallet in Settings › Nostr to zap in one tap."),
-            color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp)
-        )
     }
 }
 
-private val ZapOrange get() = EInk.Accent
+/** The tip amounts on offer, each with its drawn picture. */
+private val TIP_PRESETS get() = listOf(Glyphs.Coffee to 21L, Glyphs.Bowl to 100L, Glyphs.Gift to 500L, Glyphs.Liked to 1000L)
+
+/** Tips are gold everywhere (the post's button, this sheet). */
+private val TipGold get() = com.example.btcwidget.ui.main.ActionColor.Zap
 
 @Composable
 private fun ReportDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {

@@ -80,8 +80,16 @@ import kotlinx.coroutines.launch
 /** Gap in seconds before showing a new centered Messenger-style timestamp divider (15 minutes). */
 private const val TIME_GROUP_GAP_SEC = 15 * 60L
 
-/** Emoji offered when reacting to a message. */
-private val DM_REACTIONS = listOf("❤️", "😂", "👍", "🔥", "😮", "😢", "🙏")
+/**
+ * Reactions offered on a message: drawn icons (the app shows no emoji of its own), each sent as
+ * the emoji other Nostr apps expect (NIP-25).
+ */
+private val DM_REACTIONS get() = listOf(
+    Triple(Glyphs.Liked, "\u2764\uFE0F", "Love"),
+    Triple(Glyphs.ThumbUp, "\uD83D\uDC4D", "Like"),
+    Triple(Glyphs.Smile, "\uD83D\uDE02", "Funny"),
+    Triple(Glyphs.Flame, "\uD83D\uDD25", "Fire")
+)
 
 /**
  * Formats a centered Messenger-style section timestamp (e.g. "TODAY AT 3:33 PM",
@@ -559,17 +567,18 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                                                                 .padding(horizontal = 16.dp, vertical = 6.dp),
                                                             horizontalArrangement = Arrangement.SpaceEvenly
                                                         ) {
-                                                            DM_REACTIONS.forEach { e ->
-                                                                Text(
-                                                                    e,
-                                                                    fontSize = TextSize.Display,
+                                                            DM_REACTIONS.forEach { (glyph, e, label) ->
+                                                                androidx.compose.material3.Icon(
+                                                                    glyph, contentDescription = tr(label),
+                                                                    tint = if (glyph == Glyphs.Liked) com.example.btcwidget.ui.main.ActionColor.Like else EInk.Value,
                                                                     modifier = Modifier
                                                                         .clip(CircleShape)
-                                                                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("React {0}", e)) {
+                                                                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label)) {
                                                                             menuFor = null
                                                                             vm.reactDm(peers, m, e)
                                                                         }
-                                                                        .padding(6.dp)
+                                                                        .padding(10.dp)
+                                                                        .size(26.dp)
                                                                 )
                                                             }
                                                         }

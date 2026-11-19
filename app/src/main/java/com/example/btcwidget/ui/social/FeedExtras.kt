@@ -237,7 +237,7 @@ private fun PackCard(pack: FollowPack, profiles: Map<String, Profile>, followed:
             contentAlignment = Alignment.Center
         ) {
             Text(
-                if (done) "✓ " + tr("Following") else tr("Follow all {0}", pack.members.size),
+                if (done) tr("Following") else tr("Follow all {0}", pack.members.size),
                 color = if (done) EInk.Value else EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold
             )
         }

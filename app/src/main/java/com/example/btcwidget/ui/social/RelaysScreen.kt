@@ -113,7 +113,7 @@ private fun RelayStatusTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                         Text(tr("Other relays ({0}/{1})", others.count { it.state == RelayStatus.State.CONNECTED }, others.size), color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
                         Text(tr("Opened to read people who post on their own relays"), color = EInk.Caption, fontSize = TextSize.Caption)
                     }
-                    Text(if (showOthers) "⌃" else "⌄", color = EInk.Value, fontSize = TextSize.Subtitle)
+                    androidx.compose.material3.Icon(if (showOthers) Glyphs.ArrowUp else Glyphs.ArrowDown, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(20.dp))
                 }
                 HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
             }

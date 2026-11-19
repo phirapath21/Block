@@ -71,17 +71,17 @@ fun WebViewer(url: String, note: Event?, stats: NoteStats, actions: NoteActions,
         Column(Modifier.fillMaxSize().screenBackground().statusBarsPadding()) {
             // Top bar.
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                BarButton("✕", "Close", onDismiss)
+                BarButton(Glyphs.CloseLine, "Close", onDismiss)
                 Column(Modifier.weight(1f).padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(page.title.ifBlank { tr("Loading…") }, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        (if ((page.url.ifBlank { url }).startsWith("https://")) "🔒 " else "") + hostOf(page.url.ifBlank { url }),
+                        hostOf(page.url.ifBlank { url }),
                         color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
                     )
                 }
-                BarButton("↻", "Reload") { page.reload() }
+                BarButton(Glyphs.Rotate, "Reload") { page.reload() }
                 Box {
-                    BarButton("⋮", "More options") { menu = true }
+                    BarButton(Glyphs.More, "More options") { menu = true }
                     BlockDropdown(expanded = menu, onDismiss = { menu = false }) {
                         BlockDropdownItem(tr("Open in browser"), Glyphs.OpenInBrowser) { menu = false; openExternally(context, page.url.ifBlank { url }) }
                         BlockDropdownItem(tr("Copy link"), Glyphs.Link) { menu = false; copyLink(context, page.url.ifBlank { url }) }
@@ -154,11 +154,11 @@ private fun PostSheet(note: Event, stats: NoteStats, actions: NoteActions, level
 }
 
 @Composable
-private fun BarButton(glyph: String, label: String, onClick: () -> Unit) {
+private fun BarButton(glyph: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     // 48 dp, named for TalkBack (the glyph itself would be read as a symbol).
     Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr(label), onClick = onClick)
         .semantics { contentDescription = tr(label) }, contentAlignment = Alignment.Center) {
-        Text(glyph, color = EInk.Value, fontSize = TextSize.Title)
+        androidx.compose.material3.Icon(glyph, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(22.dp))
     }
 }
 

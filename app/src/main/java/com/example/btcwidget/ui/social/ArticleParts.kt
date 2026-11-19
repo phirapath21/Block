@@ -198,7 +198,7 @@ internal fun ArticleAudioPlayerBar(
                         .semantics { contentDescription = tr("Previous paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Text("⏮", color = EInk.Value, fontSize = TextSize.Caption)
+                    androidx.compose.material3.Icon(Glyphs.SkipBack, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(14.dp))
                 }
                 Box(
                     Modifier
@@ -224,7 +224,7 @@ internal fun ArticleAudioPlayerBar(
                         .semantics { contentDescription = tr("Next paragraph") }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Text("⏭", color = EInk.Value, fontSize = TextSize.Caption)
+                    androidx.compose.material3.Icon(Glyphs.SkipForward, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(14.dp))
                 }
                 Box(
                     Modifier
@@ -319,7 +319,7 @@ internal fun AuthorSupportFooterCard(
         }
         HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(vertical = 12.dp))
         Text(
-            tr("Enjoyed this article? Value-for-Value zap the author:"),
+            tr("Enjoyed this article? Send the author a tip:"),
             color = EInk.Value,
             fontSize = TextSize.Caption,
             fontWeight = FontWeight.Bold
@@ -345,7 +345,7 @@ internal fun AuthorSupportFooterCard(
                                     recipient = article.pubkey,
                                     amountSat = sats,
                                     note = article.event,
-                                    comment = "⚡ ${article.title}",
+                                    comment = article.title,
                                     address = author?.lud16
                                 ) { invoice ->
                                     runCatching {
@@ -358,12 +358,16 @@ internal fun AuthorSupportFooterCard(
                         }
                         .padding(horizontal = 13.dp, vertical = 7.dp)
                 ) {
-                    Text(
-                        "⚡ $sats",
-                        color = EInk.Accent,
-                        fontSize = TextSize.Caption,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = EInk.Accent, modifier = Modifier.size(14.dp))
+                        Text(
+                            "$sats",
+                            color = EInk.Accent,
+                            fontSize = TextSize.Caption,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
             }
             Box(
@@ -374,12 +378,16 @@ internal fun AuthorSupportFooterCard(
                     .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.zap(article.event) }
                     .padding(horizontal = 13.dp, vertical = 7.dp)
             ) {
-                Text(
-                    tr("Custom ⚡"),
-                    color = EInk.Value,
-                    fontSize = TextSize.Caption,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Icon(Glyphs.Zap, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(14.dp))
+                        Text(
+                            tr("Custom"),
+                            color = EInk.Value,
+                            fontSize = TextSize.Caption,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
             }
         }
     }
@@ -416,7 +424,7 @@ internal fun ArticleRow(article: Article, onClick: () -> Unit) {
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            if (savedPct >= 95) tr("✓ Read") else tr("{0}% read", savedPct),
+                            if (savedPct >= 95) tr("Read") else tr("{0}% read", savedPct),
                             color = EInk.Accent,
                             fontSize = TextSize.Micro,
                             fontWeight = FontWeight.Bold

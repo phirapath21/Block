@@ -260,7 +260,7 @@ private fun TopZaps(zaps: List<com.example.btcwidget.nostr.core.Zaps.Receipt>, p
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(tr("Top zaps"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
+        Text(tr("Top tips"), color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
         top.forEach { (who, sats) ->
             Row(
                 Modifier.clip(Radius.Full).background(SettingsAccent.copy(alpha = 0.14f)).padding(start = 3.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),

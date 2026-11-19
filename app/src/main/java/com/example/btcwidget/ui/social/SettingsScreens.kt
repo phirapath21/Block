@@ -59,7 +59,7 @@ private val SEARCHABLE: List<Pair<String, SettingsPage>> = listOf(
     "Accounts on this phone" to SettingsPage.ACCOUNT, "Add account" to SettingsPage.ACCOUNT, "Log out" to SettingsPage.ACCOUNT,
     "Your private key (nsec)" to SettingsPage.ACCOUNT, "Scheduled posts" to SettingsPage.ACCOUNT, "Edit profile" to SettingsPage.ACCOUNT,
     "Phone notifications" to SettingsPage.NOTIFICATIONS, "Replies" to SettingsPage.NOTIFICATIONS, "Mentions" to SettingsPage.NOTIFICATIONS,
-    "Zaps" to SettingsPage.NOTIFICATIONS, "Messages" to SettingsPage.NOTIFICATIONS,
+    "Tips" to SettingsPage.NOTIFICATIONS, "Messages" to SettingsPage.NOTIFICATIONS,
     "Muted words and hashtags" to SettingsPage.PRIVACY, "Muted conversations" to SettingsPage.PRIVACY, "Web of trust" to SettingsPage.PRIVACY,
     "Private bookmarks and mutes" to SettingsPage.PRIVACY, "Community rules" to SettingsPage.PRIVACY,
     "Theme" to SettingsPage.DISPLAY, "Bitcoin in posts" to SettingsPage.DISPLAY, "Ember" to SettingsPage.DISPLAY, "Language" to SettingsPage.DISPLAY, "Open links in" to SettingsPage.DISPLAY, "Video autoplay" to SettingsPage.DISPLAY, "Video quality" to SettingsPage.DISPLAY,

@@ -1,5 +1,6 @@
 package com.example.btcwidget.ui.social
 
+import androidx.compose.foundation.layout.size
 import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.Radius
 import androidx.compose.foundation.background
@@ -68,8 +69,9 @@ fun PollView(poll: Poll, actions: NoteActions) {
                 Box(Modifier.padding(vertical = 3.dp).fillMaxWidth().height(36.dp).clip(shape)) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(share.coerceIn(0f, 1f)).background(EInk.BodyStroke))
                     Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (option.id in mine) androidx.compose.material3.Icon(Glyphs.Check, contentDescription = tr("Your vote"), tint = EInk.Value, modifier = Modifier.size(16.dp).padding(end = 4.dp))
                         Text(
-                            option.label + if (option.id in mine) "  ✓" else "",
+                            option.label,
                             color = EInk.Value, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             fontWeight = if (option.id in mine) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
@@ -88,8 +90,9 @@ fun PollView(poll: Poll, actions: NoteActions) {
                         },
                     contentAlignment = Alignment.Center
                 ) {
+                    if (poll.multipleChoice) androidx.compose.material3.Icon(if (selected) Glyphs.CheckBoxOn else Glyphs.CheckBox, contentDescription = null, tint = EInk.Value, modifier = Modifier.align(Alignment.CenterStart).padding(start = 10.dp).size(18.dp))
                     Text(
-                        (if (poll.multipleChoice) (if (selected) "☑ " else "☐ ") else "") + option.label,
+                        option.label,
                         color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )

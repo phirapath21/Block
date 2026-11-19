@@ -1,5 +1,8 @@
 package com.example.btcwidget.ui.social
 
+import com.example.btcwidget.ui.main.Radius
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import com.example.btcwidget.ui.main.TextSize
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -96,7 +99,11 @@ class NoteActions(
     val me: String?
 )
 
-/** A timeline row, X-style: avatar, name · handle · time, text, media, quoted note, actions. */
+/**
+ * A post as a soft card (design direction A): the picture, name and "@handle · time" with ⋯,
+ * then the text and media across the card, and the actions. [large] is the opened post: bigger
+ * text, Follow, the full date and what it got (likes, reposts, sats tipped).
+ */
 @Composable
 fun NoteCard(
     note: Event,
@@ -111,75 +118,85 @@ fun NoteCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .clip(Radius.Large)
+            .background(EInk.Body)
+            .border(1.dp, EInk.BodyStroke, Radius.Large)
             .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         if (repostedBy != null) {
             val reposter by remember(repostedBy, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(repostedBy) } }
-            Text(
-                text = tr("⟲ {0} reposted", reposter?.bestName ?: Profile.shortNpub(repostedBy)),
-                color = EInk.Caption,
-                fontSize = TextSize.Caption,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(start = 38.dp, bottom = 4.dp)
-                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(repostedBy) }
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openProfile(repostedBy) }
+            ) {
+                Icon(Glyphs.Repost, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(15.dp))
+                Text(
+                    text = tr("{0} reposted", reposter?.bestName ?: Profile.shortNpub(repostedBy)),
+                    color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+            }
         }
+        // Who wrote it: picture, name (⋯ at the right), then @handle · time.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Avatar(author, note.pubkey, size = if (large) 48 else 40, onClick = { actions.openProfile(note.pubkey) })
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                AuthorLine(note, author, actions, large = true)
+                Text(
+                    handleText(author, note.pubkey) + if (large) "" else " · " + relativeTime(note.createdAt),
+                    color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (large && note.pubkey != actions.me && !actions.isFollowing(note.pubkey)) {
+                Spacer(Modifier.width(8.dp))
+                com.example.btcwidget.ui.main.BlockButton(
+                    tr("Follow"), size = com.example.btcwidget.ui.main.ButtonSize.Small
+                ) { actions.follow(note.pubkey, true) }
+            }
+        }
+        val stamp = remember(note.id) { BlockStamp.fromEvent(note) }
+        if (stamp != null) BlockStampBadge(stamp, note, actions)
+        ReplyingTo(note, actions, Modifier.padding(top = 6.dp))
         if (large) {
-            // The opened post, as Amethyst shows it: name and handle beside the picture, then
-            // the text, full date and buttons across the whole width.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(author, note.pubkey, size = 48, onClick = { actions.openProfile(note.pubkey) })
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    AuthorLine(note, author, actions, large = true)
-                    Text(
-                        handleText(author, note.pubkey), color = EInk.Caption, fontSize = TextSize.Body,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            val stamp = remember(note.id) { BlockStamp.fromEvent(note) }
-            if (stamp != null) {
-                BlockStampBadge(stamp, note, actions)
-            }
-            ReplyingTo(note, actions, Modifier.padding(top = 10.dp))
             // The opened post's text can be selected: long-press, drag the handles, Copy.
             androidx.compose.foundation.text.selection.SelectionContainer {
                 Column { NoteBody(note, actions, fontSize = 17, collapse = false) }
             }
-            Text(fullTimestamp(note.createdAt), color = EInk.Caption, fontSize = TextSize.Body, modifier = Modifier.padding(top = 10.dp))
-            ActionRow(note, stats, actions)
-            return@Column
+            Text(fullTimestamp(note.createdAt), color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(top = 10.dp))
+            EngagementSummary(note, stats, actions)
+        } else {
+            NoteBody(note, actions, fontSize = 15)
         }
-        Row {
-            Avatar(author, note.pubkey, size = 44, onClick = { actions.openProfile(note.pubkey) })
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                AuthorLine(note, author, actions)
-                val stamp = remember(note.id) { BlockStamp.fromEvent(note) }
-                if (stamp != null) {
-                    BlockStampBadge(stamp, note, actions)
-                }
-                val parentAuthor = remember(note.id) {
-                    if (ThreadRef.of(note).parent != null) note.tagValues("p").firstOrNull() else null
-                }
-                if (parentAuthor != null) {
-                    val parentProfile by remember(parentAuthor, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(parentAuthor) } }
-                    Text(
-                        text = tr("Replying to @") + (parentProfile?.bestName ?: Profile.shortNpub(parentAuthor)),
-                        color = EInk.Caption,
-                        fontSize = TextSize.Caption,
-                        modifier = Modifier.padding(top = 1.dp)
-                    )
-                }
-                NoteBody(note, actions, fontSize = 15)
-                ActionRow(note, stats, actions)
+        ActionRow(note, stats, actions)
+    }
+}
+
+/** The opened post's totals: likes, reposts, sats tipped; each opens who did it. */
+@Composable
+private fun EngagementSummary(note: Event, stats: NoteStats, actions: NoteActions) {
+    val sats = (stats.zapMsat / 1000).toInt()
+    if (stats.likes == 0 && stats.reposts == 0 && sats == 0) return
+    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.padding(top = 10.dp))
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        @Composable
+        fun total(n: Int, label: String, tab: Int, color: androidx.compose.ui.graphics.Color = EInk.Value) {
+            if (n <= 0) return
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clip(Radius.Small).clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openEngagement(note, tab) }.padding(vertical = 4.dp)
+            ) {
+                Text(compactCount(n), color = color, fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
+                Text(" " + tr(label), color = EInk.Caption, fontSize = TextSize.Body)
             }
         }
+        total(stats.likes, "Likes", 1)
+        total(stats.reposts, "Reposts", 0)
+        total(sats, "sats tipped", 2, com.example.btcwidget.ui.main.ActionColor.Zap)
     }
-    if (showDivider) HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
+    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 /** "Replying to @name" under the author, for replies. */
@@ -240,7 +257,7 @@ private fun NoteMenu(note: Event, actions: NoteActions, onDismiss: () -> Unit) {
     val name = actions.profileOf(note.pubkey)?.bestName ?: Profile.shortNpub(note.pubkey)
     val items = buildList {
         add(SheetAction(if (actions.isBookmarked(note.id)) Glyphs.Bookmarked else Glyphs.Bookmark, if (actions.isBookmarked(note.id)) tr("Remove bookmark") else tr("Bookmark")) { actions.bookmark(note) })
-        add(SheetAction(Glyphs.Stats, tr("Reposts, likes and zaps")) { actions.openEngagement(note, 1) })
+        add(SheetAction(Glyphs.Stats, tr("Reposts, likes and tips")) { actions.openEngagement(note, 1) })
         add(SheetAction(Glyphs.Share, tr("Share post")) { actions.share(note) })
         if (mine) {
             add(SheetAction(Glyphs.Pin, if (actions.isPinned(note.id)) tr("Unpin from profile") else tr("Pin to profile")) { actions.pin(note) })

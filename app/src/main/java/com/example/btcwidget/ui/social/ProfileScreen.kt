@@ -273,7 +273,7 @@ private fun ProfileHeader(
                 else -> {
                     CircleIconButton(Glyphs.Chat, tr("Message"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = onMessage)
                     if (profile?.lud16 != null || profile?.lud06 != null) {
-                        CircleIconButton(Glyphs.Zap, tr("Zap"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = { actions.zap(fakeProfileNote(pubkey)) })
+                        CircleIconButton(Glyphs.Zap, tr("Tip"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = { actions.zap(fakeProfileNote(pubkey)) })
                     }
                     PillButton(if (isFollowing) tr("Following") else tr("Follow"), filled = !isFollowing, onClick = onFollow)
                 }

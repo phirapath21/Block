@@ -81,13 +81,12 @@ import kotlinx.coroutines.launch
 fun SocialTopBar(title: String, onBack: () -> Unit) {
     Column(modifier = Modifier.screenBackground().statusBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text(
-                text = "←",
-                color = EInk.Value,
-                fontSize = TextSize.Title,
+            androidx.compose.material3.Icon(
+                Glyphs.Back, contentDescription = tr("Back"), tint = EInk.Value,
                 modifier = Modifier
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .size(22.dp)
             )
             Text(title, color = EInk.Value, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold)
         }
@@ -304,7 +303,7 @@ fun HomeScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             ) { Avatar(actions.profileOf(item.note.pubkey), item.note.pubkey, size = 22) }
                         }
                         Text(
-                            tr("  ↑ {0} new post{1}", pending.size, plural(pending.size)),
+                            tr("  {0} new post{1}", pending.size, plural(pending.size)),
                             color = EInk.OnAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold
                         )
                     }
@@ -382,7 +381,7 @@ fun NotificationsScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     SocialScaffold(vm, navigate) { actions ->
         Column(Modifier.fillMaxSize()) {
             if (account == null) {
-                EmptyNote(tr("Log in to see replies, likes, reposts and zaps."))
+                EmptyNote(tr("Log in to see replies, likes, reposts and tips."))
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { PillButton(tr("Log in"), onClick = { navigate(LoginKey) }) }
                 return@Column
             }
@@ -426,11 +425,10 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
         NoteCard(n.event, NoteStats(), actions)
         return
     }
-    val orange = EInk.Accent
     val (icon, tint) = when (n.type) {
-        NostrNotification.Type.REPOST -> "⟲" to EInk.Value
-        NostrNotification.Type.LIKE -> "♥" to orange
-        else -> "⚡" to orange
+        NostrNotification.Type.REPOST -> Glyphs.Repost to com.example.btcwidget.ui.main.ActionColor.Repost
+        NostrNotification.Type.LIKE -> Glyphs.Liked to com.example.btcwidget.ui.main.ActionColor.Like
+        else -> Glyphs.Zap to com.example.btcwidget.ui.main.ActionColor.Zap
     }
     val actors = g.actors
     val names = actors.take(2).map { profiles[it]?.bestName ?: Profile.shortNpub(it) }
@@ -438,7 +436,7 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
         NostrNotification.Type.REPOST -> "reposted your note"
         NostrNotification.Type.LIKE -> if (g.items.all { it.event.content == "+" || it.event.content.isBlank() }) "liked your note"
             else "reacted " + g.items.map { it.event.content }.filter { it != "+" && it.isNotBlank() && it.length <= 8 }.distinct().take(5).joinToString("")
-        else -> "zapped ${formatSats(g.totalMsat / 1000)} sats"
+        else -> "tipped you ${formatSats(g.totalMsat / 1000)} sats"
     }
     val target by produceKept<Event?>(null, g.noteId) { value = g.noteId?.let { runCatching { actions.resolveNote(it) }.getOrNull() } }
     Row(
@@ -450,7 +448,7 @@ private fun NotificationRow(g: NotificationGroup, profiles: Map<String, Profile>
             }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Text(icon, color = tint, fontSize = TextSize.Title, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp).padding(start = 6.dp))
+        androidx.compose.material3.Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.width(40.dp).padding(start = 6.dp).size(24.dp))
         Column(Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 actors.take(7).forEach { pk -> Avatar(profiles[pk], pk, size = 32, onClick = { actions.openProfile(pk) }) }
@@ -524,11 +522,9 @@ internal fun FeedTabBar(
     ) {
         Column(Modifier.fillMaxWidth().screenBackground()) {
             Row(Modifier.fillMaxWidth().height(FEED_TAB_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
-                FeedTabStrip(feeds, current, onSelect, Modifier.weight(1f).fillMaxHeight().testTag("feed_tabs"))
-                Box(Modifier.width(0.5.dp).height(20.dp).background(EInk.BodyStroke))
+                FeedTabStrip(feeds, current, onSelect, Modifier.weight(1f).testTag("feed_tabs"))
                 CircleIconButton(Glyphs.Sliders, tr("Manage feeds"), Modifier.padding(horizontal = 6.dp), onClick = onManage)
             }
-            HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         }
     }
 }
@@ -536,110 +532,25 @@ internal fun FeedTabBar(
 /** Height of the feed tabs, without their bottom line. */
 internal val FEED_TAB_HEIGHT = 50.dp
 
+/**
+ * The feeds as capsules (design direction A): the open one filled with the text colour, the
+ * others outlined; they scroll sideways when there are many, keeping the open one in view.
+ */
 @Composable
 private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (HomeFeed) -> Unit, modifier: Modifier) {
-    val labels = feeds.map { feedTabTitle(it) }
-    val selected = feeds.indexOf(current).coerceAtLeast(0)
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val haptics = rememberHaptics()
-    val boldStyle = androidx.compose.ui.text.TextStyle(fontSize = TextSize.Body, fontWeight = FontWeight.Bold)
-    val tabPad = 16.dp
-    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
-        // Tabs share the width when every name fits at its bold width (two or three feeds, as
-        // on X); otherwise they keep their own width and scroll.
-        val widths = remember(labels) {
-            labels.map { with(density) { measurer.measure(it, boldStyle, maxLines = 1).size.width.toDp().coerceAtMost(180.dp) } }
-        }
-        val fits = widths.fold(0.dp) { sum, w -> sum + w + tabPad * 2 } <= maxWidth
-        val scroll = rememberScrollState()
-        // Where each name sits in the row, for the sliding bar.
-        var rowCoords by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-        val textCoords = remember { mutableMapOf<Int, androidx.compose.ui.layout.LayoutCoordinates>() }
-        var bounds by remember { mutableStateOf<Map<Int, Pair<Float, Float>>>(emptyMap()) }
-        fun recompute() {
-            val row = rowCoords ?: return
-            if (!row.isAttached) return
-            bounds = textCoords.filterValues { it.isAttached }.mapValues { (_, c) -> row.localBoundingBoxOf(c).let { it.left to it.right } }
-        }
-        val barLeft = remember { androidx.compose.animation.core.Animatable(0f) }
-        val barWidth = remember { androidx.compose.animation.core.Animatable(0f) }
-        var placed by remember { mutableStateOf(false) }
-        val target = bounds[selected]
-        LaunchedEffect(selected, target) {
-            val (l, r) = target ?: return@LaunchedEffect
-            val minW = with(density) { 28.dp.toPx() }
-            val w = (r - l).coerceAtLeast(minW)
-            val x = (l + r) / 2 - w / 2
-            if (!placed) { barLeft.snapTo(x); barWidth.snapTo(w); placed = true }
-            else {
-                val spec = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.82f, stiffness = 520f)
-                kotlinx.coroutines.coroutineScope {
-                    launch { barLeft.animateTo(x, spec) }
-                    launch { barWidth.animateTo(w, spec) }
-                }
+    val scroll = rememberScrollState()
+    val selected = feeds.indexOf(current).coerceAtLeast(0)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.horizontalScroll(scroll).padding(horizontal = 12.dp)
+    ) {
+        feeds.forEachIndexed { i, feed ->
+            com.example.btcwidget.ui.main.BlockChip(feedTabTitle(feed), selected = i == selected, filter = false, tick = false) {
+                if (i != selected) haptics.tick()
+                onSelect(feed)
             }
-        }
-        // The open tab stays in view, centred when it can be.
-        LaunchedEffect(selected, target, fits) {
-            if (fits) return@LaunchedEffect
-            val (l, r) = target ?: return@LaunchedEffect
-            val viewport = with(density) { maxWidth.toPx() }
-            scroll.animateScrollTo(((l + r) / 2 - viewport / 2).toInt().coerceIn(0, scroll.maxValue))
-        }
-        val accent = SettingsAccent
-        val barHeight = with(density) { 4.dp.toPx() }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxHeight()
-                .then(if (fits) Modifier.fillMaxWidth() else Modifier.horizontalScroll(scroll))
-                .onGloballyPositioned { rowCoords = it; recompute() }
-                .drawBehind {
-                    if (placed) drawRoundRect(
-                        color = accent,
-                        topLeft = androidx.compose.ui.geometry.Offset(barLeft.value, size.height - barHeight),
-                        size = androidx.compose.ui.geometry.Size(barWidth.value, barHeight),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barHeight / 2, barHeight / 2)
-                    )
-                }
-        ) {
-            labels.forEachIndexed { i, label ->
-                val isSelected = i == selected
-                val color by androidx.compose.animation.animateColorAsState(
-                    if (isSelected) EInk.Value else EInk.Caption, androidx.compose.animation.core.tween(180), label = "tab_color"
-                )
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .then(if (fits) Modifier.weight(1f) else Modifier)
-                        .tabSemantics(isSelected)
-                        .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label) {
-                            if (!isSelected) haptics.tick()
-                            onSelect(feeds[i])
-                        }
-                        .padding(horizontal = tabPad)
-                ) {
-                    Text(
-                        label, color = color, fontSize = TextSize.Body, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        modifier = Modifier.widthIn(max = 180.dp).onGloballyPositioned { textCoords[i] = it; recompute() }
-                    )
-                }
-            }
-        }
-        // Soft fades where the tabs are cut off, so it reads as "there's more this way".
-        if (!fits) {
-            val fade = 28.dp
-            if (scroll.canScrollBackward) Box(
-                Modifier.align(Alignment.CenterStart).width(fade).fillMaxHeight()
-                    .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(EInk.Background, EInk.Background.copy(alpha = 0f))))
-            )
-            if (scroll.canScrollForward) Box(
-                Modifier.align(Alignment.CenterEnd).width(fade).fillMaxHeight()
-                    .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(EInk.Background.copy(alpha = 0f), EInk.Background)))
-            )
         }
     }
 }

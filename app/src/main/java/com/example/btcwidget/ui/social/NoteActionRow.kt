@@ -2,6 +2,7 @@ package com.example.btcwidget.ui.social
 
 import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.Radius
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +31,10 @@ import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.ui.main.EInk
 
-/** Reply · Repost (menu: repost or quote) · Like · Zap, with counts. */
+/**
+ * Reply · Repost (menu: repost or quote) · Like · Tip · Share, with counts. Liked is pink and
+ * reposted green; tips are gold, a capsule once a post has some. Bookmark is in the ⋯ menu.
+ */
 @Composable
 internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
     var repostMenu by remember { mutableStateOf(false) }
@@ -47,26 +51,45 @@ internal fun ActionRow(note: Event, stats: NoteStats, actions: NoteActions) {
             if (repostMenu) RepostSheet(note, stats, actions, onDismiss = { repostMenu = false })
         }
         Box {
-            // Like only, as on X. An emoji reaction sent from another app still shows as that emoji.
+            // Like only. An emoji reaction sent from another app still shows as what they sent.
             val emoji = stats.myReaction?.takeIf { stats.likedByMe && it != "+" && com.example.btcwidget.nostr.core.CustomEmoji.code(it) == null }
             ActionButton(
                 if (stats.likedByMe) Glyphs.Liked else Glyphs.Like, stats.likes, if (stats.likedByMe) "Liked" else "Like",
                 tint = ActionColors.Like.takeIf { stats.likedByMe }, emoji = emoji
             ) { actions.like(note) }
         }
-        val sats = (stats.zapMsat / 1000).toInt()
-        // Not coloured: the zap total isn't split by who zapped.
-        ActionButton(Glyphs.Zap, sats, "Zap", tint = null) { actions.zap(note) }
-        val saved by remember(note.id, actions) { androidx.compose.runtime.derivedStateOf { actions.isBookmarked(note.id) } }
-        ActionButton(if (saved) Glyphs.Bookmarked else Glyphs.Bookmark, 0, if (saved) "Remove bookmark" else "Bookmark", tint = EInk.Value.takeIf { saved }) { actions.bookmark(note) }
+        TipButton((stats.zapMsat / 1000).toInt()) { actions.zap(note) }
+        ActionButton(Glyphs.Share, 0, "Share post", tint = null) { actions.share(note) }
     }
 }
 
-/** Colours that mark what you did, as on X: liked, reposted. */
+/** Tip: gold; "Tip" while there are none, then a gold capsule with the sats. */
+@Composable
+private fun TipButton(sats: Int, onClick: () -> Unit) {
+    val gold = com.example.btcwidget.ui.main.ActionColor.Zap
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .heightIn(min = 40.dp)
+            .clip(Radius.Full)
+            .combinedClickable(onClickLabel = tr("Tip"), role = Role.Button, onClick = onClick)
+            .padding(vertical = 6.dp)
+            .then(if (sats > 0) Modifier.clip(Radius.Full).background(gold.copy(alpha = 0.14f)) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+    ) {
+        Icon(Glyphs.Zap, contentDescription = tr("Tip"), tint = gold, modifier = Modifier.size(17.dp))
+        Text(
+            if (sats > 0) compactCount(sats) else tr("Tip"),
+            color = gold, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+    }
+}
+
+/** Colours that mark what you did: liked pink, reposted green (the same in every look). */
 private object ActionColors {
-    /** The look's accent (Bitcoin orange in Block's), for everything you did. */
-    val Like get() = EInk.Accent
-    val Repost get() = EInk.Accent
+    val Like get() = com.example.btcwidget.ui.main.ActionColor.Like
+    val Repost get() = com.example.btcwidget.ui.main.ActionColor.Repost
 }
 
 /** An icon with its count; [tint] colours it when it's something you did. */

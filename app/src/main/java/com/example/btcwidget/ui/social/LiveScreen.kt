@@ -105,7 +105,7 @@ internal fun LiveRow(live: LiveStreams.Live, host: Profile?, onClick: () -> Unit
 }
 
 private fun statusLine(live: LiveStreams.Live): String = when (live.status) {
-    LiveStreams.Status.LIVE -> "● LIVE" + (live.viewers?.let { " · $it watching" } ?: "")
+    LiveStreams.Status.LIVE -> "LIVE" + (live.viewers?.let { " · $it watching" } ?: "")
     LiveStreams.Status.PLANNED -> "Starts " + (live.starts?.let { fullTimestamp(it) } ?: "soon")
     LiveStreams.Status.ENDED -> if (live.recording != null) "Ended · Replay" else "Ended"
 }
@@ -204,7 +204,7 @@ fun LiveScreen(vm: SocialViewModel, address: String, navigate: (NavKey) -> Unit,
             LiveChat(
                 vm, navigate, onBack,
                 title = l?.title ?: tr("Live"),
-                note = if (!found) tr("This stream couldn't be found on your relays.") else tr("Live chat: messages and zaps are public."),
+                note = if (!found) tr("This stream couldn't be found on your relays.") else tr("Live chat: messages and tips are public."),
                 messages = if (!found) emptyList() else messagesNow,
                 pinned = pinned,
                 hosts = setOfNotNull(l?.host),
@@ -379,12 +379,12 @@ private fun LiveInfo(live: LiveStreams.Live, host: Profile?, isMe: Boolean, isFo
         }
         if (!isMe) Row(
             Modifier.clip(Radius.Full).background(SettingsAccent)
-                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Zap the streamer"), onClick = onZap)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Tip the streamer"), onClick = onZap)
                 .padding(start = 9.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Glyphs.Zap, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(15.dp))
-            Text(tr("Zap"), color = EInk.OnAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
+            Text(tr("Tip"), color = EInk.OnAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
         }
         Icon(
             Glyphs.Chevron, contentDescription = tr("Stream details"), tint = EInk.Caption,
@@ -436,11 +436,11 @@ private fun LiveInfoSheet(
             }
             if (!isMe) Row(
                 Modifier.padding(top = 14.dp).fillMaxWidth().height(46.dp).clip(Radius.Full).background(SettingsAccent)
-                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Zap the streamer")) { onDismiss(); onZap() },
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Tip the streamer")) { onDismiss(); onZap() },
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(Glyphs.Zap, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(18.dp))
-                Text(tr("Zap the streamer"), color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+                Text(tr("Tip the streamer"), color = EInk.OnAccent, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
             }
             live.summary?.takeIf { it.isNotBlank() }?.let { summary ->
                 Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(Radius.Large).background(EInk.Body).padding(14.dp)) {

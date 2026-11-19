@@ -147,7 +147,7 @@ object NostrShareCardRenderer {
             textSize = 34f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText("⚡ BLOCK", contentLeft, cursorY, brandPaint)
+        canvas.drawText("BLOCK", contentLeft, cursorY, brandPaint)
 
         if (showBlockStamp && data.blockStamp != null) {
             val stampText = data.blockStamp.compactLabel()
@@ -254,9 +254,13 @@ object NostrShareCardRenderer {
             }
             val zapsSats = data.stats.zapMsat / 1000
             val statsText = buildString {
-                if (zapsSats > 0) append("⚡ ${"%,d".format(Locale.US, zapsSats)} sats   ")
-                if (data.stats.likes > 0) append("♥ ${"%,d".format(Locale.US, data.stats.likes)}   ")
-                if (data.stats.reposts > 0) append("⟲ ${"%,d".format(Locale.US, data.stats.reposts)}")
+                // Words, not symbols: the card is drawn, and the app uses no emoji.
+                val parts = buildList {
+                    if (zapsSats > 0) add("${"%,d".format(Locale.US, zapsSats)} sats tipped")
+                    if (data.stats.likes > 0) add("${"%,d".format(Locale.US, data.stats.likes)} likes")
+                    if (data.stats.reposts > 0) add("${"%,d".format(Locale.US, data.stats.reposts)} reposts")
+                }
+                append(parts.joinToString(" · "))
             }.trim()
             if (statsText.isNotEmpty()) {
                 canvas.drawText(statsText, contentLeft, bottomY - 14f, statsPaint)

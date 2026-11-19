@@ -94,7 +94,7 @@ private fun PublishCard(a: SocialViewModel.PublishActivity, onSkipPow: () -> Uni
                     SocialViewModel.PublishActivity.State.WORKING ->
                         CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     SocialViewModel.PublishActivity.State.DONE -> Box(Modifier.size(20.dp).clip(CircleShape).background(Green), contentAlignment = Alignment.Center) {
-                        Text("✓", color = Color.Black, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)
+                        androidx.compose.material3.Icon(Glyphs.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
                     }
                     SocialViewModel.PublishActivity.State.FAILED -> Box(Modifier.size(20.dp).clip(CircleShape).background(EInk.Alert), contentAlignment = Alignment.Center) {
                         Text("!", color = Color.White, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold)

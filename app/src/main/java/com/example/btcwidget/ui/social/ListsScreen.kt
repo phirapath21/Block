@@ -117,7 +117,7 @@ private fun ListRow(list: PeopleList, vm: SocialViewModel, onClick: () -> Unit) 
         // The first few faces, overlapping.
         Box(Modifier.width(44.dp + ((list.members.size.coerceIn(1, 3) - 1) * 14).dp)) {
             if (list.members.isEmpty()) Box(Modifier.size(44.dp).clip(Radius.Small).background(EInk.Body), contentAlignment = Alignment.Center) {
-                Text("☰", color = EInk.Caption, fontSize = TextSize.Title)
+                androidx.compose.material3.Icon(Glyphs.Menu, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(22.dp))
             }
             list.members.take(3).forEachIndexed { i, pk ->
                 Box(Modifier.padding(start = (i * 14).dp)) { Avatar(profiles[pk], pk, size = 44) }
@@ -312,7 +312,7 @@ fun AddToListSheet(vm: SocialViewModel, pubkey: String, onClose: () -> Unit) {
                             Box(
                                 Modifier.size(24.dp).clip(CircleShape).background(if (inList) EInk.Accent else EInk.Track),
                                 contentAlignment = Alignment.Center
-                            ) { if (inList) Text("✓", color = androidx.compose.ui.graphics.Color.Black, fontSize = TextSize.Body, fontWeight = FontWeight.Bold) }
+                            ) { if (inList) androidx.compose.material3.Icon(Glyphs.Check, contentDescription = null, tint = EInk.OnAccent, modifier = Modifier.size(16.dp)) }
                         }
                     }
                 }

@@ -204,7 +204,7 @@ fun BlockDropdownItem(label: String, icon: ImageVector? = null, enabled: Boolean
             Text(label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
         },
         leadingIcon = icon?.let { { Icon(it, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(20.dp)) } },
-        trailingIcon = if (selected) ({ Text("✓", color = AccentOrange, fontWeight = FontWeight.Bold) }) else null,
+        trailingIcon = if (selected) ({ Icon(Glyphs.Check, contentDescription = null, tint = AccentOrange, modifier = Modifier.size(18.dp)) }) else null,
         enabled = enabled,
         onClick = onClick,
         modifier = Modifier.widthIn(min = 180.dp)
@@ -224,7 +224,7 @@ fun ChoiceRow(label: String, selected: Boolean = false, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = EInk.Value, fontSize = TextSize.Body, modifier = Modifier.weight(1f))
-        if (selected) Text("✓", color = AccentOrange, fontSize = TextSize.Subtitle, fontWeight = FontWeight.Bold)
+        if (selected) Icon(Glyphs.Check, contentDescription = tr("Selected"), tint = AccentOrange, modifier = Modifier.size(20.dp))
     }
 }
 

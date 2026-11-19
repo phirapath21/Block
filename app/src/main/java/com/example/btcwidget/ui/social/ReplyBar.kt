@@ -134,11 +134,11 @@ fun ReplyBar(
                 images.forEach { img ->
                     Box {
                         AsyncImage(img.url, "Attached image", contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(Radius.Small))
-                        Text(
-                            "✕", color = Color.White, fontSize = TextSize.Micro,
+                        androidx.compose.material3.Icon(
+                            Glyphs.CloseLine, contentDescription = null, tint = Color.White,
                             modifier = Modifier.align(Alignment.TopEnd).clip(CircleShape).background(Color(0x99000000))
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Remove image")) { images = images - img }
-                                .semantics { contentDescription = tr("Remove image") }.padding(horizontal = 5.dp)
+                                .semantics { contentDescription = tr("Remove image") }.padding(3.dp).size(12.dp)
                         )
                     }
                 }

@@ -66,9 +66,9 @@ internal fun MyRelaysTab(vm: SocialViewModel, onInfo: (String) -> Unit) {
                 )
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     fun set(read: Boolean, write: Boolean) { entries = entries.map { if (it.url == e.url) it.copy(read = read, write = write) else it } }
-                    BlockChip(text = (if (e.read && e.write) "✓ " else "") + tr("Both"), selected = e.read && e.write, onClick = { set(true, true) })
-                    BlockChip(text = (if (e.read && !e.write) "✓ " else "") + tr("Read"), selected = e.read && !e.write, onClick = { set(true, false) })
-                    BlockChip(text = (if (!e.read && e.write) "✓ " else "") + tr("Write"), selected = !e.read && e.write, onClick = { set(false, true) })
+                    BlockChip(text = tr("Both"), selected = e.read && e.write, onClick = { set(true, true) })
+                    BlockChip(text = tr("Read"), selected = e.read && !e.write, onClick = { set(true, false) })
+                    BlockChip(text = tr("Write"), selected = !e.read && e.write, onClick = { set(false, true) })
                     Spacer(Modifier.weight(1f))
                     Text(
                         tr("Remove"), color = EInk.Alert, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,

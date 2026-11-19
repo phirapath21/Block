@@ -19,7 +19,7 @@ import com.example.btcwidget.nostr.InstantPush
 
 private val NOTIFICATION_TYPES = listOf(
     "reply" to "Replies", "mention" to "Mentions", "repost" to "Reposts",
-    "like" to "Likes", "zap" to "Zaps", "dm" to "Messages"
+    "like" to "Likes", "zap" to "Tips", "dm" to "Messages"
 )
 
 @Composable
@@ -43,7 +43,7 @@ internal fun NotificationsPage(vm: SocialViewModel) {
 
     SettingsSwitchRow(
         tr("Phone notifications"),
-        summary = tr("Replies, zaps and messages while Block is closed."),
+        summary = tr("Replies, tips and messages while Block is closed."),
         checked = push
     ) { on ->
         vm.setPushEnabled(on)
@@ -77,7 +77,7 @@ internal fun NotificationsPage(vm: SocialViewModel) {
     if (askInstant) BlockDialog(
         onDismiss = { askInstant = false; chooseInstant(false) },
         title = tr("Get notifications instantly?"),
-        text = tr("Block can stay connected to your relays so replies, zaps and messages arrive within seconds, like on X. It needs no server of anyone's: only your phone and your relays.") + "\n\n" +
+        text = tr("Block can stay connected to your relays so replies, tips and messages arrive within seconds. It needs no server of anyone's: only your phone and your relays.") + "\n\n" +
             tr("It uses a little more battery, and Android shows a small notification while it's on. Otherwise Block checks every 15–60 minutes. You can change this any time here."),
         confirmLabel = tr("Instant"),
         onConfirm = { askInstant = false; chooseInstant(true) },

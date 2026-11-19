@@ -10,6 +10,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -116,8 +118,14 @@ internal fun Modifier.onLongPress(onLongPress: () -> Unit): Modifier = composed 
 }
 
 @Composable
-internal fun ArticleAction(label: String, onClick: () -> Unit) {
-    Text(label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(vertical = 4.dp))
+internal fun ArticleAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, tint: androidx.compose.ui.graphics.Color = EInk.Value, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick).padding(vertical = 4.dp)
+    ) {
+        if (icon != null) androidx.compose.material3.Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp).padding(end = 2.dp))
+        Text(label, color = EInk.Value, fontSize = TextSize.Body, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = if (icon != null) 4.dp else 0.dp))
+    }
 }
 
 @Composable

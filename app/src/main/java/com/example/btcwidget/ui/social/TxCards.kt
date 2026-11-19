@@ -261,7 +261,7 @@ private fun ConfirmationChip(confirmations: Int, modifier: Modifier = Modifier) 
         }
         Text(
             when {
-                settled -> "✓ " + tr("{0} conf.", TxFormat.count(confirmations))
+                settled -> tr("{0} conf.", TxFormat.count(confirmations))
                 confirmations > 0 -> tr("{0}/6 conf.", confirmations)
                 else -> tr("In mempool")
             },
@@ -497,7 +497,7 @@ private fun CompactTxRow(ref: BitcoinEmbedRef.TxRef, state: TxState, onClick: ()
                 when (state) {
                     TxState.Loading -> tr("Checking the blockchain…")
                     TxState.Failed -> tr("Couldn't load")
-                    is TxState.Loaded -> tr("{0} in → {1} out", TxFormat.count(state.tx.inputs.size), TxFormat.count(state.tx.outputs.size)) +
+                    is TxState.Loaded -> tr("{0} in, {1} out", TxFormat.count(state.tx.inputs.size), TxFormat.count(state.tx.outputs.size)) +
                         " · " + "%.1f sat/vB".format(state.tx.feeRate)
                 },
                 color = EInk.Caption, fontSize = TextSize.Micro, maxLines = 1, overflow = TextOverflow.Ellipsis

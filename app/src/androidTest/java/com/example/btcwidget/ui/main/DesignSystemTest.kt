@@ -36,20 +36,21 @@ class DesignSystemTest {
     }
 
     @Test
-    fun choiceChipsShowATickAndTheirState() {
+    fun choiceChipsShowTheirState() {
         composeTestRule.setContent {
             var on by remember { mutableStateOf(false) }
             BlockChip("Music", selected = on, filter = false) { on = !on }
         }
         composeTestRule.onNodeWithText("Music").assertIsNotSelected().performClick()
-        composeTestRule.onNodeWithText("✓ Music").assertIsSelected()
+        // On: filled, with a drawn tick (no emoji).
+        composeTestRule.onNodeWithText("Music").assertIsSelected()
     }
 
     @Test
     fun emptyStateOffersItsAction() {
         var asked = false
         composeTestRule.setContent {
-            EmptyState("🔔", "Nothing yet", "When people reply, it shows up here.", action = "Find people") { asked = true }
+            EmptyState(com.example.btcwidget.ui.social.Glyphs.Bell, "Nothing yet", "When people reply, it shows up here.", action = "Find people") { asked = true }
         }
         composeTestRule.onNodeWithText("Nothing yet").assertExists()
         composeTestRule.onNodeWithText("Find people").performClick()
