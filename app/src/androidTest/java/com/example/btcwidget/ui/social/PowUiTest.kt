@@ -47,4 +47,19 @@ class PowUiTest {
             assertEquals(1, cancelled)
         }
     }
+
+    @Test
+    fun postSheetPicksALevelForThisPost() {
+        var picked = -1
+        var dismissed = 0
+        composeTestRule.setContent {
+            PowPostSheet(selected = 0, default = 0, rate = 0.0, onPick = { picked = it }, onDismiss = { dismissed++ })
+        }
+        composeTestRule.onNodeWithText("Proof of work for this post").assertExists()
+        composeTestRule.onNodeWithText("16 bits").performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(16, picked)
+            assertEquals(1, dismissed)
+        }
+    }
 }
