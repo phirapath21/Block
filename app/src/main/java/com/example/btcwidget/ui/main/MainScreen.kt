@@ -108,6 +108,11 @@ fun MainScreen(
 
     LaunchedEffect(Unit) { viewModel.start() }
 
+    val newChatButton: @Composable () -> Unit = {
+        com.example.btcwidget.ui.social.CircleIconButton(
+            com.example.btcwidget.ui.social.Glyphs.NewChat, tr("New message"), Modifier.padding(end = 8.dp)
+        ) { social.askNewMessage() }
+    }
     MainScreenContent(
         selectedTab = selectedTab,
         onTabSelected = { selectedTab = it },
@@ -125,6 +130,8 @@ fun MainScreen(
         // Long-press your avatar in the bottom bar to switch accounts, as on X.
         accountSwitcher = if (account != null) { dismiss -> com.example.btcwidget.ui.social.AccountSwitcherSheet(social, onItemClick, dismiss) } else null,
         badges = mapOf(MainTab.NOTIFICATIONS to unreadNotifications, MainTab.MESSAGES to unreadChats.size),
+        // Messages: start a chat from the top bar, beside your avatar.
+        topBarActions = if (account != null) mapOf(MainTab.MESSAGES to newChatButton) else emptyMap(),
         notificationsContent = { com.example.btcwidget.ui.social.NotificationsScreen(social, onItemClick) },
         profileContent = {
             val me = account?.pubkey
@@ -167,6 +174,8 @@ fun MainScreenContent(
     drawerHeader: @Composable () -> Unit = {},
     /** Unread counts shown on bottom-bar tabs. */
     badges: Map<MainTab, Int> = emptyMap(),
+    /** A page's own button in the top bar, before your avatar (Messages: new chat). */
+    topBarActions: Map<MainTab, @Composable () -> Unit> = emptyMap(),
     /** The top-left button that opens the side bar (the user's avatar when logged in). */
     menuButtonIcon: @Composable () -> Unit = { Text("≡", color = EInk.Value, fontSize = TextSize.Title) },
     /** Long-pressing the side panel's button: switch accounts (null: nothing). */
@@ -237,6 +246,7 @@ fun MainScreenContent(
         ) {
             TopBar(
                 title = tr(selectedTab.title),
+                action = topBarActions[selectedTab],
                 menuButton = menuButtonSlot
             )
         }
@@ -502,7 +512,7 @@ private fun MenuIconButton(
 }
 
 @Composable
-private fun TopBar(title: String, menuButton: (@Composable () -> Unit)?) {
+private fun TopBar(title: String, action: (@Composable () -> Unit)?, menuButton: (@Composable () -> Unit)?) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -519,6 +529,7 @@ private fun TopBar(title: String, menuButton: (@Composable () -> Unit)?) {
             maxLines = 1,
             modifier = Modifier.weight(1f)
         )
+        action?.invoke()
         menuButton?.invoke()
     }
 }

@@ -62,6 +62,8 @@ import com.example.btcwidget.nostr.core.Nip17
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 import com.example.btcwidget.ui.main.BlockChip
+import com.example.btcwidget.ui.main.CardColors
+import com.example.btcwidget.ui.main.auroraRing
 import java.io.File
 
 /** Conversations list (the Messages tab). */
@@ -82,6 +84,11 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     var showRequests by rememberSaveable { mutableStateOf(false) }
     var filterQuery by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(account) { vm.startDms() }
+    // "New message" in the top bar (each tap after this page opened).
+    LaunchedEffect(Unit) {
+        val opened = vm.newMessageAsks.value
+        vm.newMessageAsks.collect { if (it > opened) newMessage = true }
+    }
 
     val me = account?.pubkey
     if (me == null) {
@@ -113,65 +120,22 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
 
     Box(Modifier.fillMaxSize().screenBackground()) {
         LazyColumn(Modifier.fillMaxSize(), state = listState) {
-            // Top bar: Chats / Requests chips + quick New Group pill
+            // The search box, then Chats / Requests.
             item(key = "header_tabs") {
                 Column(Modifier.fillMaxWidth()) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val unreadChatsCount = remember(chats, unread) { chats.count { it.key in unread } }
-                        BlockChip(
-                            text = if (unreadChatsCount > 0) tr("Chats ({0})", unreadChatsCount) else tr("Chats"),
-                            selected = !showRequests,
-                            onClick = { showRequests = false }
-                        )
-                        BlockChip(
-                            text = if (requests.isNotEmpty()) tr("Requests ({0})", requests.size) else tr("Requests"),
-                            selected = showRequests,
-                            onClick = { showRequests = true }
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(Radius.Full)
-                                .background(EInk.Body)
-                                .border(1.dp, EInk.BodyStroke, Radius.Full)
-                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("New group chat")) { newGroup = true }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Glyphs.Group, contentDescription = null, tint = EInk.Value, modifier = Modifier.size(16.dp))
-                            Text(
-                                tr("New group"),
-                                color = EInk.Value,
-                                fontSize = TextSize.Caption,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier = Modifier.padding(start = 6.dp)
-                            )
-                        }
-                    }
-
-                    // Filter search box when the user has conversations
                     if (conversations.size > 2 || filterQuery.isNotEmpty()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 14.dp, end = 14.dp, bottom = 10.dp)
-                                .height(40.dp)
+                                .padding(start = 14.dp, end = 14.dp, top = 4.dp)
+                                .height(44.dp)
                                 .clip(Radius.Full)
-                                .background(EInk.Body)
-                                .border(0.5.dp, EInk.BodyStroke, Radius.Full)
+                                .background(CardColors.Fill)
+                                .border(1.dp, CardColors.Edge, Radius.Full)
                                 .padding(horizontal = 14.dp)
                         ) {
-                            Icon(Glyphs.Search, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(17.dp))
+                            Icon(Glyphs.Search, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(19.dp))
                             BasicTextField(
                                 value = filterQuery,
                                 onValueChange = { filterQuery = it },
@@ -204,6 +168,28 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             }
                         }
                     }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val unreadChatsCount = remember(chats, unread) { chats.count { it.key in unread } }
+                        BlockChip(
+                            text = if (unreadChatsCount > 0) tr("Chats · {0}", unreadChatsCount) else tr("Chats"),
+                            selected = !showRequests,
+                            filter = false, tick = false,
+                            onClick = { showRequests = false }
+                        )
+                        BlockChip(
+                            text = if (requests.isNotEmpty()) tr("Requests · {0}", requests.size) else tr("Requests"),
+                            selected = showRequests,
+                            filter = false, tick = false,
+                            onClick = { showRequests = true }
+                        )
+                    }
 
                     if (showRequests) {
                         Row(
@@ -221,7 +207,6 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             )
                         }
                     }
-                    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
                 }
             }
 
@@ -266,29 +251,22 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                     onClick = { navigate(ChatKey(c.key)) }
                 )
             }
-        }
-
-        // Fades away with the bars while you scroll down, matching HomeScreen.
-        val fab by animateFloatAsState(if (LocalBarsVisible.current) 1f else 0f, label = "dm_fab")
-        if (fab > 0.01f) {
-            FloatingActionButton(
-                onClick = { newMessage = true },
-                containerColor = EInk.Accent,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-                    .graphicsLayer {
-                        alpha = fab
-                        scaleX = 0.6f + 0.4f * fab
-                        scaleY = 0.6f + 0.4f * fab
-                    }
-                    .semantics { contentDescription = tr("New message") }
-            ) {
-                Icon(Glyphs.NewChat, contentDescription = tr("New message"), modifier = Modifier.size(25.dp))
+            // Said plainly, instead of the protocol's name.
+            if (shown.isNotEmpty()) item(key = "private") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 18.dp, bottom = 110.dp)
+                ) {
+                    Icon(Glyphs.Lock, contentDescription = null, tint = EInk.Caption, modifier = Modifier.size(15.dp))
+                    Text(
+                        tr("Only you and the people you message can read these"),
+                        color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
             }
         }
+
     }
 
     if (newMessage) NewMessageDialog(
@@ -484,14 +462,14 @@ private fun ConversationRow(
         Modifier
             .fillMaxWidth()
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isGroup) {
             // Stacked dual avatar for group conversations
-            Box(Modifier.size(48.dp)) {
+            Box(Modifier.size(56.dp).auroraRing(unread)) {
                 Box(Modifier.align(Alignment.TopStart)) {
-                    Avatar(profiles[c.peers[0]], c.peers[0], size = 32)
+                    Avatar(profiles[c.peers[0]], c.peers[0], size = if (unread) 30 else 38)
                 }
                 Box(
                     Modifier
@@ -500,11 +478,14 @@ private fun ConversationRow(
                         .screenBackground()
                         .padding(2.dp)
                 ) {
-                    Avatar(profiles[c.peers[1]], c.peers[1], size = 30)
+                    Avatar(profiles[c.peers[1]], c.peers[1], size = if (unread) 28 else 36)
                 }
             }
         } else {
-            Avatar(primaryProfile, primaryPeer, size = 48, onClick = { onProfileClick(primaryPeer) })
+            // Something new: the face sits in Aurora's ring.
+            Box(Modifier.auroraRing(unread)) {
+                Avatar(primaryProfile, primaryPeer, size = if (unread) 46 else 56, onClick = { onProfileClick(primaryPeer) })
+            }
         }
 
         Spacer(Modifier.width(12.dp))
@@ -603,6 +584,5 @@ private fun ConversationRow(
             }
         }
     }
-    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 

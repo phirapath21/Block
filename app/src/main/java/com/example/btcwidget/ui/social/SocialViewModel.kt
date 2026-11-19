@@ -354,6 +354,13 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
         convs.filter { it.last.sender != me && it.last.createdAt > (read[it.key] ?: 0) }.map { it.key }.toSet()
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
+    /** Taps on "New message" in the top bar; Messages opens the picker for each. */
+    val newMessageAsks = MutableStateFlow(0)
+    fun askNewMessage() { newMessageAsks.value++ }
+
+    /** When the user last looked at Notifications (the newest one seen then). */
+    val notificationsSeenAt: Long get() = _notifSeen.value
+
     fun markNotificationsSeen() {
         val newest = _notifications.value.items.maxOfOrNull { it.event.createdAt } ?: return
         if (newest <= _notifSeen.value) return
