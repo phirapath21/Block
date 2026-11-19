@@ -1,7 +1,6 @@
 package com.example.btcwidget.ui.social
 
 import androidx.lifecycle.viewModelScope
-import com.example.btcwidget.nostr.FeedItem
 import com.example.btcwidget.nostr.core.Profile
 import kotlinx.coroutines.launch
 

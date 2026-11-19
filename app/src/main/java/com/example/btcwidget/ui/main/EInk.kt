@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +39,6 @@ import com.example.btcwidget.AppTheme
 import com.example.btcwidget.BlockclockDisplay
 import com.example.btcwidget.BlockclockPainter
 import com.example.btcwidget.BlockclockScene
-import java.util.Locale
 
 /**
  * App palette. The app's own colours (Nostr screens, menus, settings) come from the chosen
@@ -92,9 +90,6 @@ object EInk {
     /** Bottom sheets, menus and dialogs. */
     val Sheet get() = Color(ui.sheet)
     val Success get() = Color(ui.success)
-
-    /** Face for screen titles (unified X-style sans-serif across the app). */
-    val TitleFont: FontFamily get() = FontFamily.Default
 
     val BodyShape = RoundedCornerShape(16.dp)
     val ChipShape = RoundedCornerShape(50)

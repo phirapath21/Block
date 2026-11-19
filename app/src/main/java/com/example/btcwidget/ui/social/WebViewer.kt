@@ -50,7 +50,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Event
-import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 
 /**

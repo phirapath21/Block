@@ -10,16 +10,13 @@ import androidx.compose.foundation.layout.Arrangement
 import com.example.btcwidget.ui.main.EInk
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,7 +38,6 @@ import com.example.btcwidget.ProfileKey
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.Nip19
 import com.example.btcwidget.nostr.core.Profile
-import com.example.btcwidget.ui.main.EInkChip
 import androidx.navigation3.runtime.NavKey
 
 /**
@@ -303,13 +299,6 @@ fun payInvoice(context: Context, invoice: String) {
         clipboard.setPrimaryClip(ClipData.newPlainText("Lightning invoice", invoice))
         Toast.makeText(context, tr("No Lightning wallet found. Invoice copied."), Toast.LENGTH_LONG).show()
     }
-}
-
-/** Shares a link to the note (njump.me opens in any browser or Nostr app). */
-fun shareNote(context: Context, note: Event) {
-    val link = "https://njump.me/" + Nip19.nevent(note.id, author = note.pubkey)
-    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
-    context.startActivity(Intent.createChooser(send, "Share note").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 /**

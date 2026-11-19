@@ -2,7 +2,6 @@ package com.example.btcwidget.nostr.core
 
 import fr.acinq.secp256k1.Secp256k1
 import org.json.JSONObject
-import java.net.URI
 import java.net.URLDecoder
 import java.security.SecureRandom
 import javax.crypto.Cipher

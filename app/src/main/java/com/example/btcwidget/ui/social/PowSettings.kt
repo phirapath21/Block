@@ -26,7 +26,6 @@ class PowSettings(private val app: Application, private val repo: NostrRepositor
     }
 
     private val _benchmarking = MutableStateFlow(false)
-    val benchmarking: StateFlow<Boolean> = _benchmarking.asStateFlow()
 
     /** Measures this phone's mining speed for a moment (skipped when it's known unless [force]). */
     fun benchmark(force: Boolean = false) {

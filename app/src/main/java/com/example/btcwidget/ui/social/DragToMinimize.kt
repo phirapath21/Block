@@ -82,8 +82,3 @@ internal fun dragToMinimize(enabled: Boolean = true, onMinimize: () -> Unit): Dr
         }
     return DragToMinimize(modifier, offset, distance)
 }
-
-/** The modifier alone, for places that don't fade anything with the drag. */
-@Composable
-internal fun rememberDragToMinimize(enabled: Boolean = true, onMinimize: () -> Unit): Modifier =
-    dragToMinimize(enabled, onMinimize).modifier
