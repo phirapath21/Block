@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -112,19 +113,25 @@ fun NoteCard(
     repostedBy: String? = null,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
-    large: Boolean = false
+    large: Boolean = false,
+    flat: Boolean = false,
+    threadLine: Boolean = false
 ) {
     val author by remember(note.pubkey, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(note.pubkey) } }
+    // A card; [flat] (replies, the posts above the opened one) is a plain row on the page.
+    val shell = if (flat) modifier.fillMaxWidth()
+    else modifier
+        .fillMaxWidth()
+        .padding(horizontal = 10.dp, vertical = 5.dp)
+        .clip(Radius.Large)
+        // See-through, so the page (and Aurora's glow) shows behind every post.
+        .background(com.example.btcwidget.ui.main.CardColors.Fill)
+        .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-            .clip(Radius.Large)
-            // See-through, so the page (and Aurora's glow) shows behind every post.
-            .background(com.example.btcwidget.ui.main.CardColors.Fill)
-            .border(1.dp, com.example.btcwidget.ui.main.CardColors.Edge, Radius.Large)
+        modifier = shell
             .clickable(role = androidx.compose.ui.semantics.Role.Button) { actions.openNote(note) }
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .then(if (threadLine) Modifier.threadLineBelowAvatar() else Modifier)
+            .padding(horizontal = if (flat) 16.dp else 14.dp, vertical = if (flat) 10.dp else 12.dp)
     ) {
         if (repostedBy != null) {
             val reposter by remember(repostedBy, actions) { androidx.compose.runtime.derivedStateOf { actions.profileOf(repostedBy) } }
@@ -173,6 +180,12 @@ fun NoteCard(
         }
         ActionRow(note, stats, actions)
     }
+}
+
+/** A line from under the avatar down to the next post: this one is what it answers. */
+private fun Modifier.threadLineBelowAvatar(): Modifier = drawBehind {
+    val x = (16 + 20).dp.toPx()
+    drawLine(EInk.BodyStroke, androidx.compose.ui.geometry.Offset(x, (10 + 40 + 4).dp.toPx()), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 2.dp.toPx())
 }
 
 /** The opened post's totals: likes, reposts, sats tipped; each opens who did it. */

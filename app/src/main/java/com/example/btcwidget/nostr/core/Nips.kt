@@ -100,6 +100,16 @@ object ReplyTree {
         walk(focusId, 0)
         return out
     }
+
+    /**
+     * [rows] from [flatten] with the direct replies most liked first ([score]), each still
+     * followed by its own replies. Ties keep their order (oldest first).
+     */
+    fun topFirst(rows: List<Row>, score: (Event) -> Int): List<Row> {
+        val groups = ArrayList<MutableList<Row>>()
+        for (r in rows) if (r.depth == 0 || groups.isEmpty()) groups.add(mutableListOf(r)) else groups.last().add(r)
+        return groups.sortedByDescending { score(it.first().event) }.flatten()
+    }
 }
 
 /** Builders for the events this app publishes. All return unsigned events for a signer. */

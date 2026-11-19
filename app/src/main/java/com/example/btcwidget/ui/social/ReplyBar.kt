@@ -81,7 +81,10 @@ fun ReplyBar(
     val fill = if (dark) Color(0xF02A2F36) else EInk.Body.copy(alpha = 0.97f)
     val ink = if (dark) Color(0xFFEDEFF1) else EInk.Value
     val hint = if (dark) Color(0xFF9AA0A6) else EInk.Caption
-    val shape = Radius.Large
+    val me = account?.pubkey
+    val active = focused || text.isNotEmpty() || images.isNotEmpty() || uploading > 0
+    // A capsule while it waits; a rounded card once you're writing.
+    val shape = if (active) Radius.Large else Radius.Full
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -89,8 +92,6 @@ fun ReplyBar(
             vm.uploadImage(uri) { a -> uploading--; if (a != null) images = images + a }
         }
     }
-    val me = account?.pubkey
-    val active = focused || text.isNotEmpty() || images.isNotEmpty() || uploading > 0
     androidx.compose.runtime.LaunchedEffect(active) { onActiveChange(active) }
     val canSend = !sending && uploading == 0 && (text.isNotBlank() || images.isNotEmpty())
 
@@ -101,14 +102,17 @@ fun ReplyBar(
             .clip(shape)
             .background(fill)
             .border(0.5.dp, if (dark) Color(0x33FFFFFF) else EInk.BodyStroke, shape)
-            .padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
+            .padding(start = 8.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
     ) {
         Row(verticalAlignment = if (active) Alignment.Top else Alignment.CenterVertically) {
             Box(Modifier.padding(top = if (active) 4.dp else 0.dp)) {
                 if (me != null) Avatar(profiles[me], me, size = 32) else Box(Modifier.size(32.dp).clip(CircleShape).background(hint))
             }
             Box(Modifier.weight(1f).padding(start = 10.dp, end = 4.dp, top = if (active) 9.dp else 0.dp)) {
-                if (text.isEmpty()) Text(tr("Post your reply"), color = hint, fontSize = TextSize.Body)
+                if (text.isEmpty()) Text(
+                    tr("Reply to {0}…", profiles[target.pubkey]?.bestName ?: com.example.btcwidget.nostr.core.Profile.shortNpub(target.pubkey)),
+                    color = hint, fontSize = TextSize.Body, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 BasicTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -158,7 +162,7 @@ fun ReplyBar(
                 Box(Modifier.weight(1f))
                 Text(
                     if (sending) tr("Replying…") else tr("Reply"),
-                    color = if (canSend) Color.Black else hint,
+                    color = if (canSend) EInk.OnAccent else hint,
                     fontSize = TextSize.Body, fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .padding(end = 4.dp)

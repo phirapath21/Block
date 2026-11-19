@@ -555,6 +555,23 @@ private fun FeedTabStrip(feeds: List<HomeFeed>, current: HomeFeed, onSelect: (Ho
     }
 }
 
+/** Tabs as a row of capsules (a profile's Posts · Replies · Media · Articles). */
+@Composable
+fun ChipTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    val haptics = rememberHaptics()
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        labels.forEachIndexed { i, label ->
+            com.example.btcwidget.ui.main.BlockChip(label, selected = i == selected, filter = false, tick = false) {
+                if (i != selected) haptics.tick()
+                onSelect(i)
+            }
+        }
+    }
+}
+
 /** Marks a tab for accessibility: a tab, selected or not. */
 private fun Modifier.tabSemantics(isSelected: Boolean): Modifier =
     this.then(androidx.compose.ui.Modifier.semantics {

@@ -61,15 +61,19 @@ import com.example.btcwidget.ui.main.EInk
 
 /** A round, outlined icon button, as X puts beside Follow (more, message, zap). */
 @Composable
-internal fun CircleIconButton(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun CircleIconButton(
+    icon: ImageVector, label: String, modifier: Modifier = Modifier,
+    tint: androidx.compose.ui.graphics.Color = EInk.Value, edge: androidx.compose.ui.graphics.Color = EInk.BodyStroke,
+    onClick: () -> Unit
+) {
     Box(
         modifier
-            .size(36.dp)
+            .size(40.dp)
             .clip(CircleShape)
-            .border(1.dp, EInk.BodyStroke, CircleShape)
+            .border(1.dp, edge, CircleShape)
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Icon(icon, contentDescription = label, tint = EInk.Value, modifier = Modifier.size(19.dp)) }
+    ) { Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(20.dp)) }
 }
 
 /** Puts [text] on the clipboard and says so. */
@@ -236,7 +240,8 @@ internal fun ProfileTopBar(
     postsLine: String?,
     collapse: Float,
     showTitle: Boolean,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onMore: () -> Unit
 ) {
     val banner = profile?.banner
     val onBanner = banner != null
@@ -252,25 +257,12 @@ internal fun ProfileTopBar(
             Modifier.fillMaxWidth().statusBarsPadding().height(52.dp).padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = if (onBanner) 0.45f else 0.45f * (1f - collapse)))
-                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Back"), onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Glyphs.Back, contentDescription = tr("Back"),
-                    tint = if (onBanner || collapse < 0.5f) Color.White else EInk.Value,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            androidx.compose.animation.AnimatedVisibility(
+            BannerButton(Glyphs.Back, tr("Back"), onBanner, collapse, onBack)
+            Box(Modifier.weight(1f)) { androidx.compose.animation.AnimatedVisibility(
                 visible = showTitle,
                 enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 2 },
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 2 },
-                modifier = Modifier.padding(start = 14.dp).weight(1f)
+                modifier = Modifier.padding(start = 14.dp)
             ) {
                 Column {
                     Text(
@@ -282,10 +274,26 @@ internal fun ProfileTopBar(
                         postsLine, color = if (onBanner) Color.White.copy(alpha = 0.8f) else EInk.Caption, fontSize = TextSize.Caption, maxLines = 1
                     )
                 }
-            }
+            } }
+            BannerButton(Glyphs.MoreHoriz, tr("More"), onBanner, collapse, onMore)
         }
         if (!onBanner && collapse >= 1f) androidx.compose.material3.HorizontalDivider(
             thickness = 0.5.dp, color = EInk.BodyStroke, modifier = Modifier.align(Alignment.BottomStart)
         )
+    }
+}
+
+/** A round button on the banner (back, more): dark glass over the picture, plain once the bar fills in. */
+@Composable
+private fun BannerButton(icon: ImageVector, label: String, onBanner: Boolean, collapse: Float, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = if (onBanner) 0.45f else 0.45f * (1f - collapse)))
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = label, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = label, tint = if (onBanner || collapse < 0.5f) Color.White else EInk.Value, modifier = Modifier.size(20.dp))
     }
 }

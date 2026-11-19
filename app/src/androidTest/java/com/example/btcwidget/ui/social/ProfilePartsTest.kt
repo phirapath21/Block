@@ -3,11 +3,15 @@ package com.example.btcwidget.ui.social
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,6 +56,18 @@ class ProfilePartsTest {
         }
         composeTestRule.onNodeWithContentDescription("Message").performClick()
         composeTestRule.runOnIdle { assertEquals("message", tapped) }
+    }
+
+    @Test
+    fun chipTabsSwitchAndMarkTheSelectedTab() {
+        var tab by androidx.compose.runtime.mutableStateOf(0)
+        composeTestRule.setContent {
+            ChipTabs(listOf("Posts", "Replies", "Media", "Articles"), selected = tab) { tab = it }
+        }
+        composeTestRule.onNodeWithText("Media").performClick()
+        composeTestRule.runOnIdle { assertEquals(2, tab) }
+        composeTestRule.onNodeWithText("Media").assertIsSelected()
+        composeTestRule.onNodeWithText("Posts").assertIsNotSelected()
     }
 
     @Test

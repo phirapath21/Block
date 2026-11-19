@@ -970,6 +970,18 @@ class NostrRepository private constructor(private val context: Context) {
             .mapNotNull { (author, lists) -> author.takeIf { lists.maxBy { it.createdAt }.tagValues("p").contains(pubkey) } }
             .filter { it !in _muted.value }
 
+    /**
+     * Which of [among] (people the user follows) follow [pubkey]: their latest contact
+     * lists that name [pubkey]. For "Followed by …" on a profile.
+     */
+    suspend fun followersAmong(pubkey: String, among: Collection<String>): List<String> {
+        val ask = among.filter { it != pubkey }.take(FOLLOWED_BY_ASK)
+        if (ask.isEmpty()) return emptyList()
+        return queryEverywhere(listOf(Filter(authors = ask, kinds = listOf(Kind.CONTACTS), tags = mapOf("p" to listOf(pubkey)), limit = ask.size)), timeoutMs = 5_000)
+            .groupBy { it.pubkey }
+            .mapNotNull { (author, lists) -> author.takeIf { lists.maxBy { it.createdAt }.tagValues("p").contains(pubkey) } }
+    }
+
     /** Counts likes, reposts, replies and zaps for [noteIds]; marks the user's own. */
     suspend fun loadStats(noteIds: List<String>) {
         if (noteIds.isEmpty()) return
@@ -1566,6 +1578,8 @@ class NostrRepository private constructor(private val context: Context) {
         /** Notes kept in memory, and notes whose counts are kept (see [notes], [stats]). */
         private const val MAX_NOTES = 5_000
         private const val MAX_STATS = 4_000
+        /** How many followed people "Followed by" asks about (one request). */
+        private const val FOLLOWED_BY_ASK = 300
         /** Relays that index profiles, follow lists and relay lists (also used by Amethyst). */
         const val MAX_OWN_RELAYS = 10
         val INDEXER_RELAYS = listOf("wss://purplepag.es", "wss://user.kindpag.es", "wss://indexer.coracle.social")

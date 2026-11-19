@@ -488,6 +488,11 @@ class OutboxTest {
             reply("b", "focus", 20), reply("a", "focus", 10), reply("a1", "a", 30), reply("a1x", "a1", 40), reply("b1", "b", 25)
         ))
         assertEquals(listOf("a" to 0, "a1" to 1, "a1x" to 2, "b" to 0, "b1" to 1), rows.map { it.event.id to it.depth })
+        // Top first: b (more liked) moves up with its own reply; a keeps its nested replies.
+        val top = com.example.btcwidget.nostr.core.ReplyTree.topFirst(rows) { if (it.id == "b") 5 else 0 }
+        assertEquals(listOf("b" to 0, "b1" to 1, "a" to 0, "a1" to 1, "a1x" to 2), top.map { it.event.id to it.depth })
+        // Equal scores keep reading order.
+        assertEquals(rows, com.example.btcwidget.nostr.core.ReplyTree.topFirst(rows) { 0 })
     }
 
     @Test
