@@ -64,6 +64,10 @@ suspend fun SocialViewModel.linkPreview(url: String) = repo.linkPreviews.get(url
 
 suspend fun SocialViewModel.engagement(noteId: String) = runCatching { repo.engagement(noteId) }.getOrNull()
 
+/** People the user follows who also follow [pubkey]. */
+suspend fun SocialViewModel.followedByFriends(pubkey: String): List<String> =
+    runCatching { repo.followersAmong(pubkey, following.value) }.getOrDefault(emptyList())
+
 suspend fun SocialViewModel.followersOf(pubkey: String) = runCatching { repo.followersOf(pubkey) }.getOrDefault(emptyList())
 
 suspend fun SocialViewModel.globalFeed(relay: String?, until: Long? = null) = runCatching { repo.globalFeed(relay, until) }.getOrDefault(emptyList())

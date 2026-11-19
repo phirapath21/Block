@@ -81,7 +81,7 @@ To show your timeline, profiles, threads and notifications, the app requests pub
 
 **Trending:** the Trending list on the Search screen is worked out on your phone from the last day's public notes on the relays you already use. No other service is asked.
 
-**Who to follow:** suggestions are worked out on your phone from the public follow lists of people you follow (fetched from your relays and indexers). Follow packs (kind 39089) are loaded from the same relays.
+**Who to follow:** suggestions are worked out on your phone from the public follow lists of people you follow (fetched from your relays and indexers). Follow packs (kind 39089) are loaded from the same relays. On a profile, "Followed by …" is found the same way: the app asks your relays and indexers for the public follow lists of people you follow that include that profile.
 
 **Live streams:** the Live page (in the side bar) and the Live tab in Search list streams (NIP-53) from your relays and indexers. Watching one, or the replay of one that has ended, loads the video from the streamer's video server, which sees your IP address; its live chat comes from your relays and the stream's own relays, and messages you send there are public. Zapping a stream works as other zaps do (see Zaps), and the zap, with its amount and comment, shows in the stream's chat for everyone.
 

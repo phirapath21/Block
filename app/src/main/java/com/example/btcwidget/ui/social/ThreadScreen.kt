@@ -34,6 +34,11 @@ import com.example.btcwidget.nostr.FeedItem
 import com.example.btcwidget.nostr.NostrRepository
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.ui.main.EInk
+import com.example.btcwidget.nostr.core.ReplyTree
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.flow.first
 
 // ---- Thread ----
 
@@ -50,13 +55,32 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
             if (t == null) {
                 FeedSkeleton(rows = 3)
             } else {
+                // Most liked replies first, sorted once their counts arrive (not again while reading).
+                var replies by remember(t) { mutableStateOf(t.replies) }
+                LaunchedEffect(t) {
+                    if (t.replies.size < 2) return@LaunchedEffect
+                    kotlinx.coroutines.withTimeoutOrNull(3_000) {
+                        vm.stats.first { s -> t.replies.any { it.event.id in s } }
+                    }
+                    val now = vm.stats.value
+                    replies = ReplyTree.topFirst(t.replies) { e -> now[e.id]?.let(::replyScore) ?: 0 }
+                }
                 Box(Modifier.fillMaxSize()) {
                     // Room at the end so the last reply can scroll above the floating card.
                     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
-                        items(t.ancestors, key = { "a" + it.id }) { NoteCard(it, stats[it.id] ?: NoteStats(), actions) }
+                        // What the post answers, linked down to it by a line.
+                        items(t.ancestors, key = { "a" + it.id }) { NoteCard(it, stats[it.id] ?: NoteStats(), actions, flat = true, threadLine = true) }
                         item(key = "focus") { NoteCard(t.focus, stats[t.focus.id] ?: NoteStats(), actions, large = true) }
-                        items(t.replies, key = { "r" + it.event.id }) { row ->
-                            NoteCard(row.event, stats[row.event.id] ?: NoteStats(), actions, modifier = Modifier.threadIndent(row.depth))
+                        if (replies.isNotEmpty()) item(key = "repliesHeader") {
+                            Text(
+                                tr("Replies") + if (replies.size > 1) " · " + tr("Top first") else "",
+                                color = EInk.Caption, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp)
+                            )
+                        }
+                        // Replies are plain rows, easier to read down than a stack of cards.
+                        items(replies, key = { "r" + it.event.id }) { row ->
+                            NoteCard(row.event, stats[row.event.id] ?: NoteStats(), actions, flat = true, modifier = Modifier.threadIndent(row.depth))
                         }
                         if (t.replies.isEmpty()) item { EmptyNote(tr("No replies yet.")) }
                     }
@@ -73,6 +97,9 @@ fun ThreadScreen(vm: SocialViewModel, noteId: String, navigate: (NavKey) -> Unit
         } }
     }
 }
+
+/** How much a reply stands out: likes, reposts and replies, and tips (a point per 100 sats). */
+private fun replyScore(s: NoteStats): Int = s.likes + 2 * s.reposts + s.replies + (s.zapMsat / 100_000).toInt()
 
 /** Indents a nested reply and draws a line for each level above it. Deep threads stop indenting. */
 private fun Modifier.threadIndent(depth: Int): Modifier {

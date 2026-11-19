@@ -2,6 +2,7 @@ package com.example.btcwidget.ui.social
 
 import com.example.btcwidget.ui.main.TextSize
 import com.example.btcwidget.ui.main.Radius
+import com.example.btcwidget.ui.main.auroraRing
 import android.app.Activity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -413,15 +414,17 @@ fun ComposeScreen(
     val shortScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 520
 
     Column(Modifier.fillMaxSize().screenBackground().navigationBarsPadding().imePadding()) {
-        // ✕ on the left, Post on the right, as on X.
+        // Cancel on the left, Post on the right: words, not symbols, so it's clear what each does.
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().height(56.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier.size(48.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Close"), onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) { androidx.compose.material3.Icon(Glyphs.CloseLine, contentDescription = tr("Close"), tint = EInk.Value, modifier = Modifier.size(22.dp)) }
+            Text(
+                tr("Cancel"), color = EInk.Value, fontSize = TextSize.Body,
+                modifier = Modifier.clip(Radius.Full)
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onBack)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            )
             Spacer(Modifier.weight(1f))
             if (savedDrafts.isNotEmpty() || text.isNotBlank()) {
                 Text(
@@ -450,7 +453,7 @@ fun ComposeScreen(
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             if (replyTo != null) target?.let { ReplyParent(it, profiles[it.pubkey]) }
             Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = if (replyTo != null) 0.dp else 8.dp)) {
-                account?.let { Avatar(profiles[it.pubkey], it.pubkey, size = 40) }
+                account?.let { Box(Modifier.auroraRing()) { Avatar(profiles[it.pubkey], it.pubkey, size = 38) } }
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     if (replyTo != null) target?.let { t ->
                         Text(
@@ -464,14 +467,14 @@ fun ComposeScreen(
                     androidx.compose.foundation.text.BasicTextField(
                         value = text,
                         onValueChange = { text = it },
-                        textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = TextSize.Subtitle, lineHeight = 25.sp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = EInk.Value, fontSize = 18.sp, lineHeight = 26.sp),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(SettingsAccent),
                         modifier = Modifier.fillMaxWidth().heightIn(min = if (shortScreen) 64.dp else 120.dp).padding(top = 8.dp).focusRequester(focus),
                         decorationBox = { field ->
                             Box {
                                 if (text.isEmpty()) Text(
                                     if (replyTo != null) tr("Post your reply") else if (quote != null) tr("Add a comment") else tr("What's happening?"),
-                                    color = EInk.Caption, fontSize = TextSize.Subtitle
+                                    color = EInk.Caption, fontSize = 18.sp
                                 )
                                 field()
                             }
@@ -520,6 +523,8 @@ fun ComposeScreen(
                         onRemove = { poll = false }
                     )
                     if (quote != null) target?.let { QuotePreview(it, profiles[it.pubkey]) }
+                    // Nostr has no reply limits: said plainly, so nobody expects one.
+                    if (newPost) EveryoneCanReply()
                 }
             }
         }
@@ -573,10 +578,44 @@ fun ComposeScreen(
             // Always there (not only when it's on), so people can find it.
             ComposeToolButton(Glyphs.Pickaxe, tr("Proof of work"), enabled = !poll && scheduleAt == null, on = powOn) { powSheet = true }
             Spacer(Modifier.weight(1f))
-            if (text.isNotEmpty()) Text("${text.length}", color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(end = 10.dp))
+            if (text.isNotEmpty()) LengthRing(text.length, Modifier.padding(end = 12.dp))
         }
     }
 }
+
+/** "Everyone can reply", under a new post. */
+@Composable
+private fun EveryoneCanReply() {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp)) {
+        androidx.compose.material3.Icon(Glyphs.Globe, contentDescription = null, tint = SettingsAccent, modifier = Modifier.size(17.dp))
+        Text(tr("Everyone can reply"), color = SettingsAccent, fontSize = TextSize.Caption, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+    }
+}
+
+/**
+ * How long the post is, as a ring that fills toward [LONG_POST] characters. Nostr has no
+ * limit: past it the ring stays full and the count shows, as a hint that it's a long read.
+ */
+@Composable
+private fun LengthRing(length: Int, modifier: Modifier = Modifier) {
+    val fraction = (length.toFloat() / LONG_POST).coerceAtMost(1f)
+    val track = EInk.BodyStroke
+    val fill = SettingsAccent
+    Row(modifier.semantics { contentDescription = tr("{0} characters", length) }, verticalAlignment = Alignment.CenterVertically) {
+        if (length > LONG_POST) Text("$length", color = EInk.Caption, fontSize = TextSize.Caption, modifier = Modifier.padding(end = 6.dp))
+        androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
+            val stroke = 2.5.dp.toPx()
+            val inset = stroke / 2
+            val arc = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
+            val at = androidx.compose.ui.geometry.Offset(inset, inset)
+            val style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawArc(track, 0f, 360f, false, at, arc, style = style)
+            drawArc(fill, -90f, 360f * fraction, false, at, arc, style = style)
+        }
+    }
+}
+
+private const val LONG_POST = 280
 
 /** Sheet for saving the current post as a draft or loading/deleting saved drafts. */
 @Composable

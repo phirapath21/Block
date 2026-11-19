@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +65,16 @@ import com.example.btcwidget.nostr.core.Nip19
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.nostr.core.ThreadRef
 import com.example.btcwidget.ui.main.EInk
+import com.example.btcwidget.ui.main.ActionColor
+import com.example.btcwidget.ui.main.BlockButton
+import com.example.btcwidget.ui.main.ButtonKind
+import com.example.btcwidget.ui.main.ButtonSize
+import com.example.btcwidget.ui.main.Radius
+import com.example.btcwidget.ui.main.auroraRing
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import kotlinx.coroutines.launch
 
 // ---- Profile ----
@@ -81,6 +92,10 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
     var loadingMore by remember(pubkey) { mutableStateOf(false) }
     var end by rememberKeptState(pubkey) { false }
     val theirFollowing by produceKept<Set<String>?>(null, pubkey) { value = vm.followingOf(pubkey) }
+    // "Followed by Ploy and Dev": people the user follows who follow them too.
+    val friendsFollowing by produceKept<List<String>>(emptyList(), pubkey, following.size) {
+        value = if (account == null || account?.pubkey == pubkey || following.isEmpty()) emptyList() else vm.followedByFriends(pubkey)
+    }
     // X shows the pinned note first on the Posts tab. My own pins reload when I change them.
     val myPins by vm.pinned.collectAsState()
     val pinnedNote by produceKept<Event?>(null, pubkey, if (account?.pubkey == pubkey) myPins else null) {
@@ -192,6 +207,8 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                         profile = profile, pubkey = pubkey, isMe = isMe,
                         followsYou = account?.pubkey?.let { theirFollowing?.contains(it) } == true,
                         followingCount = theirFollowing?.size,
+                        followedBy = friendsFollowing.map { it to profiles[it] },
+                        moreInRow = onBack == null,
                         isFollowing = pubkey in following,
                         isMuted = pubkey in muted,
                         onFollow = { if (account == null) navigate(LoginKey) else vm.follow(pubkey, pubkey !in following) },
@@ -205,7 +222,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                         actions = actions,
                         topInset = topInset
                     )
-                    FeedTabs(listOf(tr("Posts"), tr("Replies"), tr("Media"), tr("Articles")), selected = tab) { tab = it }
+                    ChipTabs(listOf(tr("Posts"), tr("Replies"), tr("Media"), tr("Articles")), selected = tab) { tab = it }
                     pinnedNote?.takeIf { tab == 0 }?.let { pin ->
                         PinnedLabel()
                         NoteCard(pin, stats[pin.id] ?: NoteStats(), actions)
@@ -222,7 +239,7 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                 }
             )
         }
-        if (onBack != null) ProfileTopBar(profile, pubkey, postsLine, collapse, showTitle, onBack)
+        if (onBack != null) ProfileTopBar(profile, pubkey, postsLine, collapse, showTitle, onBack, onMore = { profileMenu = true })
     }
 }
 
@@ -233,6 +250,8 @@ private fun ProfileHeader(
     isMe: Boolean,
     followsYou: Boolean,
     followingCount: Int?,
+    followedBy: List<Pair<String, Profile?>>,
+    moreInRow: Boolean,
     isFollowing: Boolean,
     isMuted: Boolean,
     onFollow: () -> Unit,
@@ -257,31 +276,46 @@ private fun ProfileHeader(
                     Spacer(Modifier.fillMaxWidth().aspectRatio(3f))
                 }
             }
+            // A big picture in Aurora's ring, half over the banner.
             Box(
                 Modifier
                     .padding(start = 14.dp)
                     .align(Alignment.BottomStart)
-                    .offset(y = 36.dp)
-                    .border(3.dp, EInk.Background, CircleShape)
-            ) { Avatar(profile, pubkey, size = 76) }
+                    .offset(y = 46.dp)
+                    .clip(CircleShape)
+                    .background(EInk.Background)
+                    .auroraRing()
+            ) { Avatar(profile, pubkey, size = 86) }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp, end = 14.dp), horizontalArrangement = Arrangement.End) {
-            CircleIconButton(Glyphs.MoreHoriz, tr("More"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = onMore)
+        // Tip (gold), Message, then Follow: the main action at the end, where the thumb is.
+        Row(
+            Modifier.fillMaxWidth().height(56.dp).padding(top = 10.dp, end = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (moreInRow) CircleIconButton(Glyphs.MoreHoriz, tr("More"), onClick = onMore)
             when {
-                isMe -> PillButton(tr("Edit profile"), filled = false, onClick = onEdit)
-                isMuted -> PillButton(tr("Unmute"), filled = false, onClick = onUnmute)
+                isMe -> BlockButton(tr("Edit profile"), kind = ButtonKind.Outline, size = ButtonSize.Small, onClick = onEdit)
+                isMuted -> BlockButton(tr("Unmute"), kind = ButtonKind.Outline, size = ButtonSize.Small, onClick = onUnmute)
                 else -> {
-                    CircleIconButton(Glyphs.Chat, tr("Message"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = onMessage)
                     if (profile?.lud16 != null || profile?.lud06 != null) {
-                        CircleIconButton(Glyphs.Zap, tr("Tip"), Modifier.padding(end = 8.dp).align(Alignment.CenterVertically), onClick = { actions.zap(fakeProfileNote(pubkey)) })
+                        CircleIconButton(
+                            Glyphs.Zap, tr("Tip"), tint = ActionColor.Zap, edge = ActionColor.Zap.copy(alpha = 0.5f),
+                            onClick = { actions.zap(fakeProfileNote(pubkey)) }
+                        )
                     }
-                    PillButton(if (isFollowing) tr("Following") else tr("Follow"), filled = !isFollowing, onClick = onFollow)
+                    CircleIconButton(Glyphs.Chat, tr("Message"), onClick = onMessage)
+                    BlockButton(
+                        if (isFollowing) tr("Following") else tr("Follow"),
+                        kind = if (isFollowing) ButtonKind.Outline else ButtonKind.Primary,
+                        size = ButtonSize.Small, onClick = onFollow
+                    )
                 }
             }
         }
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Spacer(Modifier.height(10.dp))
-            DisplayName(profile, pubkey, EInk.Value, 21.sp)
+            DisplayName(profile, pubkey, EInk.Value, 24.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     handleText(profile, pubkey),
@@ -312,26 +346,54 @@ private fun ProfileHeader(
             }
             Row(Modifier.padding(top = 8.dp)) {
                 Text(
-                    (followingCount?.let { compactCount(it) } ?: "…") + tr(" Following"),
-                    color = EInk.Label, fontSize = TextSize.Body,
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = EInk.Value, fontWeight = FontWeight.Bold)) { append(followingCount?.let { compactCount(it) } ?: "…") }
+                        withStyle(SpanStyle(color = EInk.Caption)) { append(tr(" Following")) }
+                    },
+                    fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show who they follow"), onClick = onOpenFollowing).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Followers"),
-                    color = EInk.Label, fontSize = TextSize.Body,
+                    color = EInk.Caption, fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their followers"), onClick = onOpenFollowers).padding(end = 18.dp, top = 2.dp, bottom = 2.dp)
                 )
                 Text(
                     tr("Lists"),
-                    color = EInk.Label, fontSize = TextSize.Body,
+                    color = EInk.Caption, fontSize = TextSize.Body,
                     modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their lists"), onClick = onOpenLists).padding(vertical = 2.dp)
                 )
             }
+            if (followedBy.isNotEmpty()) FollowedByRow(followedBy, onOpenFollowers)
             val npub = Nip19.npub(pubkey)
             Box(Modifier.padding(top = 2.dp)) {
                 ProfileInfoRow(null, npub.take(16) + "…" + npub.takeLast(6), npub, tr("npub copied"), color = EInk.Caption, fontSize = 12)
             }
         }
+    }
+}
+
+/** "Followed by Ploy and Dev": up to three overlapping faces and who they are. */
+@Composable
+private fun FollowedByRow(people: List<Pair<String, Profile?>>, onClick: () -> Unit) {
+    val names = people.take(2).map { (pk, p) -> p?.bestName ?: Profile.shortNpub(pk) }
+    val text = when {
+        people.size == 1 -> tr("Followed by {0}", names[0])
+        people.size == 2 -> tr("Followed by {0} and {1}", names[0], names[1])
+        else -> tr("Followed by {0}, {1} and {2} others you follow", names[0], names[1], people.size - 2)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 8.dp).clip(Radius.Small)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Show their followers"), onClick = onClick)
+            .padding(vertical = 2.dp)
+    ) {
+        Box {
+            people.take(3).forEachIndexed { i, (pk, p) ->
+                Box(Modifier.padding(start = (i * 14).dp).clip(CircleShape).background(EInk.Background).padding(1.5.dp)) { Avatar(p, pk, size = 20) }
+            }
+        }
+        Text(text, color = EInk.Caption, fontSize = TextSize.Caption, maxLines = 2, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
