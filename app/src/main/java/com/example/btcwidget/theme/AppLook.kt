@@ -14,7 +14,7 @@ enum class AppLook(val id: String, val title: String, val summary: String, val c
      * so they stay readable on sheets.
      */
     AURORA(
-        "aurora", "Aurora", "Black with a soft aurora and sky blue",
+        "aurora", "Aurora", "Black with a soft aurora and deep sky blue",
         LookColors(
             background = 0xFF000000.toInt(),
             body = 0xFF16181C.toInt(),
@@ -24,9 +24,9 @@ enum class AppLook(val id: String, val title: String, val summary: String, val c
             caption = 0xFF8B98A5.toInt(),
             track = 0xFF333639.toInt(),
             alert = 0xFFF4212E.toInt(),
-            accent = 0xFF1D9BF0.toInt(),
-            // Dark ink on the blue: white would be too faint to read there (under 4.5:1).
-            onAccent = 0xFF04131F.toInt(),
+            // A deeper sky blue, so white reads on it (4.6:1) and it still reads as text on black (4.5:1).
+            accent = 0xFF1877CC.toInt(),
+            onAccent = 0xFFFFFFFF.toInt(),
             sheet = 0xFF16181C.toInt(),
             success = 0xFF00BA7C.toInt(),
             glow = Glow(
