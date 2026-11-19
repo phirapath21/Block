@@ -32,6 +32,7 @@ object AppPrefs {
     private const val VIDEO_QUALITY = "video_quality"
     private const val LANDING_DONE = "landing_done"
     private const val LINKS_IN_APP = "links_in_app"
+    private const val INSTANT_PUSH = "instant_push"
     private const val PRIVATE_LISTS = "private_lists"
     private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
@@ -74,6 +75,14 @@ object AppPrefs {
     /** Open web links in Block's own browser (true, the default) or the phone's browser. */
     fun linksInApp(context: Context): Boolean = prefs(context).getBoolean(LINKS_IN_APP, true)
     fun setLinksInApp(context: Context, inApp: Boolean) = edit(context) { putBoolean(LINKS_IN_APP, inApp) }
+
+    /**
+     * Instant notifications (a connection to the relays kept open): true or false once the user
+     * chose, null if never asked. A device setting: it's about this phone's battery.
+     */
+    fun instantPush(context: Context): Boolean? =
+        if (prefs(context).contains(INSTANT_PUSH)) prefs(context).getBoolean(INSTANT_PUSH, false) else null
+    fun setInstantPush(context: Context, on: Boolean) = edit(context) { putBoolean(INSTANT_PUSH, on) }
 
     /** New bookmarks and mutes are private (encrypted, NIP-51; the default) or public. */
     fun privateLists(context: Context): Boolean = prefs(context).getBoolean(PRIVATE_LISTS, true)

@@ -50,7 +50,11 @@ data class RelayStatus(
  * relay; incoming events are signature-checked and de-duplicated before delivery.
  * Connections open lazily and reconnect with backoff while something needs them.
  */
-class RelayPool(private val client: OkHttpClient = defaultClient) {
+class RelayPool(
+    private val client: OkHttpClient = defaultClient,
+    /** Stays connected when the app leaves the screen (instant notifications). */
+    private val stayAwake: Boolean = false
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val relays = ConcurrentHashMap<String, Relay>()
     private val subs = ConcurrentHashMap<String, Sub>()
@@ -78,7 +82,7 @@ class RelayPool(private val client: OkHttpClient = defaultClient) {
 
     /** In the background, a relay woken by use goes back to sleep after a couple of minutes. */
     private fun sleepAgainLater() {
-        if (!backgrounded || sleepJob?.isActive == true) return
+        if (stayAwake || !backgrounded || sleepJob?.isActive == true) return
         sleepJob = scope.launch { delay(BACKGROUND_AWAKE_MS); if (backgrounded) sleep() }
     }
 
@@ -402,7 +406,7 @@ class RelayPool(private val client: OkHttpClient = defaultClient) {
          */
         fun enterBackground() {
             backgrounded = true
-            synchronized(all) { all.toList() }.forEach { it.sleep() }
+            synchronized(all) { all.toList() }.filter { !it.stayAwake }.forEach { it.sleep() }
         }
 
         /** Relays the user blocked (NIP-51 kind 10006): never connected to, by any pool. */

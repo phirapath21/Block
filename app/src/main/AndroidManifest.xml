@@ -4,6 +4,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Instant notifications (optional, off until the user chooses them): a connection to the
+         user's relays kept open by a foreground service, restarted after a reboot, and allowed
+         to stay connected while the phone sleeps. No push server is involved. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Only to save images on Android 9 and below; newer versions need no permission. -->
     <uses-permission
@@ -134,8 +141,14 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name=".nostr.InstantNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
     </application>
 
 </manifest>
