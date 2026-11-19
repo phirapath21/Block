@@ -1108,6 +1108,6 @@ internal val THAI: Map<String, String> = hashMapOf(
     "New here and saying hi" to "คนมาใหม่ที่กำลังทักทาย",
     // Looks
     "Aurora" to "Aurora",
-    "Black with a soft aurora and sky blue" to "ดำ มีแสง aurora จางๆ และสีฟ้า",
+    "Black with a soft aurora and deep sky blue" to "ดำ มีแสง aurora จางๆ และสีฟ้าเข้ม",
     "Graphite" to "Graphite",
 )

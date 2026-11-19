@@ -105,7 +105,8 @@ class AppLookTest {
         assertEquals(0xFF000000.toInt(), c.background)
         assertEquals(0xFF16181C.toInt(), c.body)
         assertEquals(0xFFE7E9EA.toInt(), c.value)
-        assertEquals(0xFF1D9BF0.toInt(), c.accent)
+        assertEquals(0xFF1877CC.toInt(), c.accent)
+        assertEquals(0xFFFFFFFF.toInt(), c.onAccent)
         assertEquals(0xFF000000.toInt(), c.glow!!.colors.last())
     }
 
