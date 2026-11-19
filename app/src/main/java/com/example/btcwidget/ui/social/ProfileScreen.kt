@@ -60,7 +60,6 @@ import com.example.btcwidget.LoginKey
 import com.example.btcwidget.nostr.FeedItem
 import com.example.btcwidget.nostr.NoteStats
 import com.example.btcwidget.nostr.core.Article
-import com.example.btcwidget.nostr.core.Badges
 import com.example.btcwidget.nostr.core.Content
 import com.example.btcwidget.nostr.core.Event
 import com.example.btcwidget.nostr.core.Imeta
@@ -95,7 +94,6 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
     var profileMenu by remember(pubkey) { mutableStateOf(false) }
     var showQr by remember(pubkey) { mutableStateOf(false) }
     var showRelays by remember(pubkey) { mutableStateOf(false) }
-    val badges by produceKept<List<Badges.Definition>>(emptyList(), pubkey) { value = vm.badgesOf(pubkey) }
     // Loaded the first time the Articles tab opens.
     var articles by rememberKeptState<List<Article>?>(pubkey) { null }
     LaunchedEffect(pubkey, tab) { if (tab == 3 && articles == null) articles = vm.articlesBy(pubkey) }
@@ -210,7 +208,6 @@ fun ProfileScreen(vm: SocialViewModel, pubkey: String, navigate: (NavKey) -> Uni
                         actions = actions,
                         topInset = topInset
                     )
-                    BadgesRow(badges)
                     FeedTabs(listOf(tr("Posts"), tr("Replies"), tr("Media"), tr("Articles")), selected = tab) { tab = it }
                     pinnedNote?.takeIf { tab == 0 }?.let { pin ->
                         PinnedLabel()
@@ -351,35 +348,6 @@ private fun shareProfile(context: Context, pubkey: String, name: String) {
 /** Zapping a profile (no note): a stand-in event that only carries the recipient. */
 private fun fakeProfileNote(pubkey: String) =
     Event("", pubkey, 0, -1, emptyList(), "", "")
-
-/** NIP-58 badges the person shows; tap one for its name and description. */
-@Composable
-private fun BadgesRow(badges: List<Badges.Definition>) {
-    if (badges.isEmpty()) return
-    var open by remember { mutableStateOf<Badges.Definition?>(null) }
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp)
-    ) {
-        badges.forEach { b ->
-            Box(
-                Modifier.size(32.dp).clip(CircleShape).background(EInk.Body).clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = b.name) { open = b },
-                contentAlignment = Alignment.Center
-            ) {
-                if (b.image != null) AsyncImage(model = b.image, contentDescription = b.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                else Text("🏅", fontSize = 16.sp)
-            }
-        }
-    }
-    open?.let { b ->
-        BlockDialog(onDismiss = { open = null }, title = b.name, text = b.description ?: "A badge awarded on Nostr.", dismissLabel = tr("Close")) {
-            if (b.image != null) AsyncImage(
-                model = b.image, contentDescription = b.name, contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
-            )
-        }
-    }
-}
 
 /**
  * The relays [pubkey] publishes (NIP-65): where they post (write) and where they want to be

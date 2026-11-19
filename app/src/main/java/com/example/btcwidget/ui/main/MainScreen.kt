@@ -102,8 +102,6 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainScreenViewModel = viewModel()
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.HOME) }
     val social: com.example.btcwidget.ui.social.SocialViewModel = viewModel()
     val account by social.account.collectAsStateWithLifecycle()
@@ -137,26 +135,8 @@ fun MainScreen(
     LaunchedEffect(Unit) { viewModel.start() }
 
     MainScreenContent(
-        state = state,
         selectedTab = selectedTab,
-        modeStates = settings.modeStates,
-        currencySetting = settings.currency,
-        theme = settings.theme,
-        onThemeSelected = viewModel::setTheme,
-        onCurrencySelected = viewModel::setCurrency,
-        refreshInterval = settings.refreshInterval,
-        onRefreshIntervalSelected = viewModel::setRefreshInterval,
         onTabSelected = { selectedTab = it },
-        collapsedCategories = settings.collapsedCategories,
-        onToggleCategory = viewModel::toggleCategory,
-        appVersion = viewModel.appVersion,
-        stackSats = settings.stackSats,
-        stackUnit = settings.stackUnit,
-        dataSources = settings.dataSources,
-        onDataSourcesChange = viewModel::setDataSources,
-        onModeToggle = viewModel::setModeEnabled,
-        modeOrder = settings.modeOrder,
-        onModeOrderChange = viewModel::setModeOrder,
         onItemClick = onItemClick,
         modifier = modifier,
         homeContent = { com.example.btcwidget.ui.social.HomeScreen(social, onItemClick) },
@@ -192,28 +172,10 @@ fun MainScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreenContent(
-    state: MainScreenUiState,
     selectedTab: MainTab,
-    modeStates: List<Boolean>,
-    currencySetting: String,
-    onCurrencySelected: (String) -> Unit,
-    theme: AppTheme = AppTheme.CLASSIC,
-    onThemeSelected: (AppTheme) -> Unit = {},
-    refreshInterval: Int,
-    onRefreshIntervalSelected: (Int) -> Unit,
     onTabSelected: (MainTab) -> Unit,
-    onModeToggle: (Int, Boolean) -> Unit,
     onItemClick: (NavKey) -> Unit,
-    modeOrder: List<String> = BlockclockMetrics.MODE_KEYS,
-    onModeOrderChange: (List<String>) -> Unit = {},
     modifier: Modifier = Modifier,
-    collapsedCategories: Set<MetricCategory> = emptySet(),
-    onToggleCategory: (MetricCategory) -> Unit = {},
-    appVersion: String? = null,
-    stackSats: Long = 0,
-    stackUnit: StackUnit = StackUnit.BTC,
-    dataSources: DataSources = DataSources(PriceSource.COINBASE, ThbSource.CONVERTED),
-    onDataSourcesChange: (DataSources) -> Unit = {},
     homeContent: @Composable () -> Unit = {},
     searchContent: @Composable (leadingMenu: (@Composable () -> Unit)?) -> Unit = {},
     notificationsContent: @Composable () -> Unit = {},
@@ -235,7 +197,6 @@ fun MainScreenContent(
     /** Long-pressing the side panel's button: switch accounts (null: nothing). */
     accountSwitcher: (@Composable (onDismiss: () -> Unit) -> Unit)? = null
 ) {
-    val data = (state as? MainScreenUiState.Success)?.data
     // The side bar (Profile, Lists… Settings), from the left, opened by your avatar at the top left.
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -249,9 +210,8 @@ fun MainScreenContent(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        // Swipe right to open, left to close. Pages with sideways drags of their own (the price
-        // chart scrub, widget reordering) open it with the avatar instead.
-        gesturesEnabled = drawerState.isOpen || selectedTab !in DRAG_PAGES,
+        // Swipe right to open, left to close.
+        gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = EInk.Background,
@@ -328,9 +288,8 @@ fun MainScreenContent(
                 .fillMaxWidth()
                 .then(if (hides) Modifier.nestedScroll(scrollWatch) else Modifier)
         ) {
-            // Wide: social pages in a readable column in the middle (as X); the dashboard and
-            // widgets use the whole width.
-            com.example.btcwidget.ui.social.ReadableColumn(enabled = wide && selectedTab !in FULL_WIDTH_PAGES) {
+            // Wide: pages in a readable column in the middle, as on X.
+            com.example.btcwidget.ui.social.ReadableColumn(enabled = wide) {
             when (selectedTab) {
                 MainTab.HOME -> homeContent()
                 MainTab.SEARCH -> searchContent(menuButtonSlot)
@@ -341,18 +300,6 @@ fun MainScreenContent(
                 MainTab.LISTS -> listsContent()
                 MainTab.NOTIFICATIONS -> notificationsContent()
                 MainTab.PROFILE -> profileContent()
-                MainTab.WIDGETS -> WidgetsScreen(
-                    data = data,
-                    currencySetting = currencySetting,
-                    modeStates = modeStates,
-                    onModeToggle = onModeToggle,
-                    order = modeOrder,
-                    onOrderChange = onModeOrderChange,
-                    collapsedCategories = collapsedCategories,
-                    onToggleCategory = onToggleCategory,
-                    stackSats = stackSats,
-                    onSetUpStack = { onItemClick(com.example.btcwidget.SettingsKey(com.example.btcwidget.ui.social.SettingsPage.BITCOIN.name)) }
-                )
                 MainTab.SETTINGS -> settingsContent()
             }
             }
@@ -388,9 +335,6 @@ private val Accent get() = EInk.Accent
 
 /** From this width (dp) the tabs move to a rail on the left and pages get a readable column. */
 private const val WIDE_DP = 600
-
-/** Pages that use the whole width even when wide. */
-private val FULL_WIDTH_PAGES get() = setOf(MainTab.WIDGETS)
 
 /** The bottom bar's height above the navigation bar. */
 private val BOTTOM_BAR_HEIGHT = 56.dp
@@ -650,8 +594,8 @@ private fun SideBar(selectedTab: MainTab, header: @Composable () -> Unit, onOpen
 
 /**
  * Pages. The bottom bar holds Home, Search, Wallet, Notifications and Messages; the side bar
- * (your avatar at the top left) holds Profile, Live, Lists, Bookmarks, Widgets
- * and Settings. [label] names the bar icon for TalkBack, [title] is shown in the top bar and side bar.
+ * (your avatar at the top left) holds Profile, Lists, Bookmarks, Live and Settings.
+ * Widgets are in Settings › Bitcoin and widgets. [label] names the bar icon for TalkBack, [title] is shown in the top bar and side bar.
  */
 enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.NavIcon, val title: String = label) {
     HOME("Home", com.example.btcwidget.ui.social.NavIcons.Home),
@@ -663,7 +607,6 @@ enum class MainTab(val label: String, val icon: com.example.btcwidget.ui.social.
     PROFILE("Profile", com.example.btcwidget.ui.social.NavIcons.Profile),
     BOOKMARKS("Bookmarks", com.example.btcwidget.ui.social.NavIcons.Bookmarks),
     LISTS("Lists", com.example.btcwidget.ui.social.NavIcons.Lists),
-    WIDGETS("Widgets", com.example.btcwidget.ui.social.NavIcons.Widgets),
     SETTINGS("Settings", com.example.btcwidget.ui.social.NavIcons.Settings)
 }
 
@@ -674,9 +617,7 @@ private val BAR_TABS get() = listOf(MainTab.HOME, MainTab.SEARCH, MainTab.WALLET
 /** Pages with the floating "new post" button: where you read notes. */
 private val COMPOSE_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.NOTIFICATIONS, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)
 
-/** Pages with sideways drags of their own, where a swipe must not open the side bar. */
-private val DRAG_PAGES get() = setOf(MainTab.WIDGETS)
-private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LIVE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.WIDGETS, MainTab.SETTINGS)
+private val DRAWER_PAGES get() = listOf(MainTab.PROFILE, MainTab.LISTS, MainTab.BOOKMARKS, MainTab.LIVE, MainTab.SETTINGS)
 
 /** Feeds, where the bars slide away while you scroll down (not forms, settings or the dashboard). */
 private val HIDING_PAGES get() = setOf(MainTab.HOME, MainTab.SEARCH, MainTab.LIVE, MainTab.NOTIFICATIONS, MainTab.MESSAGES, MainTab.PROFILE, MainTab.BOOKMARKS, MainTab.LISTS)

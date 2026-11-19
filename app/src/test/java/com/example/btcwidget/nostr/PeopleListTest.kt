@@ -57,7 +57,7 @@ class PeopleListTest {
 
 class MediaPostsTest {
     @org.junit.Test
-    fun mediaFeedsAndImetaUrls() {
+    fun imetaUrlsAndRemovedFeeds() {
         val pk = "a".repeat(64)
         val pic = com.example.btcwidget.nostr.core.Event("id", pk, 1, com.example.btcwidget.nostr.core.Kind.PICTURE, listOf(
             listOf("imeta", "url https://x/a.jpg", "m image/jpeg", "blurhash LEHV6nWB2yk8pyo0adR*.7kCMdnj"),
@@ -67,9 +67,11 @@ class MediaPostsTest {
         org.junit.Assert.assertEquals(listOf("https://x/a.jpg", "https://x/b.jpg"), com.example.btcwidget.nostr.core.Imeta.urls(pic))
         org.junit.Assert.assertEquals("LEHV6nWB2yk8pyo0adR*.7kCMdnj", com.example.btcwidget.nostr.core.Imeta.blurhash(pic, "https://x/a.jpg"))
         org.junit.Assert.assertNull(com.example.btcwidget.nostr.core.Imeta.blurhash(pic, "https://x/b.jpg"))
-        listOf("pictures", "pictures:all", "videos", "videos:all").forEach { id ->
-            org.junit.Assert.assertEquals(id, com.example.btcwidget.nostr.core.HomeFeed.parse(id)!!.id)
+        // Removed Home feeds (pictures, videos, global, relay, DVM) are dropped when read back.
+        listOf("pictures", "videos:all", "global", "global:wss://r.example", "dvm:${"b".repeat(64)}:x:Feed").forEach { id ->
+            org.junit.Assert.assertNull(com.example.btcwidget.nostr.core.HomeFeed.parse(id))
         }
+        org.junit.Assert.assertEquals("tag:siamstr", com.example.btcwidget.nostr.core.HomeFeed.parse("tag:siamstr")!!.id)
     }
 }
 
@@ -103,20 +105,10 @@ class FollowPackTest {
     }
 }
 
-class HighlightTest {
+class SpansTextTest {
     @org.junit.Test
-    fun highlightPointsAtTheArticleAndItsAuthor() {
-        val me = "a".repeat(64); val writer = "b".repeat(64)
-        val articleEvent = com.example.btcwidget.nostr.core.Event("art", writer, 1, com.example.btcwidget.nostr.core.Kind.ARTICLE, listOf(listOf("d", "why-btc")), "body", "")
-        val article = com.example.btcwidget.nostr.core.Article(articleEvent, "why-btc", "Why", null, null, 1)
-        val h = com.example.btcwidget.nostr.core.Highlights.of(me, "  Sound money.  ", article, "So true", "wss://r", 9)
-        org.junit.Assert.assertEquals(com.example.btcwidget.nostr.core.Kind.HIGHLIGHT, h.kind)
-        org.junit.Assert.assertEquals("Sound money.", h.content)
-        val parsed = com.example.btcwidget.nostr.core.Highlights.parse(h.signed("s"))!!
-        org.junit.Assert.assertEquals("30023:$writer:why-btc", parsed.articleAddress)
-        org.junit.Assert.assertEquals("So true", parsed.comment)
-        org.junit.Assert.assertTrue(listOf("p", writer, "wss://r", "author") in h.tags)
+    fun aBlocksPlainText() {
         val spans = listOf(com.example.btcwidget.nostr.core.Markdown.Span.Plain("Hello "), com.example.btcwidget.nostr.core.Markdown.Span.Bold("world"))
-        org.junit.Assert.assertEquals("Hello world", com.example.btcwidget.nostr.core.Highlights.textOf(spans))
+        org.junit.Assert.assertEquals("Hello world", com.example.btcwidget.nostr.core.spansText(spans))
     }
 }

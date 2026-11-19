@@ -37,36 +37,27 @@ import com.example.btcwidget.nostr.core.FollowPack
 import com.example.btcwidget.nostr.core.Profile
 import com.example.btcwidget.ui.main.EInk
 
-/** Follow packs on your relays (Search › Follow packs): people someone recommends, to follow at once. */
+/** One follow pack in a list (Search › Who to follow): a few faces, its title and who made it. */
 @Composable
-internal fun FollowPackList(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
-    val profiles by vm.profiles.collectAsState()
-    val packs by produceKept<List<FollowPack>?>(null) { value = vm.followPacks() }
-    when (val l = packs) {
-        null -> Spinner(Modifier.padding(top = 30.dp))
-        else -> if (l.isEmpty()) EmptyNote(tr("No follow packs found on your relays.")) else LazyColumn(Modifier.fillMaxSize()) {
-            items(l, key = { it.address }) { pack ->
-                Row(
-                    Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(PackKey(pack.address)) }.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // A few faces from the pack, overlapping.
-                    Box(Modifier.width((44 + 3 * 14).dp)) {
-                        pack.members.take(4).forEachIndexed { i, pk -> Box(Modifier.padding(start = (i * 14).dp)) { Avatar(profiles[pk], pk, size = 44) } }
-                    }
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(pack.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            tr("{0} people · by ", pack.members.size) + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)),
-                            color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
-                        pack.description?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                    }
-                }
-                HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
-            }
+internal fun FollowPackRow(pack: FollowPack, profiles: Map<String, Profile>, navigate: (NavKey) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { navigate(PackKey(pack.address)) }.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // A few faces from the pack, overlapping.
+        Box(Modifier.width((44 + 3 * 14).dp)) {
+            pack.members.take(4).forEachIndexed { i, pk -> Box(Modifier.padding(start = (i * 14).dp)) { Avatar(profiles[pk], pk, size = 44) } }
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
+            Text(pack.title, color = EInk.Value, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                tr("{0} people · by ", pack.members.size) + (profiles[pack.owner]?.bestName ?: Profile.shortNpub(pack.owner)),
+                color = EInk.Caption, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            pack.description?.let { Text(it, color = EInk.Label, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
     }
+    HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
 }
 
 /** One pack: its cover, description and people, with Follow all. */

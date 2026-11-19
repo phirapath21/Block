@@ -41,7 +41,7 @@ Four resizable home-screen widgets (2×1 by default):
 | **Halving countdown** | A block-filled progress bar with percent done, blocks or days left. |
 | **Quotes** | Cypherpunk and Bitcoin quotes (Satoshi Nakamoto, Hal Finney, Eric Hughes…); tap for the next. |
 
-**Metrics** (pick and order them in the app's Widgets page):
+**Metrics** (pick and order them in Settings › Bitcoin and widgets › Widgets):
 
 | Market | Network | Supply & Lightning | Strategy (MSTR) | Strive (ASST) | You |
 |---|---|---|---|---|---|
@@ -61,7 +61,7 @@ Four resizable home-screen widgets (2×1 by default):
 
 ## Bitcoin settings
 
-Settings › Bitcoin and widgets. The Widgets page in the side bar shows every panel and which ones the widget cycles through.
+Settings › Bitcoin and widgets. Its Widgets page shows every panel and which ones the widget cycles through.
 
 - **Your stack:** enter what you hold, in BTC or sats, for the Stack widget. It's stored only on the phone and shown in USD or THB with its 24h change.
 - **Data sources:** BTC price from Coinbase or Kraken; THB converted or from Bitkub.
@@ -72,7 +72,7 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 **Layout:**
 - **Bottom bar:** Home · Search · Wallet · Notifications · Messages.
 - **New post:** a floating + at the bottom right of Home, Search, Notifications, your profile, Bookmarks and Lists.
-- **Side bar** (swipe from the left or tap your avatar): Profile · Live · Lists · Bookmarks · Bitcoin · Widgets · Settings.
+- **Side bar** (swipe from the left or tap your avatar): Profile · Lists · Bookmarks · Live · Settings.
 
 **Getting started:**
 - **New here:** a welcome page offers three ways in: create an account, log in with a signer app, or paste an nsec.
@@ -81,13 +81,10 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 - **Several accounts:** switch from the side bar.
 
 **Reading:**
-- **Home feeds**, Primal-style, which you can add, remove and reorder:
+- **Home feeds**, which you can add, remove and reorder:
   - Latest, or Latest with replies, from people you follow
-  - Global, or a single relay
   - A #hashtag
-  - Pictures or Videos (NIP-68 / NIP-71), from follows or everyone
   - A list of people
-  - DVM "For you" feeds (NIP-90)
 - **Moving through the feed:**
   - New notes wait behind a "↑ N new posts" pill instead of shifting what you're reading.
   - Feeds keep their scroll position when you switch tabs or come back.
@@ -100,7 +97,7 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 - **Links:**
   - Link previews in notes.
   - Links open in Block's own browser, with the post underneath, like X; a setting sends them to your phone's browser instead.
-- **More to read:** long-form articles (NIP-23) with highlights (NIP-84: long-press a paragraph), polls (NIP-88), content warnings (NIP-36), custom emoji (NIP-30), and blurred previews while images load (BlurHash).
+- **More to read:** long-form articles (NIP-23; long-press a paragraph to quote, copy or listen), polls (NIP-88), content warnings (NIP-36), custom emoji (NIP-30), and blurred previews while images load (BlurHash).
 - **Live streams (NIP-53):** in the side bar and in Search, with the video and live chat.
 - **Picture-in-Picture:** a full-screen video keeps playing in a small window when you leave the app.
 
@@ -108,12 +105,12 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 - Notes with up to 4 photos or a video, uploaded to Blossom servers with automatic failover to blossom.primal.net and EXIF/GPS stripped from photos.
 - `@` mentions and hashtag autocomplete.
 - Drafts and scheduled posts.
-- Quotes, reposts and emoji reactions.
+- Quotes, reposts and likes (emoji reactions from other apps show too).
 - Content warnings on your own notes.
 
 **People and lists:**
-- **Profiles:** Posts, Replies, Media and Articles tabs, verified NIP-05 ✓, badges (NIP-58), and a profile QR code you can show or scan.
-- **Following:** follow lists and followers, who-to-follow suggestions, follow packs (kind 39089, follow all at once), and followed hashtags (in your contact list, shown in Latest).
+- **Profiles:** Posts, Replies, Media and Articles tabs, verified NIP-05 ✓, and a profile QR code you can show or scan.
+- **Following:** follow lists and followers, who-to-follow suggestions with follow packs (kind 39089, follow all at once), and followed hashtags (in your contact list, shown in Latest).
 - **Lists of people** (NIP-51), like X's Lists:
   - make them from the side bar, or add someone from their profile with ☰+;
   - read one as a feed, or pin it to Home.
@@ -147,7 +144,7 @@ Settings › Bitcoin and widgets. The Widgets page in the side bar shows every p
 
 **Speed:**
 - Events are kept in a local SQLite database, so the app opens instantly.
-- **Storage and cache:** choose 30- or 90-day event retention (your posts and bookmarks stay), inspect database/cache sizes, and clear image/video caches.
+- **Advanced settings:** your relays, message inbox and media servers; storage and cache: choose 30- or 90-day event retention (your posts and bookmarks stay), inspect database/cache sizes, and clear image/video caches.
 - Queries return once the first relay answers instead of waiting for the slowest.
 - Names, avatars and counts fill in after the notes appear.
 

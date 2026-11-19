@@ -62,10 +62,7 @@ fun plural(n: Number): String = if (Lang.thai || n.toLong() == 1L) "" else "s"
 /** A Home feed's name in the app's language (the feeds themselves keep English names). */
 fun feedTitle(f: com.example.btcwidget.nostr.core.HomeFeed): String = when (f) {
     is com.example.btcwidget.nostr.core.HomeFeed.Following -> tr(if (f.replies) "Latest with replies" else "Latest")
-    is com.example.btcwidget.nostr.core.HomeFeed.Global ->
-        f.relay?.let { tr("Relay: {0}", it.removePrefix("wss://").removePrefix("ws://")) } ?: tr("Global")
     is com.example.btcwidget.nostr.core.HomeFeed.Hashtag -> tr("Topic: {0}", f.tag)
-    is com.example.btcwidget.nostr.core.HomeFeed.Media -> tr(if (f.videos) "Videos" else "Pictures") + if (f.everyone) tr(": everyone") else ""
     is com.example.btcwidget.nostr.core.HomeFeed.People -> tr("List: {0}", f.name)
     else -> f.title
 }
@@ -73,12 +70,7 @@ fun feedTitle(f: com.example.btcwidget.nostr.core.HomeFeed): String = when (f) {
 /** The line under a Home feed's name, in the app's language. */
 fun feedSubtitle(f: com.example.btcwidget.nostr.core.HomeFeed): String = when (f) {
     is com.example.btcwidget.nostr.core.HomeFeed.Following -> tr(if (f.replies) "Notes and replies by your follows" else "Latest notes by your follows")
-    is com.example.btcwidget.nostr.core.HomeFeed.Global ->
-        f.relay?.let { tr("Recent notes on {0}", it) } ?: tr("Recent notes from everyone on your relays")
     is com.example.btcwidget.nostr.core.HomeFeed.Hashtag -> tr("All notes tagged #{0}", f.tag)
-    is com.example.btcwidget.nostr.core.HomeFeed.Dvm -> tr("Picked by a feed service (DVM)")
-    is com.example.btcwidget.nostr.core.HomeFeed.Media ->
-        tr(if (f.videos) "Video posts" else "Picture posts") + tr(if (f.everyone) " from everyone on your relays" else " by your follows")
     is com.example.btcwidget.nostr.core.HomeFeed.People -> tr("Notes by the people in this list")
     else -> f.subtitle
 }

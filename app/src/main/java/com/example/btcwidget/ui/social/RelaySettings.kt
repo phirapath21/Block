@@ -31,7 +31,7 @@ internal fun RelaysPage(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
         extraAction = { SettingsButton(tr("Use defaults")) { vm.setRelays(null) } }
     ) { urls, done -> vm.setRelays(urls); done() }
 
-    val acct = account ?: return
+    val acct = account ?: return // Logged out: only the relays above (storage follows on the Advanced page).
     SettingsDivider()
     SettingsHeader(tr("Message inbox relays"))
     SettingsNote(tr("Where people send you private messages (your kind 10050 list, public)."))

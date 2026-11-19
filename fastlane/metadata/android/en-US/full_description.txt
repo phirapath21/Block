@@ -9,12 +9,12 @@ Block is two things in one app: Bitcoin at a glance on your home screen, and a N
 
 <b>Nostr social</b>
 <ul>
-<li>A timeline laid out like X: notes, replies, reposts, quotes, likes, emoji reactions and zaps.</li>
+<li>A timeline laid out like X: notes, replies, reposts, quotes, likes and zaps.</li>
 <li>Private messages and group chats (NIP-17), lists, bookmarks, live streams and long-form articles.</li>
 <li>Photo albums, videos, polls, link previews, and live cards for Bitcoin transactions and blocks in posts.</li>
 <li>A Lightning wallet tab with Nostr Wallet Connect (NWC): balance, receive with a QR code, send by pasting or scanning an invoice, and zaps in one tap.</li>
 <li>Your relays your way: outbox model, relay checkup and suggestions, NIP-11 info.</li>
-<li>Proof of work (NIP-13) for your posts, and themes including Ember from Zeus.</li>
+<li>Themes including Ember from Zeus.</li>
 <li>English and Thai.</li>
 </ul>
 

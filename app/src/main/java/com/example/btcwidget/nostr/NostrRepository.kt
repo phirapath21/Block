@@ -114,11 +114,8 @@ class NostrRepository private constructor(private val context: Context) {
     val wallet: NwcWallet by lazy { NwcWallet(this) }
     val linkPreviews: LinkPreviews by lazy { LinkPreviews(this) }
     val polls: Polls by lazy { Polls(this) }
-    val highlights: ArticleHighlights by lazy { ArticleHighlights(this) }
-    val badges: ProfileBadges by lazy { ProfileBadges(this) }
     val zaps: ZapInvoices by lazy { ZapInvoices(this) }
     val articles: Articles by lazy { Articles(this) }
-    val dvm: DvmFeeds by lazy { DvmFeeds(this) }
     val peopleLists: PeopleLists by lazy { PeopleLists(this) }
 
     /** True once the account's lists were read from relays this session (not just the cache). */
@@ -465,29 +462,16 @@ class NostrRepository private constructor(private val context: Context) {
         }
     }
 
-    /** One page of [feed] for Home; [until] pages back (DVM feeds come as one page). */
+    /** One page of [feed] for Home; [until] pages back. */
     suspend fun feed(feed: com.example.btcwidget.nostr.core.HomeFeed, until: Long? = null): List<FeedItem> = when (feed) {
         is com.example.btcwidget.nostr.core.HomeFeed.Following -> homeFeed(until).let { items ->
             if (feed.replies) items else items.filter { it.repostedBy != null || !ThreadRef.of(it.note).isReply }
         }
-        is com.example.btcwidget.nostr.core.HomeFeed.Global -> globalFeed(feed.relay, until)
         is com.example.btcwidget.nostr.core.HomeFeed.Hashtag -> hashtagFeed(feed.tag, until)
-        is com.example.btcwidget.nostr.core.HomeFeed.Media -> mediaFeed(feed, until)
         is com.example.btcwidget.nostr.core.HomeFeed.People -> peopleLists.get(feed.owner, feed.d)?.members.orEmpty().let { members ->
             if (members.isEmpty()) emptyList()
             else authoredTimeline(members) { Filter(authors = it, kinds = Kind.POSTS + Kind.REPOST, until = until, limit = 40) }
         }
-        is com.example.btcwidget.nostr.core.HomeFeed.Dvm ->
-            if (until != null) emptyList() else dvm.feed(com.example.btcwidget.nostr.core.Dvm.Service(feed.pubkey, feed.dvmId, feed.name, null, null, false))
-    }
-
-    /** Picture posts (kind 20) or video posts (21, 22): by the people you follow, or by everyone. */
-    suspend fun mediaFeed(feed: com.example.btcwidget.nostr.core.HomeFeed.Media, until: Long? = null): List<FeedItem> {
-        val kinds = if (feed.videos) listOf(Kind.VIDEO, Kind.SHORT_VIDEO) else listOf(Kind.PICTURE)
-        if (feed.everyone) return timeline(Filter(kinds = kinds, until = until, limit = 40))
-        val me = pubkey ?: return emptyList()
-        val authors = (_following.value + me).toList()
-        return authoredTimeline(authors) { Filter(authors = it, kinds = kinds, until = until, limit = 40) }
     }
 
     /** A profile's notes and reposts. */
@@ -1479,7 +1463,8 @@ class NostrRepository private constructor(private val context: Context) {
     @Volatile private var privateBookmarks: List<List<String>>? = null
 
     /** New mutes and bookmarks go in the private part (the default), or the public tags. */
-    private val privateByDefault get() = com.example.btcwidget.AppPrefs.privateLists(context)
+    /** New bookmarks and mutes are always private (encrypted to yourself, NIP-51). */
+    private val privateByDefault get() = true
 
     private fun applyMutes() {
         val list = muteEvent
@@ -1635,8 +1620,6 @@ class NostrRepository private constructor(private val context: Context) {
         loadProfiles(ranked.map { it.first })
         return ranked.mapNotNull { (pk, n) -> _profiles.value[pk]?.let { it to n } }
     }
-
-    // ---- Badges (NIP-58) ----
 
     fun setWotFilter(on: Boolean) {
         NostrAccountStore.setWotFilter(context, on)

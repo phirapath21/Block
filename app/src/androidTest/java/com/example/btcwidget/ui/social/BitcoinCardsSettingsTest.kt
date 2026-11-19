@@ -3,17 +3,16 @@ package com.example.btcwidget.ui.social
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.btcwidget.AppPrefs
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Settings › Display › Bitcoin in posts: the switches and the per-place style apply and stick. */
+/** Settings › Display › Bitcoin in posts: the one switch applies and sticks. */
 class BitcoinCardsSettingsTest {
 
     @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
@@ -21,33 +20,28 @@ class BitcoinCardsSettingsTest {
     @After
     fun restore() {
         val c = composeTestRule.activity
+        composeTestRule.runOnIdle { BitcoinCards.setShow(c, true) }
+    }
+
+    @Test
+    fun switchingOffHidesCardsAndSticks() {
+        composeTestRule.runOnIdle { BitcoinCards.setShow(composeTestRule.activity, true) }
+        composeTestRule.setContent { Column { BitcoinCardsSettings() } }
+        composeTestRule.onNodeWithText("Bitcoin in posts").performClick()
         composeTestRule.runOnIdle {
-            BitcoinCards.setShowTx(c, true)
-            BitcoinCards.setShowBlocks(c, true)
-            BitcoinCards.setFeedStyle(c, TxCardStyle.ROW)
-            BitcoinCards.setPostStyle(c, TxCardStyle.ROW)
+            assertFalse(BitcoinCards.show)
+            assertFalse(AppPrefs.btcCards(composeTestRule.activity))
         }
     }
 
     @Test
-    fun choosingFullCardForTimelinesSticks() {
+    fun switchingBackOnSticks() {
+        composeTestRule.runOnIdle { BitcoinCards.setShow(composeTestRule.activity, false) }
         composeTestRule.setContent { Column { BitcoinCardsSettings() } }
-        // The first "Full card" belongs to "In timelines".
-        composeTestRule.onAllNodesWithText("Full card")[0].performClick()
+        composeTestRule.onNodeWithText("Bitcoin in posts").performClick()
         composeTestRule.runOnIdle {
-            assertEquals(TxCardStyle.FULL, BitcoinCards.feedStyle)
-            assertEquals(TxCardStyle.ROW, BitcoinCards.postStyle)
-            assertEquals("full", AppPrefs.btcTxStyleFeed(composeTestRule.activity))
-        }
-    }
-
-    @Test
-    fun blockCardsTurnOff() {
-        composeTestRule.setContent { Column { BitcoinCardsSettings() } }
-        composeTestRule.onNodeWithText("Block cards").performClick()
-        composeTestRule.runOnIdle {
-            assertFalse(BitcoinCards.showBlocks)
-            assertFalse(AppPrefs.btcBlockCards(composeTestRule.activity))
+            assertTrue(BitcoinCards.show)
+            assertTrue(AppPrefs.btcCards(composeTestRule.activity))
         }
     }
 }

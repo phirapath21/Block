@@ -311,14 +311,6 @@ fun ChatScreen(vm: SocialViewModel, peers: List<String>, navigate: (NavKey) -> U
                             }
                         }
 
-                        if (messages.isNotEmpty()) item(key = "tip") {
-                            FirstTimeTip(
-                                "swipe-reply",
-                                tr("Swipe a message to the right to reply to it."),
-                                Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
-                            )
-                        }
-
                         itemsIndexed(messages, key = { _, m -> m.id }) { index, m ->
                             val mine = m.sender == me
                             val isUnsent = m.id in unsentIds

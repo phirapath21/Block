@@ -33,20 +33,12 @@ object AppPrefs {
     private const val LANDING_DONE = "landing_done"
     private const val LINKS_IN_APP = "links_in_app"
     private const val INSTANT_PUSH = "instant_push"
-    private const val PRIVATE_LISTS = "private_lists"
-    private const val POW_DIFFICULTY = "pow_difficulty"
     private const val APP_LOOK = "app_look"
-    private const val WHATS_NEW_SEEN = "whats_new_seen"
-    private const val BTC_TX_CARDS = "btc_tx_cards"
-    private const val BTC_BLOCK_CARDS = "btc_block_cards"
-    private const val BTC_TX_STYLE_FEED = "btc_tx_style_feed"
-    private const val BTC_TX_STYLE_POST = "btc_tx_style_post"
-    private const val POW_MATCH_RELAYS = "pow_match_relays"
+    private const val BTC_CARDS = "btc_tx_cards"
     private const val POW_HASH_RATE = "pow_hash_rate"
     private const val LANGUAGE = "language"
     private const val RECENT_SEARCHES = "recent_searches"
     private const val RECENT_PROFILES = "recent_profiles"
-    private const val TIPS_SEEN = "tips_seen"
     private fun modeEnabled(mode: Int) = "mode_enabled_$mode"
     private fun widgetMode(id: Int) = "mode_$id"
     private fun halvingMode(id: Int) = "halving_mode_$id"
@@ -59,7 +51,15 @@ object AppPrefs {
         // The app lock (removed): its PIN hash and salt, failures and choices.
         "app_pin_salt", "app_pin_hash", "app_pin_length", "app_pin_failures", "app_pin_locked_until", "app_biometric_lock", "app_lock_preference", "app_lock_scope", "app_lock_after_ms",
         // The Bitcoin dashboard (removed): its large panel and whether the stack was hidden there.
-        "hero_metric", "stack_hidden"
+        "hero_metric", "stack_hidden",
+        // Proof of work settings (removed: it's now only what relays ask for, automatically).
+        "pow_difficulty", "pow_match_relays",
+        // The private/public choice for new bookmarks and mutes (removed: they're always private).
+        "private_lists",
+        // Separate block-card switch and transaction-card styles (now one switch, one style).
+        "btc_block_cards", "btc_tx_style_feed", "btc_tx_style_post",
+        // "What's new" and the one-time tips (removed).
+        "whats_new_seen", "tips_seen"
     )
 
     const val DEFAULT_REFRESH_MINUTES = 30
@@ -84,38 +84,15 @@ object AppPrefs {
         if (prefs(context).contains(INSTANT_PUSH)) prefs(context).getBoolean(INSTANT_PUSH, false) else null
     fun setInstantPush(context: Context, on: Boolean) = edit(context) { putBoolean(INSTANT_PUSH, on) }
 
-    /** New bookmarks and mutes are private (encrypted, NIP-51; the default) or public. */
-    fun privateLists(context: Context): Boolean = prefs(context).getBoolean(PRIVATE_LISTS, true)
-    fun setPrivateLists(context: Context, private: Boolean) = edit(context) { putBoolean(PRIVATE_LISTS, private) }
-
-    /** The last "What's new" shown (0 = none yet). */
-    fun whatsNewSeen(context: Context): Int = prefs(context).getInt(WHATS_NEW_SEEN, 0)
-    fun setWhatsNewSeen(context: Context, version: Int) = edit(context) { putInt(WHATS_NEW_SEEN, version) }
 
     /** The app's colour theme (screens, menus); widgets keep their own [theme]. */
     fun appLook(context: Context): com.example.btcwidget.theme.AppLook =
         com.example.btcwidget.theme.AppLook.of(prefs(context).getString(APP_LOOK, null))
     fun setAppLook(context: Context, look: com.example.btcwidget.theme.AppLook) = edit(context) { putString(APP_LOOK, look.id) }
 
-    /** Cards for Bitcoin transactions and blocks that notes link to (on by default). */
-    fun btcTxCards(context: Context): Boolean = prefs(context).getBoolean(BTC_TX_CARDS, true)
-    fun setBtcTxCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_TX_CARDS, on) }
-    fun btcBlockCards(context: Context): Boolean = prefs(context).getBoolean(BTC_BLOCK_CARDS, true)
-    fun setBtcBlockCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_BLOCK_CARDS, on) }
-
-    /** How transaction cards look in timelines and on a post's page: "row" (the default) or "full". */
-    fun btcTxStyleFeed(context: Context): String = prefs(context).getString(BTC_TX_STYLE_FEED, null) ?: "row"
-    fun setBtcTxStyleFeed(context: Context, style: String) = edit(context) { putString(BTC_TX_STYLE_FEED, style) }
-    fun btcTxStylePost(context: Context): String = prefs(context).getString(BTC_TX_STYLE_POST, null) ?: "row"
-    fun setBtcTxStylePost(context: Context, style: String) = edit(context) { putString(BTC_TX_STYLE_POST, style) }
-
-    /** Proof of work (NIP-13) mined into new posts, replies and quotes: leading zero bits, 0 = off. */
-    fun powDifficulty(context: Context): Int = prefs(context).getInt(POW_DIFFICULTY, 0)
-    fun setPowDifficulty(context: Context, bits: Int) = edit(context) { putInt(POW_DIFFICULTY, bits) }
-
-    /** Mine at least what the user's relays ask for (NIP-11 `min_pow_difficulty`); on by default. */
-    fun powMatchRelays(context: Context): Boolean = prefs(context).getBoolean(POW_MATCH_RELAYS, true)
-    fun setPowMatchRelays(context: Context, match: Boolean) = edit(context) { putBoolean(POW_MATCH_RELAYS, match) }
+    /** Transaction and block cards under notes that link to them (Settings › Display); on by default. */
+    fun btcCards(context: Context): Boolean = prefs(context).getBoolean(BTC_CARDS, true)
+    fun setBtcCards(context: Context, on: Boolean) = edit(context) { putBoolean(BTC_CARDS, on) }
 
     /** This phone's last measured hashes per second (0 = not measured yet), for time estimates. */
     fun powHashRate(context: Context): Float = prefs(context).getFloat(POW_HASH_RATE, 0f)
@@ -160,11 +137,6 @@ object AppPrefs {
         edit(context) { putString(RECENT_PROFILES, list.joinToString("\n")) }
     }
     fun clearRecentProfiles(context: Context) = edit(context) { remove(RECENT_PROFILES) }
-
-    /** First-run tips already shown (each shows once). */
-    fun tipSeen(context: Context, id: String): Boolean = id in prefs(context).getStringSet(TIPS_SEEN, emptySet()).orEmpty()
-    fun setTipSeen(context: Context, id: String) =
-        edit(context) { putStringSet(TIPS_SEEN, prefs(context).getStringSet(TIPS_SEEN, emptySet()).orEmpty() + id) }
 
     fun currency(context: Context): String = prefs(context).getString(CURRENCY, "USD") ?: "USD"
     fun setCurrency(context: Context, value: String) = edit(context) { putString(CURRENCY, value) }
