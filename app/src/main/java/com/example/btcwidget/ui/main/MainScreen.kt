@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -309,7 +310,7 @@ private val Accent get() = EInk.Accent
 private const val WIDE_DP = 600
 
 /** The bottom bar's height above the navigation bar. */
-private val BOTTOM_BAR_HEIGHT = 62.dp
+private val BOTTOM_BAR_HEIGHT = 56.dp
 
 /**
  * The tabs on a rail at the left, for wide screens: your avatar on top (opens your menu,
@@ -376,9 +377,9 @@ private fun SideRail(
 }
 
 /**
- * The bottom bar: a floating, rounded island with Home, Search, New post (the round + in the
- * middle), Notifications and Messages. The open tab sits in an aurora capsule; unread counts
- * are small accent bubbles on the icon.
+ * The bottom bar: flat along the bottom of the screen under a thin line, with Home, Search,
+ * New post (the round + in the middle), Notifications and Messages. The open tab's icon is
+ * filled in the accent; unread counts are small accent bubbles on the icon.
  */
 @Composable
 private fun BottomBar(
@@ -388,14 +389,10 @@ private fun BottomBar(
     onTab: (MainTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier.fillMaxWidth().screenBackground().navigationBarsPadding().padding(horizontal = 20.dp).padding(top = 4.dp, bottom = 12.dp)) {
+    Column(modifier.fillMaxWidth().screenBackground()) {
+        HorizontalDivider(thickness = 0.5.dp, color = EInk.BodyStroke)
         Row(
-            Modifier.fillMaxWidth().height(BOTTOM_BAR_HEIGHT)
-                .shadow(16.dp, Radius.Full)
-                .clip(Radius.Full)
-                .background(EInk.Sheet)
-                .border(1.dp, EInk.BodyStroke, Radius.Full)
-                .padding(horizontal = 6.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().height(BOTTOM_BAR_HEIGHT),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val (left, right) = BAR_TABS.chunked(2).let { it[0] to it[1] }
@@ -422,16 +419,10 @@ private fun RowScope.BarTab(tab: MainTab, selectedTab: MainTab, badges: Map<Main
     }
 }
 
-/** A tab's icon; the open one filled, in an aurora capsule. */
+/** A tab's icon: the open one filled in the accent, the others outlined. */
 @Composable
 private fun TabIcon(tab: MainTab, selected: Boolean) {
-    Box(
-        Modifier.size(width = 52.dp, height = 38.dp).clip(Radius.Full)
-            .then(if (selected) Modifier.background(Aurora.brush) else Modifier),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Aurora.OnAurora else EInk.Value, modifier = Modifier.size(25.dp))
-    }
+    Icon(tab.icon.of(selected), contentDescription = null, tint = if (selected) Accent else EInk.Value, modifier = Modifier.size(27.dp))
 }
 
 /** "New post": the round + in the middle of the bar (and on the rail). */
