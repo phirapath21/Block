@@ -68,6 +68,7 @@ import java.io.File
 
 /** Conversations list (the Messages tab). */
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
     val account by vm.account.collectAsState()
     val conversations by vm.dmConversations.collectAsState()
@@ -168,6 +169,11 @@ fun MessagesScreen(vm: SocialViewModel, navigate: (NavKey) -> Unit) {
                             }
                         }
                     }
+                }
+            }
+            // Chats / Requests stay at the top while the list scrolls.
+            stickyHeader(key = "header_chips") {
+                Column(Modifier.fillMaxWidth().screenBackground()) {
                     Row(
                         Modifier
                             .fillMaxWidth()
